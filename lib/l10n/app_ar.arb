@@ -1,0 +1,87 @@
+{
+  "@@locale": "ar",
+
+  "appName": "او هاوس",
+
+  "loginSubtitle": "سجل النظافة والإشراف الداخلي",
+  "loginTitle": "تسجيل الدخول",
+  "loginPhoneLabel": "رقم الهاتف",
+  "loginPasswordLabel": "كلمة المرور",
+  "loginButton": "تسجيل الدخول",
+  "loginForgotPassword": "نسيت كلمة المرور؟ اسأل المشرف.",
+  "loginError": "رقم الهاتف أو كلمة المرور غير صحيحة.",
+  "loginConnectionError": "لا يوجد اتصال. تحقق من الشبكة وحاول مرة أخرى.",
+  "loginMissingFields": "أدخل رقم الهاتف وكلمة المرور.",
+  "loginShowPassword": "إظهار كلمة المرور",
+  "loginHidePassword": "إخفاء كلمة المرور",
+  "loginFooter": "نادي أو ويست الرياضي · للموظفين فقط",
+
+  "setPasswordTitle": "تعيين كلمة مرور جديدة",
+  "setPasswordLabel": "كلمة المرور الجديدة",
+  "setPasswordConfirmLabel": "تأكيد كلمة المرور",
+  "setPasswordButton": "حفظ ومتابعة",
+  "setPasswordMismatch": "كلمتا المرور غير متطابقتين.",
+
+  "homeGreeting": "مرحباً، {name}",
+  "@homeGreeting": { "placeholders": { "name": { "type": "String" } } },
+  "homeToDo": "قيد الانتظار",
+  "homeInProgress": "قيد التنفيذ",
+  "homeSubmitted": "تم الإرسال",
+  "homeOverdue": "متأخرة",
+  "homeOfflineBanner": "العمل دون اتصال — {count} تغييرات بانتظار المزامنة",
+  "@homeOfflineBanner": { "placeholders": { "count": { "type": "int" } } },
+
+  "tasksTitle": "مهامي",
+  "tasksTabToday": "اليوم",
+  "tasksTabUpcoming": "القادمة",
+  "tasksTabHistory": "السجل",
+  "tasksSearchHint": "بحث",
+  "tasksEmpty": "لا توجد مهام هنا بعد.",
+  "tasksProgress": "{done}/{total} مكتملة",
+  "@tasksProgress": { "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } } },
+
+  "statusPending": "قيد الانتظار",
+  "statusInProgress": "قيد التنفيذ",
+  "statusSubmitted": "تم الإرسال",
+  "statusApproved": "معتمدة",
+  "statusRejected": "مرفوضة",
+  "statusExpired": "منتهية",
+  "statusExtended": "تم التمديد",
+  "statusExtendedDetail": "تم التمديد — الموعد الأصلي انتهى في {time}",
+  "@statusExtendedDetail": { "placeholders": { "time": { "type": "String" } } },
+
+  "taskDetailWindow": "الفترة الزمنية: {start}–{end}",
+  "@taskDetailWindow": { "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } } },
+  "taskDetailSubmitButton": "إرسال وتوقيع",
+  "taskDetailExpiredMessage": "انتهت الفترة الزمنية — يرجى التواصل مع المشرف للتمديد.",
+  "taskDetailPhotoRequired": "الصورة مطلوبة",
+  "taskDetailRejectedReason": "مرفوضة: {reason}",
+  "@taskDetailRejectedReason": { "placeholders": { "reason": { "type": "String" } } },
+
+  "itemSheetNote": "ملاحظة (اختياري)",
+  "itemSheetTakePhoto": "التقاط صورة",
+  "itemSheetMarkDone": "تحديد كمكتمل",
+
+  "signatureTitle": "التوقيع",
+  "signatureClear": "مسح",
+  "signatureSubmit": "إرسال",
+
+  "successTitle": "تم الإرسال",
+  "successMessage": "طلبك بانتظار مراجعة المشرف.",
+  "successBackButton": "العودة إلى مهامي",
+
+  "historyDetailTitle": "سجل المهمة",
+  "historyDetailReviewNote": "ملاحظة المراجع: {note}",
+  "@historyDetailReviewNote": { "placeholders": { "note": { "type": "String" } } },
+
+  "profileTitle": "الملف الشخصي",
+  "profileChangePassword": "تغيير كلمة المرور",
+  "profileLanguage": "اللغة",
+  "profileSyncStatus": "{count} صور بانتظار الرفع",
+  "@profileSyncStatus": { "placeholders": { "count": { "type": "int" } } },
+  "profileLogout": "تسجيل الخروج",
+
+  "commonCancel": "إلغاء",
+  "commonRetry": "إعادة المحاولة",
+  "commonSave": "حفظ"
+}

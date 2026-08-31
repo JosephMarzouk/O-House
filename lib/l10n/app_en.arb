@@ -1,0 +1,87 @@
+{
+  "@@locale": "en",
+
+  "appName": "O House",
+
+  "loginSubtitle": "Housekeeping & cleaning record",
+  "loginTitle": "Sign in",
+  "loginPhoneLabel": "Phone number",
+  "loginPasswordLabel": "Password",
+  "loginButton": "Sign in",
+  "loginForgotPassword": "Forgotten password? Ask your supervisor.",
+  "loginError": "Incorrect phone number or password.",
+  "loginConnectionError": "No connection. Check your network and try again.",
+  "loginMissingFields": "Enter your phone number and password.",
+  "loginShowPassword": "Show password",
+  "loginHidePassword": "Hide password",
+  "loginFooter": "O West Sports Club · staff access only",
+
+  "setPasswordTitle": "Set a new password",
+  "setPasswordLabel": "New password",
+  "setPasswordConfirmLabel": "Confirm password",
+  "setPasswordButton": "Save and continue",
+  "setPasswordMismatch": "Passwords don't match.",
+
+  "homeGreeting": "Welcome, {name}",
+  "@homeGreeting": { "placeholders": { "name": { "type": "String" } } },
+  "homeToDo": "To do",
+  "homeInProgress": "In progress",
+  "homeSubmitted": "Submitted",
+  "homeOverdue": "Overdue",
+  "homeOfflineBanner": "Working offline — {count} changes pending",
+  "@homeOfflineBanner": { "placeholders": { "count": { "type": "int" } } },
+
+  "tasksTitle": "My Tasks",
+  "tasksTabToday": "Today",
+  "tasksTabUpcoming": "Upcoming",
+  "tasksTabHistory": "History",
+  "tasksSearchHint": "Search",
+  "tasksEmpty": "No tasks here yet.",
+  "tasksProgress": "{done}/{total} done",
+  "@tasksProgress": { "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } } },
+
+  "statusPending": "Pending",
+  "statusInProgress": "In progress",
+  "statusSubmitted": "Submitted",
+  "statusApproved": "Approved",
+  "statusRejected": "Rejected",
+  "statusExpired": "Expired",
+  "statusExtended": "Extended",
+  "statusExtendedDetail": "Extended — original window closed {time}",
+  "@statusExtendedDetail": { "placeholders": { "time": { "type": "String" } } },
+
+  "taskDetailWindow": "Window: {start}–{end}",
+  "@taskDetailWindow": { "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } } },
+  "taskDetailSubmitButton": "Submit & Sign",
+  "taskDetailExpiredMessage": "Window closed — ask your supervisor to extend.",
+  "taskDetailPhotoRequired": "Photo required",
+  "taskDetailRejectedReason": "Rejected: {reason}",
+  "@taskDetailRejectedReason": { "placeholders": { "reason": { "type": "String" } } },
+
+  "itemSheetNote": "Note (optional)",
+  "itemSheetTakePhoto": "Take photo",
+  "itemSheetMarkDone": "Mark done",
+
+  "signatureTitle": "Signature",
+  "signatureClear": "Clear",
+  "signatureSubmit": "Submit",
+
+  "successTitle": "Submitted",
+  "successMessage": "Your submission is pending admin review.",
+  "successBackButton": "Back to my tasks",
+
+  "historyDetailTitle": "Task history",
+  "historyDetailReviewNote": "Reviewer note: {note}",
+  "@historyDetailReviewNote": { "placeholders": { "note": { "type": "String" } } },
+
+  "profileTitle": "Profile",
+  "profileChangePassword": "Change password",
+  "profileLanguage": "Language",
+  "profileSyncStatus": "{count} photos pending upload",
+  "@profileSyncStatus": { "placeholders": { "count": { "type": "int" } } },
+  "profileLogout": "Log out",
+
+  "commonCancel": "Cancel",
+  "commonRetry": "Retry",
+  "commonSave": "Save"
+}

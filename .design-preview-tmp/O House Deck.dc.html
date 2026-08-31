@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="stylesheet" href="_ds/broadsheet-68ab1c78-0874-481d-b979-923b1a81f51a/styles.css">
+<script src="_ds/broadsheet-68ab1c78-0874-481d-b979-923b1a81f51a/_ds_bundle.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<script type="application/json" id="speaker-notes">["O House — the staff-side housekeeping app for O West Sports Club. Eleven screens, built on the Broadsheet system. Ten minutes.","Three commitments: one accent family, the serif as the only typeface, and touch targets sized for gloves. Magenta is reserved so red always means something.","Language is chosen before sign-in, not buried in settings — most staff will set it once and never touch it again. Country code is fixed to +20 so the keypad only ever needs digits.","Four counts, one CTA. The offline banner is a persistent state, not a toast — staff work in wet areas with poor signal and need to trust that nothing is lost.","Three tabs, four statuses on cards. The empty state tells staff when their next round is rather than just saying there is nothing here.","The core screen. Progress lives in the header so it stays visible while the list scrolls; Submit is bottom-anchored and disabled until every required item is done.","Same markup, dir=\"rtl\". Every padding and margin is a logical property, so the mirror is free — and no icon in the app implies direction.","A sheet, not a screen — the checklist stays visible behind it, so ticking a place never loses the sense of where you are in the round.","The signature makes this a record rather than a checklist. The pad is the one surface that never mirrors — signatures are drawn left to right regardless of interface language.","History is read-only and complete: checklist, photos, signature, outcome, reviewer note. Settings exists mainly for the language switch and the sync queue.","Four things I need from you before the next pass. The Flutter source would settle most of the naming."]</script>
+<style>
+body{margin:0;background:#201e1d}
+a{color:var(--color-accent)}a:hover{color:var(--color-accent-700)}
+</style></helmet>
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+<section data-label="Cover" data-screen-label="01" data-speaker-notes="O House — the staff-side housekeeping app for O West Sports Club. Eleven screens, built on the Broadsheet system. Ten minutes." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div style="flex:1;display:flex;align-items:center;gap:96px">
+<img src="uploads/owest.png" alt="O West Sports Club" style="width:300px;height:300px;border-radius:6px;object-fit:cover;flex:none">
+<div>
+<p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">O West Sports Club</p>
+<h1 style="font:600 150px/1 var(--font-heading);letter-spacing:-.035em;margin:0">O House</h1>
+<p style="font:400 40px/1.4 var(--font-body);color:rgba(32,30,29,.62);margin:32px 0 0">Housekeeping and cleaning record — staff app, first design pass</p>
+<div style="display:flex;gap:12px;margin-top:52px">
+<span style="width:78px;height:78px;border-radius:3px;background:var(--color-accent-900)"></span>
+<span style="width:78px;height:78px;border-radius:3px;background:var(--color-accent)"></span>
+<span style="width:78px;height:78px;border-radius:3px;background:var(--color-accent-2-700)"></span>
+<span style="width:78px;height:78px;border-radius:3px;background:var(--color-bg);box-shadow:inset 0 0 0 2px rgba(32,30,29,.18)"></span>
+</div>
+</div>
+</div>
+<div style="flex:none;font:400 26px/1.3 var(--font-body);color:rgba(32,30,29,.45)">11 screens · Flutter · English and Arabic</div>
+</section>
+
+<section data-label="Design Direction" data-screen-label="02" data-speaker-notes="Three commitments: one accent family, the serif as the only typeface, and touch targets sized for gloves. Magenta is reserved so red always means something." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Foundations</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">Design Direction</h2></div>
+<div style="flex:1;display:flex;gap:96px;margin-top:64px">
+<div style="flex:1">
+<p style="font:600 30px/1 var(--font-heading);letter-spacing:.1em;text-transform:uppercase;color:rgba(32,30,29,.45);margin:0 0 34px">Palette</p>
+<div style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;gap:22px"><span style="width:58px;height:58px;border-radius:3px;background:var(--color-accent-900);flex:none"></span><span style="font:400 27px var(--font-body)">Deep ink — headers, sign-in</span></div>
+<div style="display:flex;align-items:center;gap:22px"><span style="width:58px;height:58px;border-radius:3px;background:var(--color-accent);flex:none"></span><span style="font:400 27px var(--font-body)">Cyan — every primary action</span></div>
+<div style="display:flex;align-items:center;gap:22px"><span style="width:58px;height:58px;border-radius:3px;background:var(--color-accent-2-700);flex:none"></span><span style="font:400 27px var(--font-body)">Magenta — rejected, overdue</span></div>
+<div style="display:flex;align-items:center;gap:22px"><span style="width:58px;height:58px;border-radius:3px;background:var(--color-bg);box-shadow:inset 0 0 0 2px rgba(32,30,29,.18);flex:none"></span><span style="font:400 27px var(--font-body)">Paper — every screen ground</span></div>
+</div>
+<p style="font:600 30px/1 var(--font-heading);letter-spacing:.1em;text-transform:uppercase;color:rgba(32,30,29,.45);margin:66px 0 26px">Status</p>
+<div data-om-validate="off" style="display:flex;flex-wrap:wrap;gap:12px">
+<span class="tag tag-neutral" style="font-size:22px;padding:8px 18px">Pending</span>
+<span class="tag tag-accent" style="font-size:22px;padding:8px 18px">In progress</span>
+<span class="tag" style="font-size:22px;padding:8px 18px;background:var(--color-accent-700);color:var(--color-bg)">Submitted</span>
+<span class="tag" style="font-size:22px;padding:8px 18px;background:var(--color-accent-900);color:var(--color-bg)">Approved</span>
+<span class="tag" style="font-size:22px;padding:8px 18px;background:var(--color-accent-2-700);color:var(--color-bg)">Rejected</span>
+<span class="tag" style="font-size:22px;padding:8px 18px;border:1px solid var(--color-accent-2-700);color:var(--color-accent-2-800)">Overdue</span>
+</div>
+</div>
+<div style="flex:1">
+<p style="font:600 30px/1 var(--font-heading);letter-spacing:.1em;text-transform:uppercase;color:rgba(32,30,29,.45);margin:0 0 34px">Type</p>
+<div style="font:600 62px/1.1 var(--font-heading);letter-spacing:-.02em">Source Serif 4</div>
+<p style="font:400 27px/1.5 var(--font-body);color:rgba(32,30,29,.62);margin:20px 0 0;max-width:520px;text-wrap:pretty">One typeface for everything, chrome included. No sans-serif, and no boxes or rules to structure a screen — hierarchy comes from size and whitespace.</p>
+<p style="font:600 30px/1 var(--font-heading);letter-spacing:.1em;text-transform:uppercase;color:rgba(32,30,29,.45);margin:66px 0 34px">Touch</p>
+<div style="display:flex;gap:64px">
+<div><div style="font:600 76px/1 var(--font-heading);letter-spacing:-.03em;color:var(--color-accent-700)">68</div><div style="font:400 25px var(--font-body);color:rgba(32,30,29,.6);margin-top:12px">px checklist row</div></div>
+<div><div style="font:600 76px/1 var(--font-heading);letter-spacing:-.03em;color:var(--color-accent-700)">58</div><div style="font:400 25px var(--font-body);color:rgba(32,30,29,.6);margin-top:12px">px primary button</div></div>
+<div><div style="font:600 76px/1 var(--font-heading);letter-spacing:-.03em;color:var(--color-accent-700)">44</div><div style="font:400 25px var(--font-body);color:rgba(32,30,29,.6);margin-top:12px">px smallest target</div></div>
+</div>
+</div>
+</div>
+</section>
+
+<section data-label="Sign In" data-screen-label="03" data-speaker-notes="Language is chosen before sign-in, not buried in settings — most staff will set it once and never touch it again. Country code is fixed to +20 so the keypad only ever needs digits." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div style="flex:1;display:flex;align-items:flex-start;gap:80px;margin-top:36px">
+<div style="flex:1;display:flex;flex-direction:column;gap:38px;padding-top:6px">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Screen 01</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">Sign In</h2><p style="font:400 31px/1.5 var(--font-body);color:rgba(32,30,29,.72);margin:34px 0 0;max-width:660px;text-wrap:pretty">Phone number and password only. The language toggle sits above the fields so Arabic-first staff can switch before they read anything else.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Fixed +20 prefix</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">The digits field takes a numeric keypad; the prefix is never editable.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">No self-service reset</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">Password recovery goes through a supervisor, which matches how club accounts are issued.</p></div>
+</div>
+<div style="flex:none;display:flex;gap:34px;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:48px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:38px">
+<div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font:600 13px var(--font-heading)"><span>9:41</span><span style="display:flex;gap:6px;font-size:13px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="display:flex;flex-direction:column;align-items:center;padding-top:34px">
+<img src="uploads/owest.png" alt="O West Sports Club" style="width:96px;height:96px;border-radius:4px;object-fit:cover">
+<div style="font:600 34px/1.1 var(--font-heading);letter-spacing:-.02em;margin-top:22px">O House</div>
+<div style="font:400 13.5px/1.4 var(--font-body);color:rgba(243,242,242,.65);margin-top:7px">Housekeeping &amp; cleaning record</div>
+</div>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;padding:26px 28px 30px">
+<div style="display:flex;justify-content:center;margin-bottom:34px">
+<div class="seg" style="border-radius:2px"><span class="seg-opt" style="padding:11px 26px;font-size:14px;background:var(--color-accent);color:var(--color-bg)">English</span><span class="seg-opt" style="padding:11px 26px;font-size:14px">العربية</span></div>
+</div>
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);margin-bottom:9px">Phone number</div>
+<div style="display:flex;align-items:stretch;gap:0;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:2px;overflow:hidden;margin-bottom:24px">
+<span style="display:flex;align-items:center;padding:0 14px;font:600 17px var(--font-heading);color:rgba(32,30,29,.6);background:rgba(32,30,29,.05)">+20</span>
+<span style="display:flex;align-items:center;flex:1;padding:0 14px;min-height:56px;font:400 18px var(--font-body);letter-spacing:.02em">100 442 7318</span>
+</div>
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);margin-bottom:9px">Password</div>
+<div style="display:flex;align-items:center;justify-content:space-between;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:2px;min-height:56px;padding:0 14px;margin-bottom:14px">
+<span style="font:400 18px var(--font-body);letter-spacing:.22em;color:rgba(32,30,29,.75)">••••••••</span><i class="ph-duotone ph-eye" style="font-size:22px;color:var(--color-accent)"></i>
+</div>
+<div style="font:400 13px var(--font-body);color:var(--color-accent-700);margin-bottom:auto">Forgotten password? Ask your supervisor.</div>
+<button class="btn btn-primary" style="width:100%;min-height:56px;font-size:17px;border-radius:2px;margin-top:24px">Sign in</button>
+<div style="text-align:center;font:400 12px var(--font-body);color:rgba(32,30,29,.45);margin-top:16px">O West Sports Club · staff access only</div>
+<div style="width:130px;height:5px;border-radius:3px;background:rgba(32,30,29,.3);margin:22px auto 0"></div>
+</div>
+</div></div></div></div></div>
+</div>
+</section>
+
+<section data-label="Home" data-screen-label="04" data-speaker-notes="Four counts, one CTA. The offline banner is a persistent state, not a toast — staff work in wet areas with poor signal and need to trust that nothing is lost." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div style="flex:1;display:flex;align-items:flex-start;gap:80px;margin-top:36px">
+<div style="flex:1;display:flex;flex-direction:column;gap:38px;padding-top:6px">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Screen 02</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">Home</h2><p style="font:400 31px/1.5 var(--font-body);color:rgba(32,30,29,.72);margin:34px 0 0;max-width:660px;text-wrap:pretty">Counts first, then a single way forward. Overdue is the only number that takes magenta, so a glance is enough to know whether anything is wrong.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Offline is a state, not an alert</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">The banner stays until the queue drains and names how many changes are waiting.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">One CTA</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">Everything else on the screen is information; only "Start today's round" advances the day.</p></div>
+</div>
+<div style="flex:none;display:flex;gap:34px;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:48px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:26px">
+<div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font:600 13px var(--font-heading)"><span>9:41</span><span style="display:flex;gap:6px;font-size:13px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-slash"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:20px 26px 0;gap:16px">
+<div><div style="font:400 13.5px var(--font-body);color:rgba(243,242,242,.6)">Wednesday, 26 August</div>
+<div style="font:600 30px/1.15 var(--font-heading);letter-spacing:-.02em;margin-top:5px">Joseph Marzouk<br></div>
+<div style="font:400 13.5px var(--font-body);color:rgba(243,242,242,.6);margin-top:5px">Housekeeping · Aquatics</div></div>
+<img src="uploads/owest.png" alt="" style="width:44px;height:44px;border-radius:3px;flex:none;object-fit:cover">
+</div>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:11px;padding:13px 26px;background:var(--color-accent-100)">
+<i class="ph-duotone ph-cloud-slash" style="font-size:21px;color:var(--color-accent-700)"></i>
+<div style="font:400 13.5px/1.35 var(--font-body);color:var(--color-accent-800)">Working offline — <strong style="font-weight:600">3 changes pending</strong>. They will sync automatically.</div>
+</div>
+<div style="flex:1;overflow:hidden;padding:30px 26px 0">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:30px 20px">
+<div><div style="font:600 40px/1 var(--font-heading);letter-spacing:-.03em">4</div><div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);margin-top:9px">To do</div></div>
+<div><div style="font:600 40px/1 var(--font-heading);letter-spacing:-.03em;color:var(--color-accent-700)">1</div><div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);margin-top:9px">In progress</div></div>
+<div><div style="font:600 40px/1 var(--font-heading);letter-spacing:-.03em">2</div><div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);margin-top:9px">Submitted</div></div>
+<div><div style="font:600 40px/1 var(--font-heading);letter-spacing:-.03em;color:var(--color-accent-2-700)">1</div><div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:var(--color-accent-2-800);margin-top:9px">Overdue</div></div>
+</div>
+<button class="btn btn-primary" style="width:100%;min-height:60px;font-size:17px;border-radius:2px;margin-top:42px">Start today's round</button>
+<div style="font:400 13px var(--font-body);color:rgba(32,30,29,.55);margin-top:12px;text-align:center">4 assignments · 07:00 – 15:00</div>
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);margin:38px 0 14px">Next up</div>
+<div style="font:600 19px/1.25 var(--font-heading)">Morning round — Swimming pool</div>
+<div style="font:400 13.5px var(--font-body);color:rgba(32,30,29,.55);margin-top:6px">07:00 – 11:00 · 3 of 7 places done</div>
+</div>
+<div style="flex:none;display:flex;padding:12px 0 26px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--color-accent)"><i class="ph-duotone ph-house" style="font-size:26px"></i><span style="font:600 11px var(--font-heading)">Home</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:rgba(32,30,29,.5)"><i class="ph ph-list-checks" style="font-size:26px"></i><span style="font:400 11px var(--font-body)">Assignments</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:rgba(32,30,29,.5)"><i class="ph ph-user" style="font-size:26px"></i><span style="font:400 11px var(--font-body)">Profile</span></div>
+</div>
+</div></div></div></div></div>
+</div>
+</section>
+
+<section data-label="My Assignments" data-screen-label="05" data-speaker-notes="Three tabs, four statuses on cards. The empty state tells staff when their next round is rather than just saying there is nothing here." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div style="flex:1;display:flex;align-items:flex-start;gap:80px;margin-top:36px">
+<div style="flex:1;display:flex;flex-direction:column;gap:38px;padding-top:6px">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Screens 03 and 09</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">My Assignments</h2><p style="font:400 31px/1.5 var(--font-body);color:rgba(32,30,29,.72);margin:34px 0 0;max-width:660px;text-wrap:pretty">Each card carries the site, the time window, progress, and a status chip. Search and filter live in the header band so the list starts at the top of the scroll.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Chips are never colour alone</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">Each status pairs its tint with a distinct icon for colour-blind staff and bright sunlight.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Rejection surfaces on the card</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">A returned assignment names the reviewer before it is opened.</p></div>
+</div>
+<div style="flex:none;display:flex;gap:34px;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:48px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:18px">
+<div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font:600 13px var(--font-heading)"><span>9:41</span><span style="display:flex;gap:6px;font-size:13px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="font:600 27px/1.15 var(--font-heading);letter-spacing:-.02em;padding:14px 26px 0">My Assignments</div>
+<div style="display:flex;align-items:center;gap:12px;padding:18px 26px 0">
+<div style="flex:1;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 14px;border-radius:2px;background:rgba(243,242,242,.12)">
+<i class="ph ph-magnifying-glass" style="font-size:20px;color:rgba(243,242,242,.65)"></i><span style="font:400 15px var(--font-body);color:rgba(243,242,242,.6)">Search site or task</span>
+</div>
+<div style="width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:2px;background:rgba(243,242,242,.12)"><i class="ph-duotone ph-funnel" style="font-size:22px"></i></div>
+</div>
+<div style="display:flex;gap:28px;padding:22px 26px 0">
+<div style="font:600 15px var(--font-heading);padding-bottom:9px;box-shadow:inset 0 -3px 0 var(--color-accent-400)">Today</div>
+<div style="font:400 15px var(--font-body);color:rgba(243,242,242,.55);padding-bottom:9px">Upcoming</div>
+<div style="font:400 15px var(--font-body);color:rgba(243,242,242,.55);padding-bottom:9px">History</div>
+</div>
+</div>
+<div style="flex:1;overflow:hidden;padding:22px 22px 0;display:flex;flex-direction:column;gap:14px">
+
+<div class="card elev-sm" style="padding:18px;gap:0;border-radius:2px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+<div style="font:600 19px/1.25 var(--font-heading)">Morning round</div>
+<span class="tag tag-accent" style="flex:none;font-size:11.5px;padding:4px 10px"><i class="ph ph-dots-three-circle" style="margin-inline-end:5px"></i>In progress</span>
+</div>
+<div style="display:flex;align-items:center;gap:7px;font:400 13.5px var(--font-body);color:rgba(32,30,29,.6);margin-top:8px"><i class="ph-duotone ph-map-pin" style="font-size:17px"></i>Swimming pool<span style="opacity:.5">·</span><i class="ph-duotone ph-clock" style="font-size:17px"></i>07:00 – 11:00</div>
+<div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+<div style="flex:1;height:6px;border-radius:3px;background:rgba(32,30,29,.12);overflow:hidden"><div style="width:43%;height:100%;background:var(--color-accent)"></div></div>
+<span style="font:600 13px var(--font-heading);color:rgba(32,30,29,.7)">3/7 done</span>
+</div>
+</div>
+
+<div class="card elev-sm" style="padding:18px;gap:0;border-radius:2px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+<div style="font:600 19px/1.25 var(--font-heading)">Court turnover</div>
+<span class="tag" style="flex:none;font-size:11.5px;padding:4px 10px;border:1px solid var(--color-accent-2-700);color:var(--color-accent-2-800)"><i class="ph ph-clock-countdown" style="margin-inline-end:5px"></i>Overdue</span>
+</div>
+<div style="display:flex;align-items:center;gap:7px;font:400 13.5px var(--font-body);color:rgba(32,30,29,.6);margin-top:8px"><i class="ph-duotone ph-map-pin" style="font-size:17px"></i>Padel court<span style="opacity:.5">·</span><i class="ph-duotone ph-clock" style="font-size:17px"></i>08:00 – 09:30</div>
+<div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+<div style="flex:1;height:6px;border-radius:3px;background:rgba(32,30,29,.12);overflow:hidden"><div style="width:0%;height:100%;background:var(--color-accent)"></div></div>
+<span style="font:600 13px var(--font-heading);color:rgba(32,30,29,.7)">0/5 done</span>
+</div>
+</div>
+
+<div class="card elev-sm" style="padding:18px;gap:0;border-radius:2px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+<div style="font:600 19px/1.25 var(--font-heading)">Midday wipe-down</div>
+<span class="tag" style="flex:none;font-size:11.5px;padding:4px 10px;background:var(--color-accent-2-700);color:var(--color-bg)"><i class="ph-fill ph-x-circle" style="margin-inline-end:5px"></i>Rejected</span>
+</div>
+<div style="display:flex;align-items:center;gap:7px;font:400 13.5px var(--font-body);color:rgba(32,30,29,.6);margin-top:8px"><i class="ph-duotone ph-map-pin" style="font-size:17px"></i>Outdoor GYM<span style="opacity:.5">·</span><i class="ph-duotone ph-clock" style="font-size:17px"></i>11:30 – 13:00</div>
+<div style="font:400 13px/1.4 var(--font-body);color:var(--color-accent-2-800);margin-top:10px">1 place returned by Joseph Marzouk</div>
+<div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+<div style="flex:1;height:6px;border-radius:3px;background:rgba(32,30,29,.12);overflow:hidden"><div style="width:83%;height:100%;background:var(--color-accent-2-700)"></div></div>
+<span style="font:600 13px var(--font-heading);color:rgba(32,30,29,.7)">5/6 done</span>
+</div>
+</div>
+
+<div class="card elev-sm" style="padding:18px;gap:0;border-radius:2px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+<div style="font:600 19px/1.25 var(--font-heading)">Evening close</div>
+<span class="tag" style="flex:none;font-size:11.5px;padding:4px 10px;background:var(--color-accent-700);color:var(--color-bg)"><i class="ph-fill ph-paper-plane-tilt" style="margin-inline-end:5px"></i>Submitted</span>
+</div>
+<div style="display:flex;align-items:center;gap:7px;font:400 13.5px var(--font-body);color:rgba(32,30,29,.6);margin-top:8px"><i class="ph-duotone ph-map-pin" style="font-size:17px"></i>Squash court<span style="opacity:.5">·</span><i class="ph-duotone ph-clock" style="font-size:17px"></i>13:30 – 15:00</div>
+<div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+<div style="flex:1;height:6px;border-radius:3px;background:rgba(32,30,29,.12);overflow:hidden"><div style="width:100%;height:100%;background:var(--color-accent-700)"></div></div>
+<span style="font:600 13px var(--font-heading);color:rgba(32,30,29,.7)">4/4 done</span>
+</div>
+</div>
+</div>
+<div style="flex:none;display:flex;padding:12px 0 26px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:rgba(32,30,29,.5)"><i class="ph ph-house" style="font-size:26px"></i><span style="font:400 11px var(--font-body)">Home</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--color-accent)"><i class="ph-duotone ph-list-checks" style="font-size:26px"></i><span style="font:600 11px var(--font-heading)">Assignments</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:rgba(32,30,29,.5)"><i class="ph ph-user" style="font-size:26px"></i><span style="font:400 11px var(--font-body)">Profile</span></div>
+</div>
+</div></div></div><div style="font:400 24px/1.3 var(--font-heading);color:rgba(32,30,29,.5)">Today</div></div><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:48px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:18px">
+<div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font:600 13px var(--font-heading)"><span>9:41</span><span style="display:flex;gap:6px;font-size:13px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="font:600 27px/1.15 var(--font-heading);letter-spacing:-.02em;padding:14px 26px 0">My Assignments</div>
+<div style="display:flex;gap:28px;padding:24px 26px 0">
+<div style="font:600 15px var(--font-heading);padding-bottom:9px;box-shadow:inset 0 -3px 0 var(--color-accent-400)">Today</div>
+<div style="font:400 15px var(--font-body);color:rgba(243,242,242,.55);padding-bottom:9px">Upcoming</div>
+<div style="font:400 15px var(--font-body);color:rgba(243,242,242,.55);padding-bottom:9px">History</div>
+</div>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 44px;text-align:center">
+<i class="ph-duotone ph-calendar-check" style="font-size:76px;color:rgba(32,30,29,.28)"></i>
+<div style="font:600 24px/1.25 var(--font-heading);margin-top:24px">Nothing scheduled today</div>
+<p style="font:400 14.5px/1.6 var(--font-body);color:rgba(32,30,29,.55);margin:12px 0 0;text-wrap:pretty">Your next round starts tomorrow at 07:00. If you think this is wrong, check with your supervisor.</p>
+<button class="btn btn-secondary" style="min-height:52px;padding-inline:26px;font-size:15px;border-radius:2px;margin-top:28px">See upcoming</button>
+</div>
+<div style="flex:none;display:flex;padding:12px 0 26px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:rgba(32,30,29,.5)"><i class="ph ph-house" style="font-size:26px"></i><span style="font:400 11px var(--font-body)">Home</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--color-accent)"><i class="ph-duotone ph-list-checks" style="font-size:26px"></i><span style="font:600 11px var(--font-heading)">Assignments</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:rgba(32,30,29,.5)"><i class="ph ph-user" style="font-size:26px"></i><span style="font:400 11px var(--font-body)">Profile</span></div>
+</div>
+</div></div></div></div><div style="font:400 24px/1.3 var(--font-heading);color:rgba(32,30,29,.5)">Empty state</div></div></div>
+</div>
+</section>
+
+<section data-label="Assignment Detail" data-screen-label="06" data-speaker-notes="The core screen. Progress lives in the header so it stays visible while the list scrolls; Submit is bottom-anchored and disabled until every required item is done." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div style="flex:1;display:flex;align-items:flex-start;gap:80px;margin-top:36px">
+<div style="flex:1;display:flex;flex-direction:column;gap:38px;padding-top:6px">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Screen 04</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">Assignment Detail</h2><p style="font:400 31px/1.5 var(--font-body);color:rgba(32,30,29,.72);margin:34px 0 0;max-width:660px;text-wrap:pretty">A checklist of places with a 68px row each. Photo requirements and rejection reasons sit inline under the place name, so nothing needs to be opened to be understood.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Submit gates on completion</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">The button stays disabled with a count of what is left, then becomes the only accent on the screen.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Close, not back</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">The header uses an × rather than a directional arrow, so the same icon works in both reading directions.</p></div>
+</div>
+<div style="flex:none;display:flex;gap:34px;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:48px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:22px">
+<div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font:600 13px var(--font-heading)"><span>9:41</span><span style="display:flex;gap:6px;font-size:13px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 22px 0">
+<div style="padding-inline-start:4px"><div style="font:600 25px/1.2 var(--font-heading);letter-spacing:-.02em">Morning round</div>
+<div style="font:400 13.5px var(--font-body);color:rgba(243,242,242,.65);margin-top:7px">Swimming pool · Wed 26 Aug · 07:00 – 11:00</div></div>
+<div class="oh-tap" style="width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:2px;background:rgba(243,242,242,.12)"><i class="ph ph-x" style="font-size:20px"></i></div>
+</div>
+<div style="padding:26px 26px 0;margin-top:6px">
+<div style="display:flex;align-items:center;justify-content:space-between;font:400 13px var(--font-body);color:rgba(243,242,242,.7);margin-bottom:9px"><span>Progress</span><span style="font-family:var(--font-heading);font-weight:600;color:var(--color-bg)">{{ doneLabel }}</span></div>
+<div style="height:8px;border-radius:4px;background:rgba(243,242,242,.2);overflow:hidden"><div style="{{ barStyle }}"></div></div>
+</div>
+</div>
+
+<div style="flex:1;overflow:hidden;padding-top:4px">
+<sc-for list="{{ items }}" as="it" hint-placeholder-count="7">
+<div class="oh-row oh-tap" onClick="{{ it.toggle }}" style="display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08);transition:background .15s">
+<sc-if value="{{ it.done }}" hint-placeholder-val="{{ true }}"><div style="width:30px;height:30px;flex:none;border-radius:2px;background:var(--color-accent);display:flex;align-items:center;justify-content:center"><i class="ph-bold ph-check" style="font-size:19px;color:var(--color-bg)"></i></div></sc-if>
+<sc-if value="{{ it.notDone }}"><div style="width:30px;height:30px;flex:none;border-radius:2px;border:1.5px solid rgba(32,30,29,.32)"></div></sc-if>
+<div style="flex:1;min-width:0">
+<div style="font:400 17px/1.3 var(--font-body)">{{ it.name }}</div>
+<sc-if value="{{ it.needsPhoto }}"><div style="display:inline-flex;align-items:center;gap:5px;margin-top:7px;font:600 11px var(--font-heading);letter-spacing:.05em;text-transform:uppercase;color:var(--color-accent-800);background:var(--color-accent-100);padding:4px 9px;border-radius:2px"><i class="ph-fill ph-camera" style="font-size:13px"></i>Photo required</div></sc-if>
+<sc-if value="{{ it.rejected }}"><div style="display:flex;align-items:flex-start;gap:7px;margin-top:8px;font:400 13px/1.4 var(--font-body);color:var(--color-accent-2-800)"><i class="ph-fill ph-x-circle" style="font-size:16px;flex:none;margin-top:1px"></i><span>{{ it.reason }}</span></div></sc-if>
+</div>
+<sc-if value="{{ it.hasPhoto }}"><div class="halftone" style="width:48px;height:48px;flex:none;border-radius:2px;background:var(--color-surface);display:flex;align-items:center;justify-content:center"><i class="ph-duotone ph-image" style="font-size:22px;color:rgba(32,30,29,.4)"></i></div></sc-if>
+</div>
+</sc-for>
+</div>
+
+<div style="flex:none;padding:16px 24px 26px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)">
+<sc-if value="{{ allDone }}"><button class="btn btn-primary" style="width:100%;min-height:58px;font-size:17px;border-radius:2px"><i class="ph-fill ph-signature" style="font-size:22px;margin-inline-end:8px"></i>Submit &amp; Sign</button></sc-if>
+<sc-if value="{{ notAllDone }}" hint-placeholder-val="{{ true }}"><button class="btn btn-primary" disabled="disabled" style="width:100%;min-height:58px;font-size:17px;border-radius:2px">Submit &amp; Sign</button>
+<div style="text-align:center;font:400 12.5px var(--font-body);color:rgba(32,30,29,.5);margin-top:10px">{{ remainingLabel }}</div></sc-if>
+<div style="width:130px;height:5px;border-radius:3px;background:rgba(32,30,29,.3);margin:14px auto 0"></div>
+</div>
+</div></div></div></div></div>
+</div>
+</section>
+
+<section data-label="Arabic Layout" data-screen-label="07" data-speaker-notes="Same markup, dir=&quot;rtl&quot;. Every padding and margin is a logical property, so the mirror is free — and no icon in the app implies direction." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div style="flex:1;display:flex;align-items:flex-start;gap:80px;margin-top:36px">
+<div style="flex:1;display:flex;flex-direction:column;gap:38px;padding-top:6px">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Screen 04, mirrored</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">Arabic Layout</h2><p style="font:400 31px/1.5 var(--font-body);color:rgba(32,30,29,.72);margin:34px 0 0;max-width:660px;text-wrap:pretty">The Arabic pass is the same component with the direction flipped. Checkbox, name, badge and thumbnail all reverse; the type scale and row height do not change.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Logical properties throughout</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">No left or right values anywhere in the layout, so nothing needs a second stylesheet.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Eastern Arabic numerals</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">Times, dates and counts render in Arabic-Indic digits when the locale is Arabic.</p></div>
+</div>
+<div style="flex:none;display:flex;gap:34px;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div dir="rtl" style="width:410px;height:864px;padding:10px;border-radius:48px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:22px">
+<div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font:600 13px var(--font-heading)"><span>٩:٤١</span><span style="display:flex;gap:6px;font-size:13px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 22px 0">
+<div style="padding-inline-start:4px"><div style="font:600 25px/1.2 var(--font-heading)">الجولة الصباحية</div>
+<div style="font:400 13.5px var(--font-body);color:rgba(243,242,242,.65);margin-top:7px">حمام السباحة · الأربعاء ٢٦ أغسطس · ٠٧:٠٠ – ١١:٠٠</div></div>
+<div style="width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:2px;background:rgba(243,242,242,.12)"><i class="ph ph-x" style="font-size:20px"></i></div>
+</div>
+<div style="padding:22px 26px 0">
+<div style="display:flex;align-items:center;justify-content:space-between;font:400 13px var(--font-body);color:rgba(243,242,242,.7);margin-bottom:9px"><span>التقدم</span><span style="font-family:var(--font-heading);font-weight:600;color:var(--color-bg)">٣ من ٧ مكتملة</span></div>
+<div style="height:8px;border-radius:4px;background:rgba(243,242,242,.2);overflow:hidden"><div style="width:43%;height:100%;background:var(--color-accent-400)"></div></div>
+</div>
+</div>
+<div style="flex:1;overflow:hidden;padding-top:4px">
+<div class="oh-row" style="display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:30px;height:30px;flex:none;border-radius:2px;background:var(--color-accent);display:flex;align-items:center;justify-content:center"><i class="ph-bold ph-check" style="font-size:19px;color:var(--color-bg)"></i></div><div style="flex:1"><div style="font:400 17px/1.3 var(--font-body)">حوض السباحة</div></div><div class="halftone" style="width:48px;height:48px;flex:none;border-radius:2px;background:var(--color-surface);display:flex;align-items:center;justify-content:center"><i class="ph-duotone ph-image" style="font-size:22px;color:rgba(32,30,29,.4)"></i></div></div>
+<div class="oh-row" style="display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:30px;height:30px;flex:none;border-radius:2px;background:var(--color-accent);display:flex;align-items:center;justify-content:center"><i class="ph-bold ph-check" style="font-size:19px;color:var(--color-bg)"></i></div><div style="flex:1"><div style="font:400 17px/1.3 var(--font-body)">غرف تغيير الملابس</div></div><div class="halftone" style="width:48px;height:48px;flex:none;border-radius:2px;background:var(--color-surface);display:flex;align-items:center;justify-content:center"><i class="ph-duotone ph-image" style="font-size:22px;color:rgba(32,30,29,.4)"></i></div></div>
+<div class="oh-row" style="display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:30px;height:30px;flex:none;border-radius:2px;background:var(--color-accent);display:flex;align-items:center;justify-content:center"><i class="ph-bold ph-check" style="font-size:19px;color:var(--color-bg)"></i></div><div style="flex:1"><div style="font:400 17px/1.3 var(--font-body)">الدشات</div></div></div>
+<div class="oh-row" style="display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:30px;height:30px;flex:none;border-radius:2px;border:1.5px solid rgba(32,30,29,.32)"></div><div style="flex:1"><div style="font:400 17px/1.3 var(--font-body)">كراسي الاستلقاء</div><div style="display:inline-flex;align-items:center;gap:5px;margin-top:7px;font:600 11px var(--font-heading);letter-spacing:.05em;color:var(--color-accent-800);background:var(--color-accent-100);padding:4px 9px;border-radius:2px"><i class="ph-fill ph-camera" style="font-size:13px"></i>صورة مطلوبة</div></div></div>
+<div class="oh-row" style="display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:30px;height:30px;flex:none;border-radius:2px;border:1.5px solid rgba(32,30,29,.32)"></div><div style="flex:1"><div style="font:400 17px/1.3 var(--font-body)">بار حمام السباحة</div><div style="display:flex;align-items:flex-start;gap:7px;margin-top:8px;font:400 13px/1.4 var(--font-body);color:var(--color-accent-2-800)"><i class="ph-fill ph-x-circle" style="font-size:16px;flex:none;margin-top:1px"></i><span>الأرضية لا تزال مبللة — أعد التنظيف وأرفق صورة.</span></div></div></div>
+<div class="oh-row" style="display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:30px;height:30px;flex:none;border-radius:2px;border:1.5px solid rgba(32,30,29,.32)"></div><div style="flex:1"><div style="font:400 17px/1.3 var(--font-body)">محطة المناشف</div></div></div>
+<div class="oh-row" style="display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:30px;height:30px;flex:none;border-radius:2px;border:1.5px solid rgba(32,30,29,.32)"></div><div style="flex:1"><div style="font:400 17px/1.3 var(--font-body)">كرسي المنقذ</div></div></div>
+</div>
+<div style="flex:none;padding:16px 24px 26px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)">
+<button class="btn btn-primary" disabled="disabled" style="width:100%;min-height:58px;font-size:17px;border-radius:2px">إرسال وتوقيع</button>
+<div style="text-align:center;font:400 12.5px var(--font-body);color:rgba(32,30,29,.5);margin-top:10px">تبقى ٤ عناصر مطلوبة</div>
+<div style="width:130px;height:5px;border-radius:3px;background:rgba(32,30,29,.3);margin:14px auto 0"></div>
+</div>
+</div></div></div></div></div>
+</div>
+</section>
+
+<section data-label="Place Detail" data-screen-label="08" data-speaker-notes="A sheet, not a screen — the checklist stays visible behind it, so ticking a place never loses the sense of where you are in the round." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div style="flex:1;display:flex;align-items:flex-start;gap:80px;margin-top:36px">
+<div style="flex:1;display:flex;flex-direction:column;gap:38px;padding-top:6px">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Screen 05</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">Place Detail</h2><p style="font:400 31px/1.5 var(--font-body);color:rgba(32,30,29,.72);margin:34px 0 0;max-width:660px;text-wrap:pretty">Instructions, camera, notes and Mark Done in a bottom sheet. The photo control is the largest target on the sheet because it is the step most often skipped.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Context stays behind</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">The list is dimmed rather than replaced, so closing the sheet returns to the same scroll position.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Photos queue locally</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">Thumbnails appear immediately; upload happens when signal allows.</p></div>
+</div>
+<div style="flex:none;display:flex;gap:34px;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:38px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:28px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:20px">
+<div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:600 12px var(--font-heading)"><span>9:41</span><span style="display:flex;gap:5px;font-size:12px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="padding:10px 22px 0"><div style="font:600 23px/1.2 var(--font-heading)">Morning round</div><div style="font:400 13px var(--font-body);color:rgba(243,242,242,.6);margin-top:5px">Swimming pool · 3 of 7 done</div></div>
+</div>
+<div style="flex:1;position:relative;overflow:hidden">
+<div style="opacity:.35;padding-top:6px">
+<div style="display:flex;align-items:center;gap:16px;min-height:64px;padding:12px 22px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:28px;height:28px;border-radius:2px;background:var(--color-accent)"></div><span style="font:400 17px var(--font-body)">Pool deck</span></div>
+<div style="display:flex;align-items:center;gap:16px;min-height:64px;padding:12px 22px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:28px;height:28px;border-radius:2px;background:var(--color-accent)"></div><span style="font:400 17px var(--font-body)">Changing rooms</span></div>
+<div style="display:flex;align-items:center;gap:16px;min-height:64px;padding:12px 22px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><div style="width:28px;height:28px;border-radius:2px;border:1.5px solid rgba(32,30,29,.32)"></div><span style="font:400 17px var(--font-body)">Sun loungers</span></div>
+</div>
+<div style="position:absolute;inset:0;background:color-mix(in srgb, var(--color-neutral-900) 42%, transparent)"></div>
+<div style="position:absolute;inset-inline:0;bottom:0;background:var(--color-bg);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);padding:10px 24px 24px;display:flex;flex-direction:column">
+<div style="width:44px;height:4px;border-radius:2px;background:rgba(32,30,29,.22);margin:0 auto 18px"></div>
+<div style="font:600 23px/1.2 var(--font-heading)">Sun loungers</div>
+<p style="font:400 14px/1.55 var(--font-body);color:rgba(32,30,29,.65);margin:9px 0 0;text-wrap:pretty">Wipe all 24 loungers, align in rows of six, replace any torn strap. Photo of the finished row is required.</p>
+<div class="oh-tap" style="display:flex;align-items:center;justify-content:center;gap:11px;min-height:76px;margin-top:20px;border-radius:2px;background:var(--color-accent-100);color:var(--color-accent-800)">
+<i class="ph-duotone ph-camera" style="font-size:30px"></i><span style="font:600 16px var(--font-heading)">Take photo</span>
+</div>
+<div style="display:flex;gap:10px;margin-top:14px">
+<div class="halftone" style="width:66px;height:66px;border-radius:2px;background:var(--color-surface);display:flex;align-items:center;justify-content:center"><i class="ph-duotone ph-image" style="font-size:26px;color:rgba(32,30,29,.4)"></i></div>
+<div class="halftone" style="width:66px;height:66px;border-radius:2px;background:var(--color-surface);display:flex;align-items:center;justify-content:center"><i class="ph-duotone ph-image" style="font-size:26px;color:rgba(32,30,29,.4)"></i></div>
+<div style="width:66px;height:66px;border-radius:2px;border:1.5px dashed rgba(32,30,29,.25);display:flex;align-items:center;justify-content:center;color:rgba(32,30,29,.4)"><i class="ph ph-plus" style="font-size:22px"></i></div>
+</div>
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);margin:22px 0 9px">Note (optional)</div>
+<div style="min-height:64px;border-radius:2px;background:var(--color-surface);border:1px solid var(--color-divider);padding:12px 14px;font:400 14px var(--font-body);color:rgba(32,30,29,.45)">Two straps replaced</div>
+<button class="btn btn-primary" style="width:100%;min-height:58px;font-size:17px;border-radius:2px;margin-top:20px">Mark Done</button>
+<div style="display:flex;justify-content:center;gap:64px;margin-top:22px;color:rgba(32,30,29,.4)"><i class="ph ph-square" style="font-size:15px"></i><i class="ph-fill ph-circle" style="font-size:15px"></i><i class="ph ph-triangle" style="font-size:15px"></i></div>
+</div>
+</div>
+</div></div></div></div></div>
+</div>
+</section>
+
+<section data-label="Signature and Submission" data-screen-label="09" data-speaker-notes="The signature makes this a record rather than a checklist. The pad is the one surface that never mirrors — signatures are drawn left to right regardless of interface language." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div style="flex:1;display:flex;align-items:flex-start;gap:80px;margin-top:36px">
+<div style="flex:1;display:flex;flex-direction:column;gap:38px;padding-top:6px">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Screens 06 and 07</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">Signature and Submission</h2><p style="font:400 31px/1.5 var(--font-body);color:rgba(32,30,29,.72);margin:34px 0 0;max-width:660px;text-wrap:pretty">Name and timestamp are pre-filled above the pad. Submission is explicit about what happens next: it is pending review, not done.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">The pad does not mirror</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">Header, labels and buttons flip in Arabic; the drawing surface stays left to right.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Confirmation names the reviewer</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">Staff leave knowing who has it and that they will hear back.</p></div>
+</div>
+<div style="flex:none;display:flex;gap:34px;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:48px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:20px">
+<div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font:600 13px var(--font-heading)"><span>9:41</span><span style="display:flex;gap:6px;font-size:13px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 22px 0">
+<div style="font:600 25px/1.2 var(--font-heading);letter-spacing:-.02em;padding-inline-start:4px">Sign to submit</div>
+<div class="oh-tap" style="width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:2px;background:rgba(243,242,242,.12)"><i class="ph ph-x" style="font-size:20px"></i></div>
+</div>
+</div>
+<div style="flex:1;padding:28px 26px 0;display:flex;flex-direction:column">
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5)">Signed by</div>
+<div style="font:600 24px/1.2 var(--font-heading);margin-top:9px">Joseph Marzouk<br></div>
+<div style="font:400 13.5px var(--font-body);color:rgba(32,30,29,.55);margin-top:6px">Housekeeping · Aquatics · 26 Aug 2026, 11:14</div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin:30px 0 10px">
+<span style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5)">Signature</span>
+<span class="oh-tap btn btn-ghost" onClick="{{ clearSig }}" style="font-size:13.5px">Clear</span>
+</div>
+<div dir="ltr" style="position:relative;height:250px;border-radius:2px;background:var(--color-surface);border:1px solid var(--color-divider);overflow:hidden">
+<div style="position:absolute;left:24px;right:24px;bottom:64px;height:1px;background:rgba(32,30,29,.18)"></div>
+<div style="position:absolute;left:24px;bottom:38px;font:400 12px var(--font-body);color:rgba(32,30,29,.35)">Sign above the line</div>
+<canvas width="640" height="500" ref="{{ sigRef }}" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair"></canvas>
+</div>
+<div style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;font:400 12.5px/1.45 var(--font-body);color:rgba(32,30,29,.55)"><i class="ph-duotone ph-info" style="font-size:16px;flex:none;margin-top:1px;color:var(--color-accent-700)"></i><span>In Arabic the header, labels and buttons mirror; the pad itself stays a left-to-right drawing surface and the guide text stays flush left.</span></div>
+<div style="margin-top:auto;padding-bottom:26px">
+<button class="btn btn-primary oh-tap" onClick="{{ submitSig }}" style="width:100%;min-height:58px;font-size:17px;border-radius:2px">Submit</button>
+<div style="text-align:center;font:400 12.5px var(--font-body);color:rgba(32,30,29,.5);margin-top:10px">{{ sigHint }}</div>
+<div style="width:130px;height:5px;border-radius:3px;background:rgba(32,30,29,.3);margin:14px auto 0"></div>
+</div>
+</div>
+<sc-if value="{{ submitted }}">
+<div style="position:absolute;inset:0;background:var(--color-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px;text-align:center">
+<i class="ph-duotone ph-seal-check" style="font-size:96px;color:var(--color-accent)"></i>
+<div style="font:600 28px/1.2 var(--font-heading);margin-top:26px">Submitted</div>
+<p style="font:400 15px/1.6 var(--font-body);color:rgba(32,30,29,.6);margin:12px 0 0;text-wrap:pretty">Morning round is with Joseph Marzouk for review. You will be notified if anything comes back.</p>
+<button class="btn btn-primary oh-tap" onClick="{{ resetSig }}" style="min-width:220px;min-height:56px;font-size:17px;border-radius:2px;margin-top:34px">Back to assignments</button>
+</div>
+</sc-if>
+</div></div></div><div style="font:400 24px/1.3 var(--font-heading);color:rgba(32,30,29,.5)">Signature</div></div><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:38px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:28px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="height:34px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:600 12px var(--font-heading);color:rgba(32,30,29,.7)"><span>9:41</span><span style="display:flex;gap:5px;font-size:12px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px;text-align:center">
+<i class="ph-duotone ph-seal-check" style="font-size:104px;color:var(--color-accent)"></i>
+<div style="font:600 30px/1.2 var(--font-heading);letter-spacing:-.02em;margin-top:28px">Submitted for review</div>
+<p style="font:400 15px/1.6 var(--font-body);color:rgba(32,30,29,.6);margin:14px 0 0;text-wrap:pretty">Morning round — Swimming pool, signed at 11:14. Joseph Marzouk will approve or return it.</p>
+<span class="tag" style="font-size:11.5px;padding:5px 12px;background:var(--color-accent-700);color:var(--color-bg);margin-top:22px"><i class="ph-fill ph-paper-plane-tilt" style="margin-inline-end:5px"></i>Pending admin review</span>
+</div>
+<div style="flex:none;padding:0 26px 20px">
+<button class="btn btn-primary" style="width:100%;min-height:58px;font-size:17px;border-radius:2px">Back to assignments</button>
+<button class="btn btn-ghost" style="width:100%;min-height:52px;font-size:15px;margin-top:6px">View submission</button>
+<div style="display:flex;justify-content:center;gap:64px;margin-top:16px;color:rgba(32,30,29,.4)"><i class="ph ph-square" style="font-size:15px"></i><i class="ph-fill ph-circle" style="font-size:15px"></i><i class="ph ph-triangle" style="font-size:15px"></i></div>
+</div>
+</div></div></div><div style="font:400 24px/1.3 var(--font-heading);color:rgba(32,30,29,.5)">Submitted</div></div></div>
+</div>
+</section>
+
+<section data-label="Records and Account" data-screen-label="10" data-speaker-notes="History is read-only and complete: checklist, photos, signature, outcome, reviewer note. Settings exists mainly for the language switch and the sync queue." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div style="flex:1;display:flex;align-items:flex-start;gap:80px;margin-top:36px">
+<div style="flex:1;display:flex;flex-direction:column;gap:38px;padding-top:6px">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Screens 08 and 09</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">Records and Account</h2><p style="font:400 31px/1.5 var(--font-body);color:rgba(32,30,29,.72);margin:34px 0 0;max-width:660px;text-wrap:pretty">A past assignment reads as a document — what was done, who signed it, who approved it, and what they said. Settings keeps the sync queue visible.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Read-only by design</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">Nothing in history can be edited, which is what makes the record worth keeping.</p></div>
+<div><p style="font:600 27px/1.3 var(--font-heading);margin:0">Sync is inspectable</p><p style="font:400 25px/1.45 var(--font-body);color:rgba(32,30,29,.6);margin:7px 0 0;text-wrap:pretty">The pending-upload count is a row staff can tap, not a hidden background process.</p></div>
+</div>
+<div style="flex:none;display:flex;gap:34px;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:48px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:20px">
+<div style="height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font:600 13px var(--font-heading)"><span>9:41</span><span style="display:flex;gap:6px;font-size:13px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 22px 0">
+<div style="padding-inline-start:4px"><div style="font:600 25px/1.2 var(--font-heading);letter-spacing:-.02em">Evening close</div>
+<div style="font:400 13.5px var(--font-body);color:rgba(243,242,242,.65);margin-top:7px">Squash court · Tue 25 Aug · 13:30 – 15:00</div></div>
+<div style="width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:2px;background:rgba(243,242,242,.12)"><i class="ph ph-x" style="font-size:20px"></i></div>
+</div>
+<div style="padding:20px 26px 0"><span class="tag" style="font-size:12px;padding:5px 12px;background:var(--color-bg);color:var(--color-accent-900)"><i class="ph-fill ph-seal-check" style="margin-inline-end:6px"></i>Approved</span></div>
+</div>
+<div style="flex:1;overflow:hidden;padding:0 0 0">
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);padding:22px 26px 12px">Checklist · 4 of 4</div>
+<div style="display:flex;align-items:center;gap:14px;min-height:60px;padding:8px 26px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><i class="ph-bold ph-check" style="font-size:18px;color:var(--color-accent-700)"></i><span style="flex:1;font:400 16px var(--font-body)">Court floor</span><div class="halftone" style="width:42px;height:42px;border-radius:2px;background:var(--color-surface);display:flex;align-items:center;justify-content:center"><i class="ph-duotone ph-image" style="font-size:19px;color:rgba(32,30,29,.4)"></i></div></div>
+<div style="display:flex;align-items:center;gap:14px;min-height:60px;padding:8px 26px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><i class="ph-bold ph-check" style="font-size:18px;color:var(--color-accent-700)"></i><span style="flex:1;font:400 16px var(--font-body)">Glass back wall</span><div class="halftone" style="width:42px;height:42px;border-radius:2px;background:var(--color-surface);display:flex;align-items:center;justify-content:center"><i class="ph-duotone ph-image" style="font-size:19px;color:rgba(32,30,29,.4)"></i></div></div>
+<div style="display:flex;align-items:center;gap:14px;min-height:60px;padding:8px 26px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><i class="ph-bold ph-check" style="font-size:18px;color:var(--color-accent-700)"></i><span style="flex:1;font:400 16px var(--font-body)">Bench &amp; bins</span></div>
+<div style="display:flex;align-items:center;gap:14px;min-height:60px;padding:8px 26px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><i class="ph-bold ph-check" style="font-size:18px;color:var(--color-accent-700)"></i><span style="flex:1;font:400 16px var(--font-body)">Lighting check</span></div>
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);padding:24px 26px 12px">Signature</div>
+<div style="margin:0 26px;height:96px;border-radius:2px;background:var(--color-surface);border:1px solid var(--color-divider);position:relative;overflow:hidden">
+<svg viewBox="0 0 320 96" style="position:absolute;inset:0;width:100%;height:100%"><path d="M22 66 C40 30 52 78 66 52 C78 30 86 70 100 56 C112 44 118 30 130 58 C140 80 150 34 164 50 C176 64 184 40 198 46 C214 52 224 70 246 42" fill="none" stroke="#201e1d" stroke-width="2.4" stroke-linecap="round"></path></svg>
+<div style="position:absolute;inset-inline-start:14px;bottom:8px;font:400 11px var(--font-body);color:rgba(32,30,29,.45)">Osama Adel · 25 Aug 2026, 15:02</div>
+</div>
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);padding:24px 26px 10px">Reviewer</div>
+<div style="margin:0 26px;padding:16px;border-radius:2px;background:var(--color-accent-100)">
+<div style="font:600 15px var(--font-heading);color:var(--color-accent-900)">Joseph Marzouk · approved 15:20</div>
+<p style="font:400 13.5px/1.5 var(--font-body);color:var(--color-accent-800);margin:7px 0 0;text-wrap:pretty">Court was spotless. Please log the flickering lamp as maintenance next time.</p>
+</div>
+</div>
+<div style="flex:none;height:34px"></div>
+</div></div></div><div style="font:400 24px/1.3 var(--font-heading);color:rgba(32,30,29,.5)">History detail</div></div><div style="display:flex;flex-direction:column;gap:16px;align-items:center"><div data-om-validate="off"><div style="width:410px;height:864px;padding:10px;border-radius:38px;background:#201e1d;box-shadow:var(--shadow-lg)">
+<div style="width:100%;height:100%;border-radius:28px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;position:relative">
+<div style="flex:none;background:var(--color-accent-900);color:var(--color-bg);padding-bottom:24px">
+<div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:600 12px var(--font-heading)"><span>9:41</span><span style="display:flex;gap:5px;font-size:12px"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+<div style="padding:14px 24px 0"><div style="font:600 27px/1.2 var(--font-heading);letter-spacing:-.02em">Osama Adel</div>
+<div style="font:400 13.5px var(--font-body);color:rgba(243,242,242,.62);margin-top:6px">Housekeeping attendant · Aquatics</div>
+<div style="font:400 13.5px var(--font-body);color:rgba(243,242,242,.62);margin-top:3px">+20 100 442 7318</div></div>
+</div>
+<div style="flex:1;overflow:hidden">
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);padding:24px 24px 12px">Account</div>
+<div class="oh-row oh-tap" style="display:flex;align-items:center;gap:14px;min-height:62px;padding:10px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><i class="ph-duotone ph-lock-key" style="font-size:24px;color:var(--color-accent-700)"></i><span style="flex:1;font:400 16.5px var(--font-body)">Change password</span><i class="ph ph-dots-three-outline" style="font-size:18px;color:rgba(32,30,29,.35)"></i></div>
+<div style="display:flex;align-items:center;gap:14px;min-height:70px;padding:10px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><i class="ph-duotone ph-translate" style="font-size:24px;color:var(--color-accent-700)"></i><span style="flex:1;font:400 16.5px var(--font-body)">Language</span>
+<div class="seg" style="border-radius:2px"><span class="seg-opt" style="padding:9px 14px;font-size:13.5px;background:var(--color-accent);color:var(--color-bg)">EN</span><span class="seg-opt" style="padding:9px 14px;font-size:13.5px">ع</span></div>
+</div>
+<div style="font:600 11px/1 var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:rgba(32,30,29,.5);padding:24px 24px 12px">Sync</div>
+<div class="oh-row oh-tap" style="display:flex;align-items:center;gap:14px;min-height:70px;padding:10px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><i class="ph-duotone ph-cloud-arrow-up" style="font-size:24px;color:var(--color-accent-700)"></i>
+<div style="flex:1"><div style="font:400 16.5px var(--font-body)">3 photos pending upload</div><div style="font:400 12.5px var(--font-body);color:rgba(32,30,29,.55);margin-top:3px">Last synced 08:12 · will retry on Wi-Fi</div></div>
+<span class="tag tag-accent" style="font-size:11px;padding:4px 9px">Sync now</span></div>
+<div class="oh-row oh-tap" style="display:flex;align-items:center;gap:14px;min-height:62px;padding:10px 24px;box-shadow:inset 0 -1px 0 rgba(32,30,29,.08)"><i class="ph-duotone ph-info" style="font-size:24px;color:var(--color-accent-700)"></i><div style="flex:1"><div style="font:400 16.5px var(--font-body)">About O House</div><div style="font:400 12.5px var(--font-body);color:rgba(32,30,29,.55);margin-top:3px">Version 1.4.0 · O West Sports Club</div></div></div>
+<div class="oh-tap" style="display:flex;align-items:center;gap:14px;min-height:62px;padding:10px 24px;margin-top:22px"><i class="ph-duotone ph-sign-out" style="font-size:24px;color:var(--color-accent-2-700)"></i><span style="font:600 16.5px var(--font-heading);color:var(--color-accent-2-800)">Log out</span></div>
+</div>
+<div style="flex:none;display:flex;padding:10px 0 8px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(32,30,29,.5)"><i class="ph ph-house" style="font-size:25px"></i><span style="font:400 11px var(--font-body)">Home</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(32,30,29,.5)"><i class="ph ph-list-checks" style="font-size:25px"></i><span style="font:400 11px var(--font-body)">Assignments</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--color-accent)"><i class="ph-duotone ph-user" style="font-size:25px"></i><span style="font:600 11px var(--font-heading)">Profile</span></div>
+</div>
+<div style="flex:none;display:flex;justify-content:center;gap:64px;padding:6px 0 12px;color:rgba(32,30,29,.4)"><i class="ph ph-square" style="font-size:15px"></i><i class="ph-fill ph-circle" style="font-size:15px"></i><i class="ph ph-triangle" style="font-size:15px"></i></div>
+</div></div></div><div style="font:400 24px/1.3 var(--font-heading);color:rgba(32,30,29,.5)">Profile</div></div></div>
+</div>
+</section>
+
+<section data-label="Open Questions" data-screen-label="11" data-speaker-notes="Four things I need from you before the next pass. The Flutter source would settle most of the naming." style="background:var(--color-bg);display:flex;flex-direction:column;padding:64px 100px 56px;font-family:var(--font-body);color:#201e1d;overflow:hidden">
+<div><p style="font:600 24px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 26px">Next</p><h2 style="font:600 66px/1.08 var(--font-heading);letter-spacing:-.025em;margin:0">Open Questions</h2></div>
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:52px;max-width:1320px">
+<div style="display:flex;gap:44px;align-items:flex-start"><div style="font:600 64px/1 var(--font-heading);color:var(--color-accent-300);flex:none;width:88px">01</div><div><p style="font:600 34px/1.25 var(--font-heading);margin:0">The assignment model</p><p style="font:400 27px/1.5 var(--font-body);color:rgba(32,30,29,.62);margin:12px 0 0">Route names and status values from the Flutter source, so the screens use your vocabulary rather than mine.</p></div></div>
+<div style="display:flex;gap:44px;align-items:flex-start"><div style="font:600 64px/1 var(--font-heading);color:var(--color-accent-300);flex:none;width:88px">02</div><div><p style="font:600 34px/1.25 var(--font-heading);margin:0">Rejection scope</p><p style="font:400 27px/1.5 var(--font-body);color:rgba(32,30,29,.62);margin:12px 0 0">Does an admin return the whole assignment, or individual places? The design currently assumes the whole assignment with per-row reasons.</p></div></div>
+<div style="display:flex;gap:44px;align-items:flex-start"><div style="font:600 64px/1 var(--font-heading);color:var(--color-accent-300);flex:none;width:88px">03</div><div><p style="font:600 34px/1.25 var(--font-heading);margin:0">The admin side</p><p style="font:400 27px/1.5 var(--font-body);color:rgba(32,30,29,.62);margin:12px 0 0">Only the staff app is designed. The review queue and approve or reject flow are not yet drawn.</p></div></div>
+<div style="display:flex;gap:44px;align-items:flex-start"><div style="font:600 64px/1 var(--font-heading);color:var(--color-accent-300);flex:none;width:88px">04</div><div><p style="font:600 34px/1.25 var(--font-heading);margin:0">Real photographs</p><p style="font:400 27px/1.5 var(--font-body);color:rgba(32,30,29,.62);margin:12px 0 0">Thumbnails are placeholders. Site photos of the pool, courts and gym would let me check the halftone treatment at real density.</p></div></div>
+</div>
+</section>
+</x-import>
+</x-dc>
+<script data-dc-script data-props='{"startCompleted":{"editor":"boolean","default":false,"tsType":"boolean","section":"Prototype state"}}'>
+class Component extends DCLogic {
+  state = {
+    done: [true, true, true, false, false, false, false],
+    submitted: false,
+    sigDrawn: false
+  };
+
+  data = [
+    { name: "Pool deck", photo: true },
+    { name: "Changing rooms", photo: true },
+    { name: "Showers", photo: false },
+    { name: "Sun loungers", photo: false, needsPhoto: true },
+    { name: "Poolside bar counter", photo: false, rejected: true, reason: "Floor still wet — re-clean and attach a photo." },
+    { name: "Towel station", photo: false },
+    { name: "Lifeguard chair", photo: false }
+  ];
+
+  componentDidMount() {
+    if (this.props.startCompleted) this.setState({ done: this.data.map(() => true) });
+    this.attach();
+  }
+
+  componentDidUpdate() { this.attach(); }
+
+  attach() {
+    const c = this.canvas;
+    if (!c || c.__wired) return;
+    c.__wired = true;
+    const ctx = c.getContext("2d");
+    ctx.lineWidth = 4.5; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#201e1d";
+    let drawing = false;
+    const pt = (e) => {
+      const r = c.getBoundingClientRect();
+      return [(e.clientX - r.left) * (c.width / r.width), (e.clientY - r.top) * (c.height / r.height)];
+    };
+    c.addEventListener("pointerdown", (e) => {
+      drawing = true; c.setPointerCapture(e.pointerId);
+      const [x, y] = pt(e); ctx.beginPath(); ctx.moveTo(x, y);
+      if (!this.state.sigDrawn) this.setState({ sigDrawn: true });
+    });
+    c.addEventListener("pointermove", (e) => {
+      if (!drawing) return;
+      const [x, y] = pt(e); ctx.lineTo(x, y); ctx.stroke();
+    });
+    c.addEventListener("pointerup", () => { drawing = false; });
+    c.addEventListener("pointerleave", () => { drawing = false; });
+  }
+
+  clear = () => {
+    const c = this.canvas;
+    if (c) c.getContext("2d").clearRect(0, 0, c.width, c.height);
+    this.setState({ sigDrawn: false });
+  };
+
+  renderVals() {
+    const done = this.state.done;
+    const n = done.filter(Boolean).length;
+    const total = done.length;
+    const all = n === total;
+    const left = total - n;
+    return {
+      items: this.data.map((d, i) => ({
+        name: d.name,
+        done: done[i],
+        notDone: !done[i],
+        hasPhoto: d.photo && done[i],
+        needsPhoto: !!d.needsPhoto && !done[i],
+        rejected: !!d.rejected && !done[i],
+        reason: d.reason,
+        toggle: () => this.setState((s) => {
+          const nx = s.done.slice(); nx[i] = !nx[i]; return { done: nx };
+        })
+      })),
+      doneLabel: n + " of " + total + " done",
+      remainingLabel: left === 1 ? "1 item left" : left + " items left",
+      allDone: all,
+      notAllDone: !all,
+      barStyle: { width: Math.round((n / total) * 100) + "%", height: "100%", background: "var(--color-accent-400)", transition: "width .28s ease" },
+      sigRef: (el) => { this.canvas = el; },
+      clearSig: this.clear,
+      submitSig: () => this.setState({ submitted: true }),
+      resetSig: () => { this.clear(); this.setState({ submitted: false }); },
+      submitted: this.state.submitted,
+      sigHint: this.state.sigDrawn ? "Signed 26 Aug 2026, 11:14" : "Draw your signature above to enable submission"
+    };
+  }
+}
+</script>
+</body>
+</html>
