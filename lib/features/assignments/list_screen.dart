@@ -1,11 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/assignment.dart';
-import '../../widgets/status_chip.dart';
+import '../../theme.dart';
+import '../../widgets/app_header.dart';
+import '../../widgets/app_nav_bar.dart';
+import '../../widgets/task_card.dart';
+
+/// §6, screen 5 — artboard 1c. The three day buckets live inside the ink
+/// header; search sits just below it, first thing in the body.
+enum TaskTab { today, upcoming, history }
+
+/// Which bucket an assignment belongs to, by scheduled *day* — not by status.
+/// The design's Today tab shows in-progress, overdue, rejected and submitted
+/// rounds side by side, because "what did my day look like" is the question
+/// the screen answers.
+///
+/// A total partition on purpose: every assignment lands in exactly one tab,
+/// and an undated one shows up in Today rather than disappearing.
+TaskTab tabFor(Assignment a, DateTime now) {
+  final d = a.scheduledDate;
+  if (d == null) return TaskTab.today;
+  final day = DateTime(d.year, d.month, d.day);
+  final today = DateTime(now.year, now.month, now.day);
+  if (day.isAfter(today)) return TaskTab.upcoming;
+  if (day.isBefore(today)) return TaskTab.history;
+  return TaskTab.today;
+}
+
+/// Title *and* site, in both languages — searching "pool" should find the
+/// swimming pool round whichever language the app is currently in.
+bool matchesQuery(Assignment a, String query) {
+  final q = query.trim();
+  if (q.isEmpty) return true;
+  final lower = q.toLowerCase();
+  bool hit(String? s) => s != null && s.toLowerCase().contains(lower);
+  return hit(a.titleEn) ||
+      hit(a.titleAr) ||
+      hit(a.siteNameEn) ||
+      hit(a.siteNameAr);
+}
 
 class TasksListScreen extends ConsumerStatefulWidget {
   const TasksListScreen({super.key});
@@ -15,78 +53,66 @@ class TasksListScreen extends ConsumerStatefulWidget {
 
 class _TasksListScreenState extends ConsumerState<TasksListScreen> {
   String _query = '';
+  TaskTab _tab = TaskTab.today;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final assignments = ref.watch(myAssignmentsProvider).valueOrNull ?? [];
-    final today = DateTime.now();
-    bool isToday(Assignment a) =>
-        a.scheduledDate != null &&
-        a.scheduledDate!.year == today.year &&
-        a.scheduledDate!.month == today.month &&
-        a.scheduledDate!.day == today.day;
-    const terminal = {'submitted', 'approved', 'rejected', 'expired'};
+    final now = DateTime.now();
 
-    List<Assignment> filter(bool Function(Assignment) predicate) => assignments
-        .where(predicate)
-        .where(
-          (a) =>
-              _query.isEmpty ||
-              a.titleEn.toLowerCase().contains(_query.toLowerCase()) ||
-              a.titleAr.contains(_query),
-        )
+    final visible = assignments
+        .where((a) => tabFor(a, now) == _tab && matchesQuery(a, _query))
         .toList();
 
-    final todayList = filter(
-      (a) => isToday(a) && !terminal.contains(a.effectiveStatus),
-    );
-    final upcomingList = filter(
-      (a) =>
-          !isToday(a) &&
-          (a.scheduledDate?.isAfter(today) ?? false) &&
-          !terminal.contains(a.effectiveStatus),
-    );
-    final historyList = filter(
-      (a) =>
-          terminal.contains(a.effectiveStatus) ||
-          (!isToday(a) && (a.scheduledDate?.isBefore(today) ?? false)),
-    );
-
-    return DefaultTabController(
-      length: 3,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(t.tasksTitle),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: t.tasksTabToday),
-              Tab(text: t.tasksTabUpcoming),
-              Tab(text: t.tasksTabHistory),
-            ],
-          ),
-        ),
+        backgroundColor: AppColors.paper,
         body: Column(
           children: [
+            _Header(
+              title: t.tasksTitle,
+              tab: _tab,
+              onTab: (v) => setState(() => _tab = v),
+            ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              // Top gap matches the ListView's own top padding below, so the
+              // search field sits exactly as far from the header as the
+              // first task card sits from the search field.
+              padding: const EdgeInsets.fromLTRB(22, 15, 22, 10),
               child: TextField(
+                onChanged: (v) => setState(() => _query = v),
                 decoration: InputDecoration(
                   hintText: t.tasksSearchHint,
-                  prefixIcon: const Icon(Icons.search),
-                  border: const OutlineInputBorder(),
-                  isDense: true,
+                  prefixIcon: const Icon(Icons.search, size: 20),
                 ),
-                onChanged: (v) => setState(() => _query = v),
               ),
             ),
             Expanded(
-              child: TabBarView(
-                children: [
-                  _TaskList(assignments: todayList, emptyText: t.tasksEmpty),
-                  _TaskList(assignments: upcomingList, emptyText: t.tasksEmpty),
-                  _TaskList(assignments: historyList, emptyText: t.tasksEmpty),
-                ],
+              child: RefreshIndicator(
+                onRefresh: () => ref.refresh(myAssignmentsProvider.future),
+                color: AppColors.cyan,
+                backgroundColor: AppColors.paper,
+                child: visible.isEmpty
+                    ? _Empty(text: t.tasksEmpty)
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        // extendBody is on in the shell, so the last card owes
+                        // itself clearance from the floating nav bar.
+                        padding: EdgeInsets.fromLTRB(
+                          22,
+                          22,
+                          22,
+                          22 + navBarExtent(context),
+                        ),
+                        itemCount: visible.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 14),
+                        itemBuilder: (context, i) => TaskCard(
+                          assignment: visible[i],
+                          onTap: () => context.push('/tasks/${visible[i].id}'),
+                        ),
+                      ),
               ),
             ),
           ],
@@ -96,54 +122,132 @@ class _TasksListScreenState extends ConsumerState<TasksListScreen> {
   }
 }
 
-class _TaskList extends StatelessWidget {
-  const _TaskList({required this.assignments, required this.emptyText});
-  final List<Assignment> assignments;
-  final String emptyText;
+class _Header extends StatelessWidget {
+  const _Header({required this.title, required this.tab, required this.onTab});
+
+  final String title;
+  final TaskTab tab;
+  final ValueChanged<TaskTab> onTab;
 
   @override
   Widget build(BuildContext context) {
-    if (assignments.isEmpty) {
-      return Center(
-        child: Text(emptyText, style: Theme.of(context).textTheme.bodyMedium),
-      );
-    }
     final t = AppLocalizations.of(context)!;
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
-      itemCount: assignments.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, i) {
-        final a = assignments[i];
-        final title = Localizations.localeOf(context).languageCode == 'ar'
-            ? a.titleAr
-            : a.titleEn;
-        return Card(
-          child: ListTile(
-            onTap: () => context.push('/tasks/${a.id}'),
-            title: Text(title.isEmpty ? a.titleEn : title),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (a.siteNameEn != null) Text(a.siteNameEn!),
-                if (a.windowStart != null && a.windowEnd != null)
-                  Text(
-                    t.taskDetailWindow(
-                      a.windowStart!.substring(0, 5),
-                      a.windowEnd!.substring(0, 5),
-                    ),
-                  ),
-                Text(t.tasksProgress(a.doneCount, a.items.length)),
-              ],
+    return AppHeader(
+      title: title,
+      // Even thirds across the header rather than a left-anchored cluster —
+      // each label centers in its own third, so the three stay aligned
+      // across the width however long the current locale's word is, instead
+      // of leaving dead space trailing them.
+      bottom: Padding(
+        padding: const EdgeInsets.fromLTRB(26, 35, 26, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Center(
+                child: _TabLabel(
+                  label: t.tasksTabToday,
+                  selected: tab == TaskTab.today,
+                  onTap: () => onTab(TaskTab.today),
+                ),
+              ),
             ),
-            isThreeLine: true,
-            trailing: StatusChip(
-              status: a.effectiveStatus,
-              wasExtended: a.wasExtended,
+            Expanded(
+              child: Center(
+                child: _TabLabel(
+                  label: t.tasksTabUpcoming,
+                  selected: tab == TaskTab.upcoming,
+                  onTap: () => onTab(TaskTab.upcoming),
+                ),
+              ),
             ),
-          ),
-        );
-      },
+            Expanded(
+              child: Center(
+                child: _TabLabel(
+                  label: t.tasksTabHistory,
+                  selected: tab == TaskTab.history,
+                  onTap: () => onTab(TaskTab.history),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
+
+/// A text row with a 3px rule under the active one, not a Material TabBar —
+/// the same reasoning as LanguageToggle: losing TabBar's indicator, ripple
+/// and equal-width distribution costs more override than writing it out.
+class _TabLabel extends StatelessWidget {
+  const _TabLabel({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    selected: selected,
+    button: true,
+    child: GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.only(bottom: 9),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: selected ? AppColors.cyan : Colors.transparent,
+              width: 3,
+            ),
+          ),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 15,
+            height: 1.2,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            color: selected
+                ? AppColors.paper
+                : const Color(0x8CF3F2F2), // paper @ 55%
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// A ListView rather than a Center, so the pull-to-refresh gesture still
+/// works on an empty tab.
+class _Empty extends StatelessWidget {
+  const _Empty({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => ListView(
+    physics: const AlwaysScrollableScrollPhysics(),
+    padding: EdgeInsets.fromLTRB(26, 90, 26, navBarExtent(context)),
+    children: [
+      const Icon(
+        Icons.checklist_rounded,
+        size: 44,
+        color: Color(0x4D201E1D), // ink @ 30%
+      ),
+      const SizedBox(height: 14),
+      Text(
+        text,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: const Color(0x8C201E1D), // text @ 55%
+        ),
+      ),
+    ],
+  );
 }

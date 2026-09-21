@@ -65,6 +65,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setPasswordMismatch => 'Passwords don\'t match.';
 
   @override
+  String get setPasswordError => 'Couldn\'t save your new password. Try again.';
+
+  @override
   String homeGreeting(String name) {
     return 'Welcome, $name';
   }
@@ -85,6 +88,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String homeOfflineBanner(int count) {
     return 'Working offline — $count changes pending';
   }
+
+  @override
+  String get homeNextUp => 'Next up';
+
+  @override
+  String get homeNothingUpcoming => 'Nothing upcoming right now';
+
+  @override
+  String homeRoundSummary(int count, String start, String end) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count assignments',
+      one: '1 assignment',
+    );
+    return '$_temp0 · $start – $end';
+  }
+
+  @override
+  String get navHome => 'Home';
 
   @override
   String get tasksTitle => 'My Tasks';
@@ -136,8 +159,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String taskDetailWindow(String start, String end) {
-    return 'Window: $start–$end';
+  String get taskDetailProgressLabel => 'Progress';
+
+  @override
+  String taskDetailPhotosMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count places still need a photo',
+      one: '1 place still needs a photo',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -156,13 +188,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get itemSheetNote => 'Note (optional)';
-
-  @override
   String get itemSheetTakePhoto => 'Take photo';
-
-  @override
-  String get itemSheetMarkDone => 'Mark done';
 
   @override
   String get signatureTitle => 'Signature';
@@ -174,16 +200,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signatureSubmit => 'Submit';
 
   @override
-  String get successTitle => 'Submitted';
+  String get successTitle => 'Submitted for review';
 
   @override
-  String get successMessage => 'Your submission is pending admin review.';
+  String successDetail(String task, String time) {
+    return '$task, signed at $time. Your supervisor will approve or return it.';
+  }
 
   @override
   String get successBackButton => 'Back to my tasks';
 
   @override
-  String get historyDetailTitle => 'Task history';
+  String get successViewSubmission => 'View submission';
+
+  @override
+  String historyDetailChecklist(int done, int total) {
+    return 'Checklist · $done of $total';
+  }
+
+  @override
+  String get historyDetailReviewer => 'Reviewer';
 
   @override
   String historyDetailReviewNote(String note) {
@@ -192,6 +228,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileTitle => 'Profile';
+
+  @override
+  String get profileAccountSection => 'Account';
 
   @override
   String get profileChangePassword => 'Change password';
@@ -203,6 +242,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String profileSyncStatus(int count) {
     return '$count photos pending upload';
   }
+
+  @override
+  String get profileAboutSection => 'About';
+
+  @override
+  String get profileAboutOHouse => 'About O-House';
+
+  @override
+  String get profileAboutOHouseBody =>
+      'O House is the housekeeping and cleaning record system for O West Sports Club. More information about the app will appear here soon.';
+
+  @override
+  String get profilePolicies => 'Policies';
+
+  @override
+  String get profilePoliciesBody =>
+      'Club and workplace policies will appear here soon. Ask your supervisor if you need them sooner.';
 
   @override
   String get profileLogout => 'Log out';

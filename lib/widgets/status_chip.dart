@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../theme.dart';
 
 /// Six statuses (§6/§13) plus an independent "extended" marker that can
 /// sit alongside any of them — extension never changes effective_status
 /// away from what it would otherwise be once un-expired.
+///
+/// The four tag treatments come from artboard 1c of the design handoff: a
+/// tinted tag for work in flight, solid grounds for the two closed states,
+/// and an outline for overdue. Colours are palette-only — magenta is reserved
+/// for rejected and overdue, per AppColors' rule.
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.status, this.wasExtended = false});
   final String
@@ -14,35 +20,122 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-    final (label, color) = switch (status) {
-      'pending' => (t.statusPending, Colors.grey),
-      'in_progress' => (t.statusInProgress, Colors.blue),
-      'submitted' => (t.statusSubmitted, Colors.orange),
-      'approved' => (t.statusApproved, Colors.green),
-      'rejected' => (t.statusRejected, Colors.red),
-      'expired' => (t.statusExpired, Colors.red.shade900),
-      _ => (status, Colors.grey),
+    final (label, ground, ink, icon, border) = switch (status) {
+      'pending' => (
+        t.statusPending,
+        AppColors.surface,
+        const Color(0x99201E1D), // text @ 60%
+        Icons.schedule,
+        false,
+      ),
+      'in_progress' => (
+        t.statusInProgress,
+        AppColors.cyanTint,
+        AppColors.cyanDark,
+        Icons.more_horiz,
+        false,
+      ),
+      'submitted' => (
+        t.statusSubmitted,
+        AppColors.cyanDark,
+        AppColors.paper,
+        Icons.send_rounded,
+        false,
+      ),
+      'approved' => (
+        t.statusApproved,
+        AppColors.cyan,
+        AppColors.paper,
+        Icons.check_circle,
+        false,
+      ),
+      'rejected' => (
+        t.statusRejected,
+        AppColors.magenta,
+        AppColors.paper,
+        Icons.cancel,
+        false,
+      ),
+      'expired' => (
+        t.statusExpired,
+        Colors.transparent,
+        AppColors.magenta,
+        Icons.timer_off_outlined,
+        true,
+      ),
+      _ => (
+        status,
+        AppColors.surface,
+        const Color(0x99201E1D),
+        Icons.help_outline,
+        false,
+      ),
     };
 
     return Wrap(
       spacing: 6,
+      runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Chip(
-          label: Text(label, style: const TextStyle(fontSize: 12)),
-          backgroundColor: color.withValues(alpha: 0.15),
-          labelStyle: TextStyle(color: color),
-          side: BorderSide.none,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          visualDensity: VisualDensity.compact,
+        _Tag(
+          label: label,
+          ground: ground,
+          ink: ink,
+          icon: icon,
+          border: border,
         ),
+        // Its own tag rather than a bare warning icon: "extended" is a fact
+        // about the deadline, not an alarm, and amber is not in the palette.
         if (wasExtended)
-          Icon(
-            Icons.warning_amber_rounded,
-            size: 16,
-            color: Colors.amber.shade800,
+          _Tag(
+            label: t.statusExtended,
+            ground: AppColors.surface,
+            ink: const Color(0x99201E1D), // text @ 60%
+            icon: Icons.update,
+            border: false,
           ),
       ],
     );
   }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag({
+    required this.label,
+    required this.ground,
+    required this.ink,
+    required this.icon,
+    required this.border,
+  });
+  final String label;
+  final Color ground;
+  final Color ink;
+  final IconData icon;
+  final bool border;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: ground,
+      borderRadius: kRadiusControl,
+      border: border ? Border.all(color: ink) : null,
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: ink),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            height: 1.2,
+            fontWeight: FontWeight.w600,
+            color: ink,
+          ),
+        ),
+      ],
+    ),
+  );
 }

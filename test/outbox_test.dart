@@ -6,33 +6,90 @@ import 'package:o_house/data/sync.dart';
 // exercised manually per §11 item 7 until Phase 3 gives SyncService a
 // fake client to test against.
 void main() {
-  group('isExpiredError', () {
-    test('recognizes the RPC\'s expiry signal', () {
-      expect(isExpiredError('ASSIGNMENT_EXPIRED'), isTrue);
-      expect(isExpiredError('P0001: ASSIGNMENT_EXPIRED'), isTrue);
+  group('isTerminalError', () {
+    test('recognizes every signal the RPC will keep raising', () {
+      expect(isTerminalError('ASSIGNMENT_EXPIRED'), isTrue);
+      expect(isTerminalError('P0001: ASSIGNMENT_EXPIRED'), isTrue);
+      expect(isTerminalError('EMPTY_SUBMISSION: no item(s) done'), isTrue);
+      expect(
+        isTerminalError('MISSING_PHOTO: 1 item(s) require a photo'),
+        isTrue,
+      );
+      // Pre-0006 databases still raise this one; see _terminalSignals.
+      expect(isTerminalError('INCOMPLETE: 2 item(s) not done'), isTrue);
     });
 
-    test('does not misclassify an unrelated error as terminal', () {
-      expect(isExpiredError('INCOMPLETE: 2 item(s) not done'), isFalse);
-      expect(isExpiredError('network timeout'), isFalse);
+    // These three jammed a real device. mark_item_done raised 'Item not found'
+    // for a tick whose row had been deleted; the classifier was consulted only
+    // inside submit_assignment, so it was retried forever and every op behind
+    // it — including the round the user was signing — never ran.
+    test('recognizes the per-item rejections that used to jam the queue', () {
+      expect(isTerminalError('Item not found'), isTrue);
+      expect(isTerminalError('Not authorized'), isTrue);
+      expect(isTerminalError('Assignment is closed'), isTrue);
+      expect(isTerminalError('Assignment not found'), isTrue);
+    });
+
+    test('leaves a retryable failure retryable', () {
+      // The whole point of the split: a dropped connection must go back on
+      // the queue, not be thrown away as a permanent rejection.
+      expect(isTerminalError('network timeout'), isFalse);
+      expect(isTerminalError('SocketException: Connection refused'), isFalse);
+      // Over-matching is the failure mode worse than a jam — a terminal
+      // verdict deletes a signed round. 'not found' on its own must not match,
+      // or a transient 404 from the gateway would throw the work away.
+      expect(isTerminalError('404 not found'), isFalse);
+      expect(isTerminalError('Service Unavailable'), isFalse);
+    });
+  });
+
+  // signature_url and photo_paths carry three different shapes depending on
+  // who wrote the row, and getting this wrong is invisible — the image just
+  // falls back to the grey placeholder, which also happens for a dozen
+  // legitimate reasons. Only the two cases that need no Supabase client are
+  // asserted; the bucket-path branch calls getPublicUrl and is covered by the
+  // manual check, since initializing Supabase for one string is not worth it.
+  group('mediaUrl', () {
+    test('passes a dashboard-written URL through untouched', () {
+      const url =
+          'https://x.supabase.co/storage/v1/object/public/checklist-media/'
+          'signatures/abc.png';
+      expect(mediaUrl(url), url);
+    });
+
+    test('treats an absolute device path as a local file', () {
+      // Still in the outbox, not yet uploaded — null means "render from disk".
+      expect(mediaUrl('/data/user/0/com.example/cache/sig.png'), isNull);
+      expect(mediaUrl(r'C:\Users\x\AppData\Local\Temp\sig.png'), isNull);
     });
   });
 
   group('buildStoragePath', () {
     test('photo path matches the shape 0002_storage_scoping.sql checks', () {
-      final path = buildStoragePath('photos/abc-123/item-1', 'jpg', timestamp: 42);
+      final path = buildStoragePath(
+        'photos/abc-123/item-1',
+        'jpg',
+        timestamp: 42,
+      );
       expect(path, 'photos/abc-123/item-1-42.jpg');
       expect(path, startsWith('photos/abc-123/'));
     });
 
-    test('signature path matches the shape 0002_storage_scoping.sql checks', () {
-      final path = buildStoragePath('signatures/abc-123', 'png', timestamp: 42);
-      expect(path, 'signatures/abc-123-42.png');
-      // The RLS draft matches `signatures/{id}-%` — the id must be
-      // immediately followed by '-', not '/', or every signature upload
-      // is silently rejected.
-      expect(path, startsWith('signatures/abc-123-'));
-    });
+    test(
+      'signature path matches the shape 0002_storage_scoping.sql checks',
+      () {
+        final path = buildStoragePath(
+          'signatures/abc-123',
+          'png',
+          timestamp: 42,
+        );
+        expect(path, 'signatures/abc-123-42.png');
+        // The RLS draft matches `signatures/{id}-%` — the id must be
+        // immediately followed by '-', not '/', or every signature upload
+        // is silently rejected.
+        expect(path, startsWith('signatures/abc-123-'));
+      },
+    );
 
     test('two uploads a microsecond apart never collide', () {
       final a = buildStoragePath('photos/x/y', 'jpg', timestamp: 1);

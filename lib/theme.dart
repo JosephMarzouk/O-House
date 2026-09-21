@@ -20,6 +20,13 @@ abstract final class AppColors {
   /// accent-2-700 — rejected and overdue only.
   static const magenta = Color(0xFFAA0B56);
 
+  /// accent-2-100 — ground for the expired/rejected stat tile.
+  static const magentaTint = Color(0xFFFFF1F4);
+
+  /// accent-2-900 — label text on [magentaTint]; needs the extra depth
+  /// [magenta] doesn't have to stay legible at small sizes.
+  static const magentaDeep = Color(0xFF4B1528);
+
   /// bg — every screen ground.
   static const paper = Color(0xFFF3F2F2);
 
@@ -35,8 +42,37 @@ abstract final class AppColors {
 /// Radius is 2px everywhere in Broadsheet — there are no rounded cards.
 const kRadius = BorderRadius.all(Radius.circular(2));
 
+// ponytail: not in the design tokens — the floating nav bar and stat tiles
+// are the only elements that lift off the paper, and nothing in the source
+// export specifies their radius. 20px is a placeholder; eyeball-tune against
+// the real nav bar before shipping.
+const kRadiusFloating = BorderRadius.all(Radius.circular(20));
+
+// ponytail: Broadsheet's own spec is flat (kRadius, 2px, "no rounded
+// cards") — these two break from it on request. kRadiusControl covers every
+// interactive control at kControlHeight (buttons, text fields, the language
+// toggle); cards stay flat, as the handoff defines them.
+const kRadiusControl = BorderRadius.all(Radius.circular(16));
+
+/// Bottom corners only — a header sits flush against the top of the screen,
+/// so only the edge that meets the paper body reads as rounded.
+const kRadiusHeader = BorderRadius.vertical(bottom: Radius.circular(28));
+
+/// `--shadow-md` — the floating nav bar and stat tiles.
+const kShadowMd = BoxShadow(
+  color: Color(0x292D2B2B),
+  offset: Offset(0, 3),
+  blurRadius: 10,
+);
+
 /// Sized for gloves: nothing tappable falls below 44, primaries sit at 56.
 const kControlHeight = 56.0;
+
+/// The minimum every screen's ink header stands below the status bar.
+/// AppHeader treats it as a floor, not a fixed size — a header whose content
+/// genuinely needs more room (Tasks' tab row, a task's progress bar) still
+/// grows past it.
+const kHeaderContentHeight = 140.0;
 
 /// The 11px uppercase tracked label that heads every field and section.
 const kSectionLabel = TextStyle(
@@ -101,6 +137,7 @@ ThemeData buildTheme() {
       backgroundColor: AppColors.ink,
       foregroundColor: AppColors.paper,
       elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: kRadiusHeader),
     ),
     inputDecorationTheme: const InputDecorationTheme(
       filled: true,
@@ -108,15 +145,15 @@ ThemeData buildTheme() {
       constraints: BoxConstraints(minHeight: kControlHeight),
       contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: kRadius,
+        borderRadius: kRadiusControl,
         borderSide: BorderSide(color: AppColors.divider),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: kRadius,
+        borderRadius: kRadiusControl,
         borderSide: BorderSide(color: AppColors.divider),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: kRadius,
+        borderRadius: kRadiusControl,
         borderSide: BorderSide(color: AppColors.cyan),
       ),
     ),
@@ -125,7 +162,19 @@ ThemeData buildTheme() {
         backgroundColor: AppColors.cyan,
         foregroundColor: AppColors.paper,
         minimumSize: const Size.fromHeight(kControlHeight),
-        shape: const RoundedRectangleBorder(borderRadius: kRadius),
+        shape: const RoundedRectangleBorder(borderRadius: kRadiusControl),
+      ),
+    ),
+    // Without this an OutlinedButton falls back to Material's ~40px stadium,
+    // so any pair of one filled and one outlined button — Clear and Submit on
+    // the signature screen — comes out visibly mismatched in both height and
+    // corner. Matching filledButtonTheme here fixes every such pair at once.
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.cyanDark,
+        minimumSize: const Size.fromHeight(kControlHeight),
+        side: const BorderSide(color: AppColors.divider),
+        shape: const RoundedRectangleBorder(borderRadius: kRadiusControl),
       ),
     ),
     cardTheme: const CardThemeData(

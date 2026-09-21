@@ -5,11 +5,18 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/assignment.dart';
 import '../../theme.dart';
+import '../../widgets/app_nav_bar.dart';
 import '../../widgets/ink_handoff_panel.dart';
 import '../../widgets/sync_banner.dart';
+import '../../widgets/task_card.dart';
 import '../splash_handoff.dart';
 import 'home_header.dart';
+
+/// Muted body copy — text @ 55%, the design's colour for the round summary
+/// and the Next up meta line.
+const _muted = Color(0x8C201E1D);
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -22,7 +29,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void initState() {
     super.initState();
-    // Safe to call repeatedly — drain() is idempotent per op (§2, §7C).
+    // Registers the connectivity listener, which fires once on subscribe
+    // (connectivity_plus emits the current state at the end of onListen), so
+    // this drains anything a previous session left queued.
+    //
+    // It is NOT safe to call repeatedly, contrary to what this comment used to
+    // claim, and a second call does not re-drain: start() discards its
+    // StreamSubscription and the platform interface caches one broadcast
+    // stream, so a later listener joins an already-listened stream and gets no
+    // current-state event — it only leaks another listener. That is why the
+    // signature screen drains explicitly rather than leaning on this.
     ref.read(syncServiceProvider).start();
   }
 
@@ -32,25 +48,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final profile = ref.watch(currentProfileProvider).valueOrNull;
     final assignments = ref.watch(myAssignmentsProvider).valueOrNull ?? [];
 
-    int count(bool Function(String) match) =>
-        assignments.where((a) => match(a.effectiveStatus)).length;
-
-    final topInset = MediaQuery.paddingOf(context).top;
-    final idealHeader = topInset + kHomeHeaderContentHeight;
-    // Same device-size cap as Login, for the same reason: keyed off the
-    // physical screen, not the keyboard-shrunk viewport.
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final headerHeight = idealHeader < screenHeight * 0.42
-        ? idealHeader
-        : screenHeight * 0.42;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AppColors.paper,
         body: InkHandoffPanel(
           expanded: expanded,
-          collapsedHeight: headerHeight,
+          // Full screen when we came from the splash; Login's header height
+          // when we came from Login. Both supplied by the mixin.
+          expandedHeight: expandedHeight,
+          duration: handoffDuration,
+          collapsedHeight: inkHeaderHeight(context, kHomeHeaderContentHeight),
           // The overlay draws the logo and text; the panel itself is just
           // the ink-coloured, shrinking box behind them.
           panel: const SizedBox.shrink(),
@@ -58,53 +66,142 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             expanded: expanded,
             screenSize: screenSize,
             profile: profile,
+            expandedPanelHeight: expandedHeight,
+            duration: handoffDuration,
           ),
-          body: _body(t, count),
+          body: _body(t, assignments),
         ),
       ),
     );
   }
 
-  Widget _body(AppLocalizations t, int Function(bool Function(String)) count) {
+  Widget _body(AppLocalizations t, List<Assignment> assignments) {
+    int count(String status) =>
+        assignments.where((a) => a.effectiveStatus == status).length;
+
+    // Today's outstanding work, earliest window first — the scope for both
+    // the round summary and Next up. Same predicate the Tasks screen's Today
+    // tab uses; it lives on Assignment so there is only one copy.
+    final todayOpen =
+        assignments.where((a) => a.isToday && !a.isTerminal).toList()..sort(
+          (a, b) => (a.windowStart ?? '').compareTo(b.windowStart ?? ''),
+        );
+
+    // window_start/window_end are zero-padded 'HH:mm:ss', so a plain string
+    // sort is chronological — no parsing needed for the combined span.
+    final starts = todayOpen.map((a) => a.windowStart).nonNulls.toList()
+      ..sort();
+    final ends = todayOpen.map((a) => a.windowEnd).nonNulls.toList()..sort();
+    final hasSpan = starts.isNotEmpty && ends.isNotEmpty;
+
     return Column(
       children: [
         const SyncBanner(),
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.6,
-                children: [
-                  _StatTile(
-                    label: t.homeToDo,
-                    value: count((s) => s == 'pending'),
+          child: RefreshIndicator(
+            // myAssignmentsProvider already does refreshFromServer() then
+            // reads back from the cache, so re-running it *is* the refresh.
+            // Awaiting .future keeps the spinner up for the whole round trip.
+            onRefresh: () => ref.refresh(myAssignmentsProvider.future),
+            color: AppColors.cyan,
+            backgroundColor: AppColors.paper,
+            // CustomScrollView rather than a ListView so SliverFillRemaining
+            // can give the content a bounded height — that is what lets the
+            // Spacer below push Next up onto the bottom of the screen while
+            // the whole thing still scrolls if it ever outgrows the viewport.
+            child: CustomScrollView(
+              // Without this the pull gesture is dead whenever the content
+              // does not overflow, which on this screen is the normal case.
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverPadding(
+                  // Note the 0 bottom: the nav-bar clearance is a trailing
+                  // SizedBox *inside* the column instead. SliverFillRemaining
+                  // fills the viewport, so padding out here would only add
+                  // scrollable space below it — the Spacer would still shove
+                  // Next up to the viewport floor, under the bar.
+                  padding: const EdgeInsets.fromLTRB(26, 30, 26, 0),
+                  sliver: SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Two Rows rather than a GridView: the grid is a
+                        // fixed 2x2, and a GridView is a viewport, which
+                        // cannot report the intrinsic height SliverFillRemaining
+                        // needs to measure this column.
+                        _StatRow(
+                          children: [
+                            _StatTile(
+                              label: t.homeToDo,
+                              value: count('pending'),
+                            ),
+                            _StatTile(
+                              label: t.homeInProgress,
+                              value: count('in_progress'),
+                              ground: AppColors.cyanTint,
+                              number: AppColors.cyanDark,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        _StatRow(
+                          children: [
+                            _StatTile(
+                              label: t.homeSubmitted,
+                              value: count('submitted'),
+                            ),
+                            // Magenta is the app's only alarm colour — this
+                            // is the one tile allowed to reach for it.
+                            _StatTile(
+                              label: t.statusExpired,
+                              value: count('expired'),
+                              ground: AppColors.magentaTint,
+                              number: AppColors.magenta,
+                              labelColor: AppColors.magentaDeep,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 42),
+                        FilledButton(
+                          // go, not push: Tasks is a peer tab now, not a
+                          // screen stacked on top of Home.
+                          onPressed: () => context.go('/tasks'),
+                          child: Text(t.tasksTitle),
+                        ),
+                        if (hasSpan) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            t.homeRoundSummary(
+                              todayOpen.length,
+                              starts.first.substring(0, 5),
+                              ends.last.substring(0, 5),
+                            ),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 13, color: _muted),
+                          ),
+                        ],
+                        // Next up sits on the bottom of the screen. The gap
+                        // is the minimum; the Spacer eats whatever is left
+                        // over above it, and collapses to nothing once the
+                        // content is tall enough to scroll.
+                        const SizedBox(height: 38),
+                        const Spacer(),
+                        Text(t.homeNextUp, style: kSectionLabel),
+                        const SizedBox(height: 14),
+                        if (todayOpen.isEmpty)
+                          const _NothingUpcoming()
+                        else
+                          _NextUp(assignment: todayOpen.first),
+                        // Clears the floating nav bar the shell paints over
+                        // this branch (extendBody).
+                        SizedBox(height: 24 + navBarExtent(context)),
+                      ],
+                    ),
                   ),
-                  _StatTile(
-                    label: t.homeInProgress,
-                    value: count((s) => s == 'in_progress'),
-                  ),
-                  _StatTile(
-                    label: t.homeSubmitted,
-                    value: count((s) => s == 'submitted'),
-                  ),
-                  _StatTile(
-                    label: t.statusExpired,
-                    value: count((s) => s == 'expired'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () => context.push('/tasks'),
-                child: Text(t.tasksTitle),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -112,25 +209,124 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 }
 
+/// A row of two equal status tiles. Fixed height so both rows match whatever
+/// their content happens to be, and so the column above stays measurable.
+class _StatRow extends StatelessWidget {
+  const _StatRow({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 114,
+    child: Row(
+      children: [
+        Expanded(child: children[0]),
+        const SizedBox(width: 14),
+        Expanded(child: children[1]),
+      ],
+    ),
+  );
+}
+
+/// One status count. Takes its colours directly rather than a status string —
+/// the four call sites already know which is which, so a status-to-colour
+/// switch would be indirection for nothing.
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.label, required this.value});
+  const _StatTile({
+    required this.label,
+    required this.value,
+    this.ground = AppColors.surface,
+    this.number = AppColors.text,
+    this.labelColor,
+  });
+
   final String label;
   final int value;
+  final Color ground;
+  final Color number;
+  final Color? labelColor;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('$value', style: Theme.of(context).textTheme.headlineMedium),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: ground,
+        borderRadius: kRadiusFloating,
+        boxShadow: const [kShadowMd],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '$value',
+            // Larger than headlineMedium — the artboard's 600 40px/1.
+            style: TextStyle(
+              fontSize: 40,
+              height: 1,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -1.2,
+              color: number,
+            ),
+          ),
+          const SizedBox(height: 9),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: labelColor == null
+                ? kSectionLabel
+                : kSectionLabel.copyWith(color: labelColor),
+          ),
+        ],
       ),
     );
   }
+}
+
+/// Stands in for [_NextUp] when nothing is left outstanding today. Centred
+/// under the same section label, so the block keeps its place on the screen
+/// instead of the whole layout jumping when the last task is submitted.
+class _NothingUpcoming extends StatelessWidget {
+  const _NothingUpcoming();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.event_available_outlined,
+            size: 46,
+            color: Color(0x4D201E1D), // ink @ 30%
+          ),
+          const SizedBox(height: 12),
+          Text(
+            t.homeNothingUpcoming,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, height: 1.4, color: _muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The next outstanding assignment today, in the exact same card Tasks uses
+/// for every row — title, site, window, progress — rather than a bespoke
+/// summary line.
+class _NextUp extends StatelessWidget {
+  const _NextUp({required this.assignment});
+
+  final Assignment assignment;
+
+  @override
+  Widget build(BuildContext context) => TaskCard(
+    assignment: assignment,
+    onTap: () => context.push('/tasks/${assignment.id}'),
+  );
 }

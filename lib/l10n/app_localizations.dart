@@ -206,6 +206,12 @@ abstract class AppLocalizations {
   /// **'Passwords don\'t match.'**
   String get setPasswordMismatch;
 
+  /// No description provided for @setPasswordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your new password. Try again.'**
+  String get setPasswordError;
+
   /// No description provided for @homeGreeting.
   ///
   /// In en, this message translates to:
@@ -241,6 +247,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Working offline — {count} changes pending'**
   String homeOfflineBanner(int count);
+
+  /// No description provided for @homeNextUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Next up'**
+  String get homeNextUp;
+
+  /// No description provided for @homeNothingUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing upcoming right now'**
+  String get homeNothingUpcoming;
+
+  /// No description provided for @homeRoundSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 assignment} other{{count} assignments}} · {start} – {end}'**
+  String homeRoundSummary(int count, String start, String end);
+
+  /// No description provided for @navHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
 
   /// No description provided for @tasksTitle.
   ///
@@ -332,11 +362,17 @@ abstract class AppLocalizations {
   /// **'Extended — original window closed {time}'**
   String statusExtendedDetail(String time);
 
-  /// No description provided for @taskDetailWindow.
+  /// No description provided for @taskDetailProgressLabel.
   ///
   /// In en, this message translates to:
-  /// **'Window: {start}–{end}'**
-  String taskDetailWindow(String start, String end);
+  /// **'Progress'**
+  String get taskDetailProgressLabel;
+
+  /// No description provided for @taskDetailPhotosMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 place still needs a photo} other{{count} places still need a photo}}'**
+  String taskDetailPhotosMissing(int count);
 
   /// No description provided for @taskDetailSubmitButton.
   ///
@@ -362,23 +398,11 @@ abstract class AppLocalizations {
   /// **'Rejected: {reason}'**
   String taskDetailRejectedReason(String reason);
 
-  /// No description provided for @itemSheetNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Note (optional)'**
-  String get itemSheetNote;
-
   /// No description provided for @itemSheetTakePhoto.
   ///
   /// In en, this message translates to:
   /// **'Take photo'**
   String get itemSheetTakePhoto;
-
-  /// No description provided for @itemSheetMarkDone.
-  ///
-  /// In en, this message translates to:
-  /// **'Mark done'**
-  String get itemSheetMarkDone;
 
   /// No description provided for @signatureTitle.
   ///
@@ -401,14 +425,14 @@ abstract class AppLocalizations {
   /// No description provided for @successTitle.
   ///
   /// In en, this message translates to:
-  /// **'Submitted'**
+  /// **'Submitted for review'**
   String get successTitle;
 
-  /// No description provided for @successMessage.
+  /// No description provided for @successDetail.
   ///
   /// In en, this message translates to:
-  /// **'Your submission is pending admin review.'**
-  String get successMessage;
+  /// **'{task}, signed at {time}. Your supervisor will approve or return it.'**
+  String successDetail(String task, String time);
 
   /// No description provided for @successBackButton.
   ///
@@ -416,11 +440,23 @@ abstract class AppLocalizations {
   /// **'Back to my tasks'**
   String get successBackButton;
 
-  /// No description provided for @historyDetailTitle.
+  /// No description provided for @successViewSubmission.
   ///
   /// In en, this message translates to:
-  /// **'Task history'**
-  String get historyDetailTitle;
+  /// **'View submission'**
+  String get successViewSubmission;
+
+  /// No description provided for @historyDetailChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist · {done} of {total}'**
+  String historyDetailChecklist(int done, int total);
+
+  /// No description provided for @historyDetailReviewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewer'**
+  String get historyDetailReviewer;
 
   /// No description provided for @historyDetailReviewNote.
   ///
@@ -433,6 +469,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Profile'**
   String get profileTitle;
+
+  /// No description provided for @profileAccountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get profileAccountSection;
 
   /// No description provided for @profileChangePassword.
   ///
@@ -451,6 +493,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} photos pending upload'**
   String profileSyncStatus(int count);
+
+  /// No description provided for @profileAboutSection.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get profileAboutSection;
+
+  /// No description provided for @profileAboutOHouse.
+  ///
+  /// In en, this message translates to:
+  /// **'About O-House'**
+  String get profileAboutOHouse;
+
+  /// No description provided for @profileAboutOHouseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'O House is the housekeeping and cleaning record system for O West Sports Club. More information about the app will appear here soon.'**
+  String get profileAboutOHouseBody;
+
+  /// No description provided for @profilePolicies.
+  ///
+  /// In en, this message translates to:
+  /// **'Policies'**
+  String get profilePolicies;
+
+  /// No description provided for @profilePoliciesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Club and workplace policies will appear here soon. Ask your supervisor if you need them sooner.'**
+  String get profilePoliciesBody;
 
   /// No description provided for @profileLogout.
   ///

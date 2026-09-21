@@ -14,6 +14,8 @@ import 'features/auth/splash_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'supabase.dart';
+import 'theme.dart';
+import 'widgets/app_nav_bar.dart';
 
 final router = GoRouter(
   initialLocation: '/splash',
@@ -42,8 +44,51 @@ final router = GoRouter(
       path: '/set-password',
       builder: (c, s) => const SetPasswordScreen(),
     ),
-    GoRoute(path: '/home', builder: (c, s) => const HomeScreen()),
-    GoRoute(path: '/tasks', builder: (c, s) => const TasksListScreen()),
+
+    // The three peer destinations. indexedStack keeps every branch alive, so
+    // switching tabs preserves each one's scroll offset and the tasks search
+    // field, and none of them shows a back arrow — at a branch root there is
+    // nothing to pop, so AppBar.automaticallyImplyLeading finds nothing.
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, shell) => Scaffold(
+        backgroundColor: AppColors.paper,
+        // The branches paint *under* the floating bar, so Home's ink panel
+        // can still reach the bottom of the screen during the splash
+        // hand-off. Scrollables owe their last row navBarExtent() of padding.
+        extendBody: true,
+        body: shell,
+        bottomNavigationBar: AppNavBar(shell: shell),
+      ),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            // No transition, for the same reason /login has none: Home opens
+            // with its ink panel already at Login's header height and drags
+            // it down itself. A route animation would slide the whole screen
+            // across that motion and show as a seam.
+            GoRoute(
+              path: '/home',
+              pageBuilder: (c, s) =>
+                  const NoTransitionPage(child: HomeScreen()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/tasks', builder: (c, s) => const TasksListScreen()),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/profile', builder: (c, s) => const ProfileScreen()),
+          ],
+        ),
+      ],
+    ),
+
+    // Full-screen work, deliberately outside the shell: declared top-level
+    // rather than nested under the branch's /tasks precisely so they do not
+    // inherit the nav bar. These are pushed, and keep their back arrow.
     GoRoute(
       path: '/tasks/:id',
       builder: (c, s) =>
@@ -55,14 +100,13 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/tasks/:id/success',
-      builder: (c, s) => const SuccessScreen(),
+      builder: (c, s) => SuccessScreen(assignmentId: s.pathParameters['id']!),
     ),
     GoRoute(
       path: '/history/:id',
       builder: (c, s) =>
           HistoryDetailScreen(assignmentId: s.pathParameters['id']!),
     ),
-    GoRoute(path: '/profile', builder: (c, s) => const ProfileScreen()),
   ],
 );
 

@@ -30,12 +30,20 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
     });
     try {
       await supabase.auth.updateUser(UserAttributes(password: _password.text));
-      await supabase
-          .from('profiles')
-          .update({'must_change_password': false})
-          .eq('id', supabase.auth.currentUser!.id);
+      // Must go through the RPC. `authenticated` holds an UPDATE grant on
+      // profiles.name ONLY, so writing must_change_password directly raises
+      // 42501 — and with no catch below, that silently stranded the user here
+      // with their new password already applied, bounced straight back to this
+      // screen on every launch. complete_password_change() is SECURITY DEFINER
+      // and does exactly this one write for auth.uid().
+      await supabase.rpc('complete_password_change');
       ref.invalidate(currentProfileProvider);
       if (mounted) context.go('/home');
+    } catch (e) {
+      // Never swallow: the flag not flipping is what makes the loop, so the
+      // user has to be told rather than left staring at a cleared spinner.
+      debugPrint('SetPasswordScreen._submit failed: $e');
+      if (mounted) setState(() => _error = t.setPasswordError);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

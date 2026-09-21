@@ -68,7 +68,8 @@ void main() {
         tester.widget<EditableText>(find.byType(EditableText).at(1));
     expect(password().obscureText, isTrue);
 
-    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    // While obscured the button shows the slashed eye — tapping it reveals.
+    await tester.tap(find.byIcon(Icons.visibility_off_outlined));
     await tester.pumpAndSettle();
 
     expect(password().obscureText, isFalse);

@@ -65,6 +65,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get setPasswordMismatch => 'كلمتا المرور غير متطابقتين.';
 
   @override
+  String get setPasswordError =>
+      'تعذّر حفظ كلمة المرور الجديدة. حاول مرة أخرى.';
+
+  @override
   String homeGreeting(String name) {
     return 'مرحباً، $name';
   }
@@ -85,6 +89,28 @@ class AppLocalizationsAr extends AppLocalizations {
   String homeOfflineBanner(int count) {
     return 'العمل دون اتصال — $count تغييرات بانتظار المزامنة';
   }
+
+  @override
+  String get homeNextUp => 'التالي';
+
+  @override
+  String get homeNothingUpcoming => 'لا يوجد مهام قادمة حتى الآن';
+
+  @override
+  String homeRoundSummary(int count, String start, String end) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مهمة',
+      few: '$count مهام',
+      two: 'مهمتان',
+      one: 'مهمة واحدة',
+    );
+    return '$_temp0 · $start – $end';
+  }
+
+  @override
+  String get navHome => 'الرئيسية';
 
   @override
   String get tasksTitle => 'مهامي';
@@ -136,8 +162,19 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String taskDetailWindow(String start, String end) {
-    return 'الفترة الزمنية: $start–$end';
+  String get taskDetailProgressLabel => 'التقدم';
+
+  @override
+  String taskDetailPhotosMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مكانًا ما زال يحتاج صورة',
+      few: '$count أماكن ما زالت تحتاج صورة',
+      two: 'مكانان ما زالا يحتاجان صورة',
+      one: 'مكان واحد ما زال يحتاج صورة',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -156,13 +193,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get itemSheetNote => 'ملاحظة (اختياري)';
-
-  @override
   String get itemSheetTakePhoto => 'التقاط صورة';
-
-  @override
-  String get itemSheetMarkDone => 'تحديد كمكتمل';
 
   @override
   String get signatureTitle => 'التوقيع';
@@ -174,16 +205,26 @@ class AppLocalizationsAr extends AppLocalizations {
   String get signatureSubmit => 'إرسال';
 
   @override
-  String get successTitle => 'تم الإرسال';
+  String get successTitle => 'تم الإرسال للمراجعة';
 
   @override
-  String get successMessage => 'طلبك بانتظار مراجعة المشرف.';
+  String successDetail(String task, String time) {
+    return '$task، تم التوقيع في $time. سيقوم المشرف بالاعتماد أو الإرجاع.';
+  }
 
   @override
   String get successBackButton => 'العودة إلى مهامي';
 
   @override
-  String get historyDetailTitle => 'سجل المهمة';
+  String get successViewSubmission => 'عرض الإرسال';
+
+  @override
+  String historyDetailChecklist(int done, int total) {
+    return 'قائمة التحقق · $done من $total';
+  }
+
+  @override
+  String get historyDetailReviewer => 'المراجع';
 
   @override
   String historyDetailReviewNote(String note) {
@@ -192,6 +233,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get profileTitle => 'الملف الشخصي';
+
+  @override
+  String get profileAccountSection => 'الحساب';
 
   @override
   String get profileChangePassword => 'تغيير كلمة المرور';
@@ -203,6 +247,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String profileSyncStatus(int count) {
     return '$count صور بانتظار الرفع';
   }
+
+  @override
+  String get profileAboutSection => 'حول';
+
+  @override
+  String get profileAboutOHouse => 'عن أو هاوس';
+
+  @override
+  String get profileAboutOHouseBody =>
+      'أو هاوس هو نظام سجل النظافة والإشراف الداخلي لنادي أو ويست الرياضي. سيتم إضافة مزيد من المعلومات عن التطبيق هنا قريبًا.';
+
+  @override
+  String get profilePolicies => 'السياسات';
+
+  @override
+  String get profilePoliciesBody =>
+      'ستظهر سياسات النادي والعمل هنا قريبًا. يرجى سؤال المشرف إذا احتجتها قبل ذلك.';
 
   @override
   String get profileLogout => 'تسجيل الخروج';

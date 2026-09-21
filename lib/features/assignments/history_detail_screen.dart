@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/localized_text.dart';
+import '../../models/assignment.dart';
+import '../../models/assignment_item.dart';
+import '../../theme.dart';
+import '../../widgets/app_header.dart';
 import '../../widgets/photo_thumb.dart';
 import '../../widgets/status_chip.dart';
 
-/// §6, screen 10 — fully read-only, no item sheet, no submit bar.
+/// §6, screen 10 — artboard 1i. What was submitted, exactly as it was sent:
+/// no checkboxes, no camera, no submit bar, nothing tappable in the body.
+///
+/// The read-only signal is the tick itself — a bare check glyph rather than a
+/// filled checkbox, so there is nothing on screen that looks like it toggles.
 class HistoryDetailScreen extends ConsumerWidget {
   const HistoryDetailScreen({super.key, required this.assignmentId});
   final String assignmentId;
@@ -23,75 +35,188 @@ class HistoryDetailScreen extends ConsumerWidget {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(t.historyDetailTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  assignment.titleEn,
-                  style: Theme.of(context).textTheme.titleLarge,
+    final a = assignment;
+    final locale = Localizations.localeOf(context).toString();
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AppColors.paper,
+        body: Column(
+          children: [
+            AppHeader(
+              title: pickLocalized(context, a.titleAr, a.titleEn),
+              subtitle: assignmentSubtitle(context, a),
+              actions: [
+                HeaderIconButton(
+                  icon: Icons.close,
+                  label: MaterialLocalizations.of(context).closeButtonLabel,
+                  // Always the tasks list, never a pop — this screen is
+                  // reached by pushing from Success, and popping would only
+                  // land back there.
+                  onPressed: () => context.go('/tasks'),
+                ),
+              ],
+              // 1i puts the outcome chip inside the ink, not on the paper.
+              bottom: Padding(
+                padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: StatusChip(
+                    status: a.effectiveStatus,
+                    wasExtended: a.wasExtended,
+                  ),
                 ),
               ),
-              StatusChip(
-                status: assignment.effectiveStatus,
-                wasExtended: assignment.wasExtended,
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 34),
+                children: [
+                  _Label(t.historyDetailChecklist(a.doneCount, a.items.length)),
+                  for (final item in a.items) _ItemRow(item: item),
+                  _Label(t.signatureTitle),
+                  _Signature(assignment: a, locale: locale),
+                  if (a.reviewNote != null && a.reviewNote!.isNotEmpty) ...[
+                    _Label(t.historyDetailReviewer),
+                    _ReviewerCard(note: a.reviewNote!),
+                  ],
+                ],
               ),
-            ],
-          ),
-          if (assignment.wasExtended && assignment.extensionNote != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              '⚠ ${assignment.extensionNote}',
-              style: const TextStyle(color: Colors.amber),
             ),
           ],
-          const SizedBox(height: 16),
-          ...assignment.items.map(
-            (item) => ListTile(
-              leading: Icon(
-                item.status == 'rejected'
-                    ? Icons.error_outline
-                    : item.status == 'done'
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
-                color: item.status == 'rejected'
-                    ? Colors.red
-                    : (item.status == 'done' ? Colors.green : null),
-              ),
-              title: Text(item.textEn),
-              subtitle: item.photoPaths.isEmpty
-                  ? null
-                  : Wrap(
-                      spacing: 6,
-                      children: item.photoPaths
-                          .map((p) => PhotoThumb(path: p, size: 40))
-                          .toList(),
-                    ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Label extends StatelessWidget {
+  const _Label(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(26, 24, 26, 12),
+    child: Text(text.toUpperCase(), style: kSectionLabel),
+  );
+}
+
+class _ItemRow extends StatelessWidget {
+  const _ItemRow({required this.item});
+  final AssignmentItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final rejected = item.status == 'rejected';
+    return Container(
+      constraints: const BoxConstraints(minHeight: 60),
+      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Color(0x14201E1D)), // text @ 8%
+        ),
+      ),
+      child: Row(
+        children: [
+          // A glyph, not a checkbox — nothing here is toggleable any more.
+          Icon(
+            rejected ? Icons.close : Icons.check,
+            size: 18,
+            color: rejected ? AppColors.magenta : AppColors.cyanDark,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              pickLocalized(context, item.textAr, item.textEn),
+              style: const TextStyle(fontSize: 16, height: 1.3),
             ),
           ),
-          if (assignment.reviewNote != null) ...[
-            const Divider(height: 32),
-            Text(t.historyDetailReviewNote(assignment.reviewNote!)),
-          ],
-          if (assignment.signatureUrl != null) ...[
-            const Divider(height: 32),
-            Text(
-              t.signatureTitle,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: PhotoThumb(path: assignment.signatureUrl!, size: 160),
-            ),
+          for (final path in item.photoPaths) ...[
+            const SizedBox(width: 8),
+            PhotoThumb(path: path, size: 42),
           ],
         ],
       ),
     );
   }
+}
+
+class _Signature extends StatelessWidget {
+  const _Signature({required this.assignment, required this.locale});
+  final Assignment assignment;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final signedAt = assignment.submittedAt ?? assignment.completedAt;
+    final caption = [
+      if (assignment.assigneeName.isNotEmpty) assignment.assigneeName,
+      if (signedAt != null)
+        DateFormat('d MMM y, HH:mm', locale).format(signedAt),
+    ].join(' · ');
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 26),
+      height: 96,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.divider),
+        borderRadius: kRadius,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          if (assignment.signatureUrl != null)
+            Positioned.fill(
+              // The stroke is a drawing; it must not mirror in Arabic.
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: PhotoThumb(
+                  path: assignment.signatureUrl!,
+                  size: double.infinity,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          if (caption.isNotEmpty)
+            PositionedDirectional(
+              start: 14,
+              bottom: 8,
+              child: Text(
+                caption,
+                style: const TextStyle(
+                  fontSize: 11,
+                  height: 1.3,
+                  color: Color(0x73201E1D), // text @ 45%
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewerCard extends StatelessWidget {
+  const _ReviewerCard({required this.note});
+  final String note;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.symmetric(horizontal: 26),
+    padding: const EdgeInsets.all(16),
+    decoration: const BoxDecoration(
+      color: AppColors.cyanTint,
+      borderRadius: kRadius,
+    ),
+    child: Text(
+      note,
+      style: const TextStyle(
+        fontSize: 13.5,
+        height: 1.5,
+        color: AppColors.cyanDark,
+      ),
+    ),
+  );
 }

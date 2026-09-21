@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:o_house/features/auth/custom_widgets/LanguageToggle.dart';
 
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -11,6 +10,7 @@ import '../../supabase.dart';
 import '../../theme.dart';
 import '../../widgets/brand_panel.dart';
 import '../../widgets/ink_handoff_panel.dart';
+import '../../widgets/language_toggle.dart';
 import '../locale_provider.dart';
 import '../splash_handoff.dart';
 
@@ -103,20 +103,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if (profile != null) {
       ref.read(localeProvider.notifier).set(profile.locale);
     }
-    context.go(
-      profile?.mustChangePassword ?? false ? '/set-password' : '/home',
-    );
+    final mustChangePassword = profile?.mustChangePassword ?? false;
+    // Hand Home the height our ink header is sitting at right now, so it can
+    // carry on collapsing from there instead of snapping to its own, shorter
+    // header on the frame the route swaps. Only for /home — /set-password
+    // has no ink header to continue into.
+    if (!mustChangePassword) {
+      loginHandoffFromHeight = inkHeaderHeight(context, _headerContentHeight);
+    }
+    context.go(mustChangePassword ? '/set-password' : '/home');
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-    final topInset = MediaQuery.paddingOf(context).top;
-    final idealHeader = topInset + _headerContentHeight;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final headerHeight = idealHeader < screenHeight * 0.42
-        ? idealHeader
-        : screenHeight * 0.42;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -124,7 +124,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         backgroundColor: AppColors.paper,
         body: InkHandoffPanel(
           expanded: expanded,
-          collapsedHeight: headerHeight,
+          expandedHeight: expandedHeight,
+          duration: handoffDuration,
+          collapsedHeight: inkHeaderHeight(context, _headerContentHeight),
           // BrandPanel doesn't change between expanded and collapsed — only
           // the box around it does — so Center alone gives it continuous,
           // literal motion as that box shrinks; no separate animation needed.
@@ -156,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final contentWidth = screenWidth < 480 ? screenWidth : 480.0;
     final errorBorder = _invalidCredentials
         ? const OutlineInputBorder(
-            borderRadius: kRadius,
+            borderRadius: kRadiusControl,
             borderSide: BorderSide(color: AppColors.magenta, width: 1.5),
           )
         : null;
@@ -184,6 +186,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 Directionality(
                   textDirection: TextDirection.ltr,
                   child: TextField(
+                    maxLength: 10,
                     controller: _phone,
                     focusNode: _phoneFocus,
                     keyboardType: TextInputType.phone,
@@ -239,8 +242,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscure
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                       ),
                       color: AppColors.cyan,
                       tooltip: _obscure

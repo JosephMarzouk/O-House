@@ -10,7 +10,7 @@ import '../../widgets/brand_wordmark.dart';
 /// Height of the collapsed header's own content, below the safe-area inset:
 /// the date/name/role block with the design's padding. Exported so
 /// HomeScreen can size InkHandoffPanel's collapsedHeight around it.
-const kHomeHeaderContentHeight = 132.0;
+const kHomeHeaderContentHeight = kHeaderContentHeight;
 
 const _logoExpandedSize = 96.0;
 const _logoCollapsedSize = 44.0;
@@ -35,12 +35,20 @@ class HomeHeaderOverlay extends StatelessWidget {
     required this.expanded,
     required this.screenSize,
     required this.profile,
+    this.expandedPanelHeight,
     this.duration = const Duration(milliseconds: 1300),
   });
 
   final bool expanded;
   final Size screenSize;
   final Profile? profile;
+
+  /// Height of the ink panel in its expanded state, or null for the full
+  /// screen. The logo starts centred in *this* box, so arriving from Login
+  /// (whose panel is only its own header tall) begins the glide exactly on
+  /// Login's logo rather than jumping to screen centre first.
+  final double? expandedPanelHeight;
+
   final Duration duration;
 
   @override
@@ -54,7 +62,12 @@ class HomeHeaderOverlay extends StatelessWidget {
     // instead of jumping between `start` and `end` as it collapses.
     final expandedLogoInset = (screenSize.width - _logoExpandedSize) / 2;
     final expandedLogoTop = _expandedLogoTop(topInset);
-    final collapsedLogoTop = topInset + 20;
+    final collapsedTextTop = topInset + 20;
+    // Centred against the text block, the same way AppHeader centres
+    // Profile's logo against its (identical) date/name/role column — not
+    // pinned to the top line the way sharing one `top` with the text would.
+    final collapsedLogoTop =
+        collapsedTextTop + (_collapsedTextBlockHeight - _logoCollapsedSize) / 2;
 
     return Stack(
       children: [
@@ -64,11 +77,18 @@ class HomeHeaderOverlay extends StatelessWidget {
           top: expandedLogoTop + _logoExpandedSize + _expandedWordmarkGap,
           left: 0,
           right: 0,
-          child: AnimatedOpacity(
-            opacity: expanded ? 1 : 0,
-            duration: duration,
-            curve: Curves.easeOut,
-            child: const BrandWordmark(),
+          // Opacity 0 still hit-tests, and once collapsed this sits well down
+          // the paper body — where it silently ate scrolls and taps aimed at
+          // the content behind it. The logo below has always guarded itself
+          // the same way.
+          child: IgnorePointer(
+            ignoring: !expanded,
+            child: AnimatedOpacity(
+              opacity: expanded ? 1 : 0,
+              duration: duration,
+              curve: Curves.easeOut,
+              child: const BrandWordmark(),
+            ),
           ),
         ),
 
@@ -76,14 +96,14 @@ class HomeHeaderOverlay extends StatelessWidget {
         // for the logo's final spot — mirrors under RTL along with it.
         Positioned.directional(
           textDirection: textDirection,
-          top: collapsedLogoTop,
+          top: collapsedTextTop,
           start: _collapsedInset,
           end: _collapsedInset + _logoCollapsedSize + 16,
           child: AnimatedOpacity(
             opacity: expanded ? 0 : 1,
             duration: duration,
             curve: Curves.easeIn,
-            child: _HeaderText(profile: profile),
+            child: HeaderText(profile: profile),
           ),
         ),
 
@@ -104,7 +124,7 @@ class HomeHeaderOverlay extends StatelessWidget {
             // tapping the splash-matching centred logo shouldn't do anything.
             ignoring: expanded,
             child: GestureDetector(
-              onTap: () => context.push('/profile'),
+              onTap: () => context.go('/profile'),
               child: const BrandLogo(),
             ),
           ),
@@ -116,7 +136,8 @@ class HomeHeaderOverlay extends StatelessWidget {
   // Matches SafeArea(bottom: false)'s own behaviour: it insets by topInset
   // from the top, then centres its child in what's left.
   double _expandedLogoTop(double topInset) {
-    final availableHeight = screenSize.height - topInset;
+    final panelHeight = expandedPanelHeight ?? screenSize.height;
+    final availableHeight = panelHeight - topInset;
     return topInset + (availableHeight - _expandedBlockHeight) / 2;
   }
 
@@ -127,10 +148,19 @@ class HomeHeaderOverlay extends StatelessWidget {
   // copy of the same numbers. Update both if either changes.
   static const _expandedBlockHeight =
       _logoExpandedSize + _expandedWordmarkGap + (34 * 1.1) + 7 + (13.5 * 1.4);
+
+  // date line + gap + name line + gap + role line, the same three lines
+  // HeaderText renders — duplicates its own font sizes/line heights so the
+  // logo above can centre on this block without measuring it. Update both
+  // if either changes.
+  static const _collapsedTextBlockHeight =
+      (13.5 * 1.3) + 5 + (26 * 1.15) + 5 + (13.5 * 1.3);
 }
 
-class _HeaderText extends StatelessWidget {
-  const _HeaderText({required this.profile});
+/// The collapsed header's date/name/role block. Public so Profile's static
+/// header can show the exact same content Home's collapsed header does.
+class HeaderText extends StatelessWidget {
+  const HeaderText({super.key, required this.profile});
   final Profile? profile;
 
   @override
@@ -146,7 +176,11 @@ class _HeaderText extends StatelessWidget {
           date,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13.5, color: Color(0x99F3F2F2)),
+          style: const TextStyle(
+            fontSize: 13.5,
+            height: 1.3,
+            color: Color(0x99F3F2F2),
+          ),
         ),
         const SizedBox(height: 5),
         Text(
@@ -165,7 +199,11 @@ class _HeaderText extends StatelessWidget {
             roleLabel(profile)!,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13.5, color: Color(0x99F3F2F2)),
+            style: const TextStyle(
+              fontSize: 13.5,
+              height: 1.3,
+              color: Color(0x99F3F2F2),
+            ),
           ),
         ],
       ],

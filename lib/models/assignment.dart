@@ -55,6 +55,25 @@ class Assignment {
   bool get isReadOnly =>
       const {'submitted', 'approved', 'expired'}.contains(effectiveStatus);
 
+  /// Statuses past which the assignment needs no more work from the
+  /// inspector. Distinct from [isReadOnly], which is about whether the
+  /// *form* accepts edits — a rejected task is editable but not outstanding.
+  static const terminalStatuses = {
+    'submitted',
+    'approved',
+    'rejected',
+    'expired',
+  };
+
+  bool get isTerminal => terminalStatuses.contains(effectiveStatus);
+
+  bool get isToday {
+    final d = scheduledDate;
+    if (d == null) return false;
+    final now = DateTime.now();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
   /// Reads a live `assignments_v` row (no `items` key — the repo attaches
   /// them separately via [copyWithItems]) or a cached row round-tripped
   /// through [Assignment.toCacheJson], which embeds them.
