@@ -63,6 +63,7 @@ Future<void> _pumpHome(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        userIdProvider.overrideWithValue(null), // no Supabase in tests
         myAssignmentsProvider.overrideWith((ref) => assignments),
         currentProfileProvider.overrideWith(
           (ref) => const Profile(
@@ -304,6 +305,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          userIdProvider.overrideWithValue(null), // no Supabase in tests
           myAssignmentsProvider.overrideWith((ref) => fixture),
           roundsRefreshProvider.overrideWith((ref) {
             builds++;

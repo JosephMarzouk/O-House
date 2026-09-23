@@ -250,13 +250,13 @@ class _ReviewerCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.symmetric(horizontal: 26),
     padding: const EdgeInsets.all(16),
-    decoration: const BoxDecoration(
+    decoration: BoxDecoration(
       color: AppColors.cyanTint,
       borderRadius: kRadius,
     ),
     child: Text(
       note,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13.5,
         height: 1.5,
         color: AppColors.cyanDark,

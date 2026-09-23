@@ -10,9 +10,6 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'او هاوس';
-
-  @override
   String get loginSubtitle => 'سجل النظافة والإشراف الداخلي';
 
   @override
@@ -47,7 +44,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loginHidePassword => 'إخفاء كلمة المرور';
 
   @override
-  String get loginFooter => 'نادي أو ويست الرياضي · للموظفين فقط';
+  String loginFooter(String club) {
+    return '$club · للموظفين فقط';
+  }
 
   @override
   String get setPasswordTitle => 'تعيين كلمة مرور جديدة';
@@ -326,11 +325,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profileAboutSection => 'حول';
 
   @override
-  String get profileAboutOHouse => 'عن أو هاوس';
+  String profileAboutOHouse(String app) {
+    return 'عن $app';
+  }
 
   @override
-  String get profileAboutOHouseBody =>
-      'أو هاوس هو نظام سجل النظافة والإشراف الداخلي لنادي أو ويست الرياضي. سيتم إضافة مزيد من المعلومات عن التطبيق هنا قريبًا.';
+  String profileAboutOHouseBody(String app, String club) {
+    return '$app هو نظام سجل النظافة والإشراف الداخلي لـ$club. سيتم إضافة مزيد من المعلومات عن التطبيق هنا قريبًا.';
+  }
 
   @override
   String get profilePolicies => 'السياسات';
@@ -423,25 +425,6 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get signOutUnsentBody =>
       'ستبقى على هذا الهاتف وتُرسل في المرة القادمة التي تسجّل فيها الدخول هنا.';
-
-  @override
-  String get clubCodeTitle => 'أدخل رمز النادي';
-
-  @override
-  String get clubCodeHint => 'رمز النادي';
-
-  @override
-  String get clubCodeContinue => 'متابعة';
-
-  @override
-  String get clubCodeUnknown => 'لا يوجد نادٍ بهذا الرمز. تحقّق منه مع مشرفك.';
-
-  @override
-  String get clubCodeConnection =>
-      'تعذّر الوصول إلى الخادم. تحقّق من الاتصال وحاول مرة أخرى.';
-
-  @override
-  String get profileSwitchClub => 'تغيير النادي';
 
   @override
   String get signatureNoteLabel => 'ملاحظة لمشرفك (اختياري)';

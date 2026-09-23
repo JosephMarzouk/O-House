@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/local_db.dart';
+import '../data/providers.dart';
 
 /// null = follow system locale. Set from the login screen's language toggle
 /// (staff pick their language *before* signing in) or from Profile settings.
@@ -11,8 +12,7 @@ import '../data/local_db.dart';
 /// `profiles.locale` is the server-side mirror, applied by the splash once a
 /// session exists (see profile_screen.dart and splash_screen.dart).
 final localeProvider = StateNotifierProvider<LocaleController, Locale?>(
-  // The shared file, not a club's: the language is chosen before any club.
-  (ref) => LocaleController(LocalDb.shared),
+  (ref) => LocaleController(ref.watch(localDbProvider)),
 );
 
 class LocaleController extends StateNotifier<Locale?> {

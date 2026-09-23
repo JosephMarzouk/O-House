@@ -49,26 +49,22 @@ class OutboxOp {
   );
 }
 
-/// sqflite, one file per club (club.dart) plus a shared one for settings.
+/// sqflite. One file: each club has its own app (tenant.dart), so its own
+/// sandbox.
 ///
 /// Every cached row and every queued op carries the user it belongs to
 /// (LS-5): a shared phone never shows one person's rounds to the next, and a
 /// sign-out keeps the unsent work for its owner.
 ///
-/// Fresh schema at version 1: Step 3 ships under a new app id, so there is no
-/// old file to migrate. Every later change bumps [_version] with an
-/// onUpgrade step (LS-7).
-///
-/// ponytail: every file gets every table, though the shared one only uses
-/// `settings` and club files never do. Six empty tables cost nothing.
+/// Version 1 is the pre-Step-3 app's file (cached_assignments, an outbox of
+/// RPC calls, settings). While the app id is unchanged the new build installs
+/// OVER it, so it must be upgraded, not assumed fresh. Every later change
+/// bumps [_version] with an onUpgrade step (LS-7).
 class LocalDb {
-  LocalDb.named(this.fileName);
+  LocalDb._();
+  static final instance = LocalDb._();
 
-  /// The club choice and the language: things that exist before any club.
-  static final shared = LocalDb.named('o_house.db');
-
-  final String fileName;
-  static const _version = 1;
+  static const _version = 2;
   Database? _db;
 
   Future<Database> get database async => _db ??= await _open();
@@ -76,41 +72,64 @@ class LocalDb {
   Future<Database> _open() async {
     final dir = await getApplicationDocumentsDirectory();
     return openDatabase(
-      join(dir.path, fileName),
+      join(dir.path, 'o_house.db'),
       version: _version,
-      onCreate: (db, _) async {
-        await db.execute(
-          'create table rounds (id text primary key, user_id text not null, json text not null)',
-        );
-        await db.execute(
-          'create table profiles (id text primary key, json text not null)',
-        );
-        await db.execute('''
-          create table outbox (
-            seq integer primary key autoincrement,
-            id text not null unique,
-            user_id text not null,
-            assignment_id text not null,
-            op text not null,
-            payload text not null,
-            attempts integer not null default 0,
-            parked_code text,
-            parked_message text,
-            created_at text not null
-          )
-        ''');
-        await db.execute('''
-          create table drafts (
-            assignment_id text not null,
-            user_id text not null,
-            json text not null,
-            primary key (assignment_id, user_id)
-          )
-        ''');
-        await db.execute(
-          'create table settings (key text primary key, value text not null)',
-        );
+      onCreate: (db, _) => _createV2(db),
+      onUpgrade: (db, from, _) async {
+        if (from < 2) await _fromV1(db);
       },
+    );
+  }
+
+  /// The pre-Step-3 file. Its cache is only a cache: dropped, refetched. Its
+  /// queue is old-format RPC calls this build cannot send (the API replaced
+  /// them), but unsent work is never deleted without a person seeing it, so
+  /// any rows are kept aside in `legacy_outbox` rather than dropped. The
+  /// language setting carries over: `settings` has the same shape.
+  static Future<void> _fromV1(Database db) async {
+    await db.execute('drop table if exists cached_assignments');
+    final legacy = Sqflite.firstIntValue(
+      await db.rawQuery('select count(*) from outbox'),
+    );
+    if ((legacy ?? 0) > 0) {
+      await db.execute('alter table outbox rename to legacy_outbox');
+    } else {
+      await db.execute('drop table if exists outbox');
+    }
+    await _createV2(db);
+  }
+
+  static Future<void> _createV2(Database db) async {
+    await db.execute(
+      'create table if not exists rounds (id text primary key, user_id text not null, json text not null)',
+    );
+    await db.execute(
+      'create table if not exists profiles (id text primary key, json text not null)',
+    );
+    await db.execute('''
+      create table if not exists outbox (
+        seq integer primary key autoincrement,
+        id text not null unique,
+        user_id text not null,
+        assignment_id text not null,
+        op text not null,
+        payload text not null,
+        attempts integer not null default 0,
+        parked_code text,
+        parked_message text,
+        created_at text not null
+      )
+    ''');
+    await db.execute('''
+      create table if not exists drafts (
+        assignment_id text not null,
+        user_id text not null,
+        json text not null,
+        primary key (assignment_id, user_id)
+      )
+    ''');
+    await db.execute(
+      'create table if not exists settings (key text primary key, value text not null)',
     );
   }
 

@@ -40,6 +40,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        userIdProvider.overrideWithValue(null), // no Supabase in tests
         myAssignmentsProvider.overrideWith(
           (ref) => assignments ?? demoAssignments(),
         ),
@@ -514,6 +515,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            userIdProvider.overrideWithValue(null), // no Supabase in tests
             myAssignmentsProvider.overrideWith((ref) => [_followUpRound()]),
           ],
           child: MaterialApp.router(

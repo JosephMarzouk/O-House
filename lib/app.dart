@@ -6,6 +6,7 @@ import 'data/providers.dart';
 import 'features/locale_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'router.dart';
+import 'tenant.dart';
 import 'theme.dart';
 
 class OHouseApp extends ConsumerWidget {
@@ -19,7 +20,7 @@ class OHouseApp extends ConsumerWidget {
     // service on sign-in must not rebuild the whole app.
     ref.listen(syncServiceProvider, (_, _) {});
     return MaterialApp.router(
-      title: 'O House',
+      title: tenant.appNameEn,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       routerConfig: router,

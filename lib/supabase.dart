@@ -5,10 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // own direct import of supabase_flutter.
 export 'package:supabase_flutter/supabase_flutter.dart';
 
-// Initialized per club (club.dart): each club is its own Supabase project, and
-// its URL and publishable key come from the API's registry when the club code
-// is entered. Since Step 3 this client is for sign-in only; every read and
-// write goes through the O House API (data/api_client.dart).
+// Initialized for this build's club (tenant.dart): each club app has its own
+// Supabase project. Since Step 3 this client is for sign-in only; every read
+// and write goes through the O House API (data/api_client.dart).
 Future<void> initSupabase(String url, String publishableKey) =>
     Supabase.initialize(url: url, publishableKey: publishableKey);
 

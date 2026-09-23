@@ -79,7 +79,7 @@ flutter:
   generate: true
 
   assets:
-    - assets/owest.png
+    - assets/tenants/owest/
 
   # Source Serif 4 is the Broadsheet design system's voice, but it ships no
   # Arabic glyphs — Noto Naskh is its serif Arabic companion, wired up as

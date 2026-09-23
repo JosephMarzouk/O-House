@@ -478,7 +478,7 @@ class _CameraButton extends StatelessWidget {
                       horizontal: 5,
                       vertical: 1,
                     ),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppColors.cyan,
                       borderRadius: kRadius,
                     ),

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../tenant.dart';
 import '../theme.dart';
 
-/// "O House" + the subtitle, no logo — split out from [BrandPanel] so Home's
+/// The club app's name + the subtitle, no logo — split out from [BrandPanel] so Home's
 /// header can crossfade just the text while the logo glides independently
 /// (see home_header.dart).
 class BrandWordmark extends StatelessWidget {
@@ -16,7 +17,7 @@ class BrandWordmark extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          t.appName,
+          tenant.appName(Localizations.localeOf(context).languageCode),
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium
               ?.copyWith(color: AppColors.paper),

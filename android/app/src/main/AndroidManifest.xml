@@ -3,7 +3,7 @@
          API, and this used to arrive only by accident via firebase_messaging. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="o_house"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

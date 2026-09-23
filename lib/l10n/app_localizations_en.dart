@@ -10,9 +10,6 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'O House';
-
-  @override
   String get loginSubtitle => 'Housekeeping & cleaning record';
 
   @override
@@ -47,7 +44,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginHidePassword => 'Hide password';
 
   @override
-  String get loginFooter => 'O West Sports Club · staff access only';
+  String loginFooter(String club) {
+    return '$club · staff access only';
+  }
 
   @override
   String get setPasswordTitle => 'Set a new password';
@@ -319,11 +318,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileAboutSection => 'About';
 
   @override
-  String get profileAboutOHouse => 'About O-House';
+  String profileAboutOHouse(String app) {
+    return 'About $app';
+  }
 
   @override
-  String get profileAboutOHouseBody =>
-      'O House is the housekeeping and cleaning record system for O West Sports Club. More information about the app will appear here soon.';
+  String profileAboutOHouseBody(String app, String club) {
+    return '$app is the housekeeping and cleaning record system for $club. More information about the app will appear here soon.';
+  }
 
   @override
   String get profilePolicies => 'Policies';
@@ -415,26 +417,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get signOutUnsentBody =>
       'They stay on this phone and are sent the next time you sign in here.';
-
-  @override
-  String get clubCodeTitle => 'Enter your club code';
-
-  @override
-  String get clubCodeHint => 'Club code';
-
-  @override
-  String get clubCodeContinue => 'Continue';
-
-  @override
-  String get clubCodeUnknown =>
-      'No club with that code. Check it with your supervisor.';
-
-  @override
-  String get clubCodeConnection =>
-      'Could not reach the server. Check your connection and try again.';
-
-  @override
-  String get profileSwitchClub => 'Switch club';
 
   @override
   String get signatureNoteLabel => 'Note for your supervisor (optional)';

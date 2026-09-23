@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
-import 'club.dart';
+import 'supabase.dart';
+import 'tenant.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +17,9 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  // The saved club, if any, and Supabase pointed at it. First launch has
-  // none: the splash sends the person to the club code screen.
-  await restoreClub();
+  // This build's club (its flavor): its own Supabase project. Reading
+  // `tenant` here is also what fails a build with a missing or wrong flavor at
+  // startup rather than somewhere later.
+  await initSupabase(tenant.supabaseUrl, tenant.publishableKey);
   runApp(const ProviderScope(child: OHouseApp()));
 }

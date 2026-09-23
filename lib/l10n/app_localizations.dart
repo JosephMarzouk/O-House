@@ -98,12 +98,6 @@ abstract class AppLocalizations {
     Locale('en'),
   ];
 
-  /// No description provided for @appName.
-  ///
-  /// In en, this message translates to:
-  /// **'O House'**
-  String get appName;
-
   /// No description provided for @loginSubtitle.
   ///
   /// In en, this message translates to:
@@ -173,8 +167,8 @@ abstract class AppLocalizations {
   /// No description provided for @loginFooter.
   ///
   /// In en, this message translates to:
-  /// **'O West Sports Club · staff access only'**
-  String get loginFooter;
+  /// **'{club} · staff access only'**
+  String loginFooter(String club);
 
   /// No description provided for @setPasswordTitle.
   ///
@@ -599,14 +593,14 @@ abstract class AppLocalizations {
   /// No description provided for @profileAboutOHouse.
   ///
   /// In en, this message translates to:
-  /// **'About O-House'**
-  String get profileAboutOHouse;
+  /// **'About {app}'**
+  String profileAboutOHouse(String app);
 
   /// No description provided for @profileAboutOHouseBody.
   ///
   /// In en, this message translates to:
-  /// **'O House is the housekeeping and cleaning record system for O West Sports Club. More information about the app will appear here soon.'**
-  String get profileAboutOHouseBody;
+  /// **'{app} is the housekeeping and cleaning record system for {club}. More information about the app will appear here soon.'**
+  String profileAboutOHouseBody(String app, String club);
 
   /// No description provided for @profilePolicies.
   ///
@@ -739,42 +733,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'They stay on this phone and are sent the next time you sign in here.'**
   String get signOutUnsentBody;
-
-  /// No description provided for @clubCodeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter your club code'**
-  String get clubCodeTitle;
-
-  /// No description provided for @clubCodeHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Club code'**
-  String get clubCodeHint;
-
-  /// No description provided for @clubCodeContinue.
-  ///
-  /// In en, this message translates to:
-  /// **'Continue'**
-  String get clubCodeContinue;
-
-  /// No description provided for @clubCodeUnknown.
-  ///
-  /// In en, this message translates to:
-  /// **'No club with that code. Check it with your supervisor.'**
-  String get clubCodeUnknown;
-
-  /// No description provided for @clubCodeConnection.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not reach the server. Check your connection and try again.'**
-  String get clubCodeConnection;
-
-  /// No description provided for @profileSwitchClub.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch club'**
-  String get profileSwitchClub;
 
   /// No description provided for @signatureNoteLabel.
   ///

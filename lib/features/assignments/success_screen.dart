@@ -67,7 +67,7 @@ class SuccessScreen extends ConsumerWidget {
       );
       secondary = (t.successBackButton, () => context.go('/tasks'));
     } else {
-      hero = const Icon(
+      hero = Icon(
         Icons.verified_rounded,
         size: 104,
         color: AppColors.cyan,

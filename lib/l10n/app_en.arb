@@ -1,7 +1,6 @@
 {
   "@@locale": "en",
 
-  "appName": "O House",
 
   "loginSubtitle": "Housekeeping & cleaning record",
   "loginTitle": "Sign in",
@@ -14,7 +13,8 @@
   "loginMissingFields": "Enter your phone number and password.",
   "loginShowPassword": "Show password",
   "loginHidePassword": "Hide password",
-  "loginFooter": "O West Sports Club · staff access only",
+  "loginFooter": "{club} · staff access only",
+  "@loginFooter": { "placeholders": { "club": { "type": "String" } } },
 
   "setPasswordTitle": "Set a new password",
   "setPasswordLabel": "New password",
@@ -115,8 +115,10 @@
   "profileSyncStatus": "{count, plural, one{1 change not sent yet} other{{count} changes not sent yet}}",
   "@profileSyncStatus": { "placeholders": { "count": { "type": "int" } } },
   "profileAboutSection": "About",
-  "profileAboutOHouse": "About O-House",
-  "profileAboutOHouseBody": "O House is the housekeeping and cleaning record system for O West Sports Club. More information about the app will appear here soon.",
+  "profileAboutOHouse": "About {app}",
+  "@profileAboutOHouse": { "placeholders": { "app": { "type": "String" } } },
+  "profileAboutOHouseBody": "{app} is the housekeeping and cleaning record system for {club}. More information about the app will appear here soon.",
+  "@profileAboutOHouseBody": { "placeholders": { "app": { "type": "String" }, "club": { "type": "String" } } },
   "profilePolicies": "Policies",
   "profilePoliciesBody": "Club and workplace policies will appear here soon. Ask your supervisor if you need them sooner.",
   "profileLogout": "Log out",
@@ -144,12 +146,6 @@
   "signOutUnsentTitle": "{count, plural, one{1 change not sent yet} other{{count} changes not sent yet}}",
   "@signOutUnsentTitle": { "placeholders": { "count": { "type": "int" } } },
   "signOutUnsentBody": "They stay on this phone and are sent the next time you sign in here.",
-  "clubCodeTitle": "Enter your club code",
-  "clubCodeHint": "Club code",
-  "clubCodeContinue": "Continue",
-  "clubCodeUnknown": "No club with that code. Check it with your supervisor.",
-  "clubCodeConnection": "Could not reach the server. Check your connection and try again.",
-  "profileSwitchClub": "Switch club",
   "signatureNoteLabel": "Note for your supervisor (optional)",
   "taskInstructions": "Instructions",
   "historyStaffNote": "Staff note: {note}",

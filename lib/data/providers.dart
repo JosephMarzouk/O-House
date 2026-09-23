@@ -4,47 +4,33 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../club.dart';
 import '../models/assignment.dart';
 import '../models/profile.dart';
 import '../supabase.dart';
+import '../tenant.dart';
 import 'api_client.dart';
 import 'assignments_repo.dart';
 import 'local_db.dart';
 import 'sync.dart';
 
-/// The club this phone is signed into (club.dart), re-read whenever it changes.
-final clubProvider = Provider<Club?>((ref) {
-  void changed() => ref.invalidateSelf();
-  clubChanges.addListener(changed);
-  ref.onDispose(() => clubChanges.removeListener(changed));
-  return currentClub;
-});
-
 /// Emits on every sign-in/sign-out so the router and everything user-scoped
-/// can react. Empty before a club is chosen: Supabase is not initialized yet.
-final authStateProvider = StreamProvider<AuthState?>((ref) {
-  if (ref.watch(clubProvider) == null) return Stream.value(null);
-  return supabase.auth.onAuthStateChange;
-});
+/// can react.
+final authStateProvider = StreamProvider<AuthState>(
+  (ref) => supabase.auth.onAuthStateChange,
+);
 
 /// The signed-in user, or null. Everything cached or queued is keyed by it.
 final userIdProvider = Provider<String?>((ref) {
   ref.watch(authStateProvider);
-  if (ref.watch(clubProvider) == null) return null;
   return supabase.auth.currentUser?.id;
 });
 
-/// This club's own database file. Only read once a club is chosen.
-final localDbProvider = Provider<LocalDb>(
-  (ref) => clubDb(ref.watch(clubProvider)!),
-);
+final localDbProvider = Provider((ref) => LocalDb.instance);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
-  final club = ref.watch(clubProvider)!;
   return ApiClient(
-    baseUrl: kApiUrl,
-    club: club.slug,
+    baseUrl: apiBaseUrl,
+    club: tenant.clubSlug,
     token: () => supabase.auth.currentSession?.accessToken,
     refreshSession: () async =>
         (await supabase.auth.refreshSession()).session != null,
@@ -55,20 +41,19 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 final assignmentsRepoProvider = Provider<AssignmentsRepo?>((ref) {
   final userId = ref.watch(userIdProvider);
   if (userId == null) return null;
-  final slug = ref.watch(clubProvider)!.slug;
   return AssignmentsRepo(
     db: ref.watch(localDbProvider),
     api: ref.watch(apiClientProvider),
     userId: userId,
-    evidence: () => evidenceDir(slug),
+    evidence: evidenceDir,
   );
 });
 
 /// The outbox, for the signed-in user only, with its triggers (SY-2): created
 /// on sign-in (which is also app start with a saved session), then on every
 /// return to the foreground and every reconnect. Kept alive by the banner and
-/// by app.dart. A different user or club gets a new service; the old one
-/// stops, and its rows wait in the database for their owner.
+/// by app.dart. A different user gets a new service; the old one stops, and
+/// its rows wait in the database for their owner.
 final syncServiceProvider = Provider<SyncService?>((ref) {
   final repo = ref.watch(assignmentsRepoProvider);
   if (repo == null) return null;

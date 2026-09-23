@@ -3,13 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../club.dart';
 import '../../data/providers.dart';
-import '../../l10n/localized_text.dart';
 import '../../l10n/app_localizations.dart';
 import '../../supabase.dart';
+import '../../tenant.dart';
 import '../../theme.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/app_nav_bar.dart';
@@ -28,7 +26,9 @@ class ProfileScreen extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     final pendingCount = ref.watch(outboxCountProvider);
     final parked = ref.watch(syncStatusProvider).parked;
-    final club = ref.watch(clubProvider);
+    final lang = Localizations.localeOf(context).languageCode;
+    final app = tenant.appName(lang);
+    final club = tenant.clubName(lang);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -54,6 +54,8 @@ class ProfileScreen extends ConsumerWidget {
                     label: t.loginPhoneLabel,
                     trailing: Text(
                       profile?.phone ?? '—',
+                      // A number, not text: the + stays in front in Arabic.
+                      textDirection: TextDirection.ltr,
                       style: const TextStyle(fontSize: 14, color: _muted),
                     ),
                   ),
@@ -85,25 +87,15 @@ class ProfileScreen extends ConsumerWidget {
                           ? () => showParkedSheet(context)
                           : null,
                     ),
-                  if (club != null)
-                    _ProfileRow(
-                      icon: Icons.apartment_outlined,
-                      label: t.profileSwitchClub,
-                      trailing: Text(
-                        pickLocalized(context, club.nameAr, club.nameEn),
-                        style: const TextStyle(fontSize: 14, color: _muted),
-                      ),
-                      onTap: () => _signOut(context, ref, switchClub: true),
-                    ),
                   _SectionLabel(t.profileAboutSection),
                   _ProfileRow(
                     icon: Icons.info_outline,
-                    label: t.profileAboutOHouse,
+                    label: t.profileAboutOHouse(app),
                     trailing: const Icon(Icons.chevron_right, color: _muted),
                     onTap: () => _showInfoSheet(
                       context,
-                      t.profileAboutOHouse,
-                      t.profileAboutOHouseBody,
+                      t.profileAboutOHouse(app),
+                      t.profileAboutOHouseBody(app, club),
                     ),
                   ),
                   _ProfileRow(
@@ -139,11 +131,7 @@ const _muted = Color(0x99201E1D); // text @ 60%
 /// Signing out never deletes unsent work (LS-5): it stays in this club's
 /// file, keyed to this person, and is sent the next time they sign in here.
 /// The warning makes sure nobody hands the phone over believing it was sent.
-Future<void> _signOut(
-  BuildContext context,
-  WidgetRef ref, {
-  bool switchClub = false,
-}) async {
+Future<void> _signOut(BuildContext context, WidgetRef ref) async {
   final t = AppLocalizations.of(context)!;
   final unsent = ref.read(outboxCountProvider);
   if (unsent > 0) {
@@ -159,7 +147,7 @@ Future<void> _signOut(
           ),
           TextButton(
             onPressed: () => Navigator.pop(c, true),
-            child: Text(switchClub ? t.profileSwitchClub : t.profileLogout),
+            child: Text(t.profileLogout),
           ),
         ],
       ),
@@ -168,10 +156,6 @@ Future<void> _signOut(
   }
   await supabase.auth.signOut();
   ref.invalidate(userIdProvider);
-  if (switchClub) {
-    await forgetClub();
-    if (context.mounted) context.go('/club');
-  }
 }
 
 class _SectionLabel extends StatelessWidget {

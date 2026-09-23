@@ -59,7 +59,7 @@ class _SpySync extends SyncService {
 class _RecordingRepo extends AssignmentsRepo {
   _RecordingRepo({this.parked})
     : super(
-        db: LocalDb.named('unused.db'),
+        db: LocalDb.instance, // never opened: every call is overridden
         api: ApiClient(
           baseUrl: 'http://unused',
           club: 'c',

@@ -7,6 +7,7 @@ import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/profile.dart';
 import '../../supabase.dart';
+import '../../tenant.dart';
 import '../../theme.dart';
 import '../../widgets/brand_panel.dart';
 import '../../widgets/ink_handoff_panel.dart';
@@ -273,7 +274,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 const SizedBox(height: 14),
                 Text(
                   t.loginForgotPassword,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     color: AppColors.cyanDark,
                   ),
@@ -295,7 +296,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  t.loginFooter,
+                  t.loginFooter(
+                    tenant.clubName(Localizations.localeOf(context).languageCode),
+                  ),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 12,

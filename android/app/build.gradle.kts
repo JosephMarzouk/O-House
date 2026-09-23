@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -29,11 +31,37 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+    // One app per club, same code (lib/tenant.dart): each flavor is a club's own
+    // Play Store app, with its own id, name and icon (src/<flavor>/res) and,
+    // from Step 5, its own src/<flavor>/google-services.json.
+    //   flutter run --flavor owest --dart-define=TENANT_NAME=OWEST --dart-define=ENVIRONMENT=dev
+    buildFeatures { resValues = true } // off by default since AGP 8: needed for app_name
+    flavorDimensions += "tenant"
+    productFlavors {
+        create("owest") {
+            dimension = "tenant"
+            // TODO(app id): com.blueribbon.<newapp>.owest once the name is
+            // confirmed. Permanent once the Play Store listing exists.
+            applicationId = "com.example.o_house"
+            resValue("string", "app_name", "O House")
+        }
+    }
+
+    // Release signing per club, from a gitignored android/<flavor>.properties
+    // (storeFile, storePassword, keyAlias, keyPassword). Without that file a
+    // build falls back to the debug keys, so `flutter run --release` still works.
+    productFlavors.forEach { flavor ->
+        val file = rootProject.file("${flavor.name}.properties")
+        flavor.signingConfig = if (file.exists()) {
+            val p = Properties().apply { file.inputStream().use { load(it) } }
+            signingConfigs.create(flavor.name) {
+                storeFile = rootProject.file(p.getProperty("storeFile"))
+                storePassword = p.getProperty("storePassword")
+                keyAlias = p.getProperty("keyAlias")
+                keyPassword = p.getProperty("keyPassword")
+            }
+        } else {
+            signingConfigs.getByName("debug")
         }
     }
 }

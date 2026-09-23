@@ -52,6 +52,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        userIdProvider.overrideWithValue(null), // no Supabase in tests
         myAssignmentsProvider.overrideWith((ref) => demoAssignments()),
         currentProfileProvider.overrideWith((ref) => _profile),
         // Reaches sqflite, which has no test binding.
@@ -216,6 +217,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
+              userIdProvider.overrideWithValue(null), // no Supabase in tests
               myAssignmentsProvider.overrideWith((ref) => demoAssignments()),
             ],
             child: MaterialApp.router(

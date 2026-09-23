@@ -16,9 +16,20 @@ Bilingual EN/AR with full RTL. Phone-portrait only. Designed for gloved hands
 flutter pub get
 ```
 
+Each club is its own app (a flavor, see "Clubs" below), so every run and
+build names one. Dev talks to the API on this computer over USB, so run
+`adb reverse tcp:4000 tcp:4000` once per phone connection (emulator too).
+
 ```bash
-flutter run
+flutter run --flavor owest --dart-define=TENANT_NAME=OWEST --dart-define=ENVIRONMENT=dev
 ```
+
+```bash
+flutter build appbundle --flavor owest --dart-define=TENANT_NAME=OWEST --dart-define=ENVIRONMENT=prod
+```
+
+Without `--flavor` the app stops at startup on purpose. `ENVIRONMENT=prod`
+needs `--dart-define=API_URL=...` until the API is deployed.
 
 | Task | Command |
 |---|---|
@@ -27,7 +38,9 @@ flutter run
 | Regenerate l10n | `flutter gen-l10n` (config in `l10n.yaml`) |
 | Screen preview, no login | `flutter run -t lib/main_dev_preview.dart` |
 
-**Browser preview** (visual verification): `flutter run -d web-server` renders a
+**Browser preview** (visual verification; web builds take no `--flavor`, so
+the app itself refuses to start there, and only `main_dev_preview.dart`
+renders): `flutter run -d web-server` renders a
 black canvas for this project. What works is `flutter build web --release`
 (~4 min) then serving `build/web` over a static HTTP server. Note `sqflite` has
 no web implementation, so anything touching `LocalDb` silently no-ops there.
@@ -57,7 +70,7 @@ Refactored away in `8f4202a`, do not resurrect:
 |---|---|---|
 | 1 | Online-only reads/writes, all screens | **Done** |
 | 2 | Image compression before queuing | **Done (Step 3)** — the picker itself: 1600 px long edge, quality 75 |
-| 3 | Offline writes: outbox drain, optimistic local updates, cache reads | **Code done (plan Step 3)** — every read and write goes through the O House API (`data/api_client.dart`); cache-first providers; SyncService v2 (per-round order, backoff, parking with Retry/Dismiss, user-scoped); club code + one database per club. Not yet run on a device against a deployed API |
+| 3 | Offline writes: outbox drain, optimistic local updates, cache reads | **Code done (plan Step 3)** — every read and write goes through the O House API (`data/api_client.dart`); cache-first providers; SyncService v2 (per-round order, backoff, parking with Retry/Dismiss, user-scoped); one app per club (tenant flavors). Reads verified on a real phone against the local API; writes not yet end to end |
 | 4 | Push notifications | **Not started** — `firebase_core`/`firebase_messaging` in pubspec, zero Dart references, no `google-services.json` |
 
 ### Known issues
@@ -118,15 +131,17 @@ main.dart → initSupabase() → ProviderScope → OHouseApp (app.dart)
 - **State**: Riverpod. All providers live in `lib/data/providers.dart`.
 - **Since Step 3 the app never reaches the database or Storage.** Every read
   and write is HTTPS to the O House API (`data/api_client.dart`, `X-Club` on
-  every call). `supabase_flutter` is for sign-in only, initialized per club
-  (`club.dart`: the club code → `GET /clubs/:code` → that club's project).
+  every call). `supabase_flutter` is for sign-in only, initialized with this
+  build's club (`tenant.dart`).
 - **The one seam**: `AssignmentsRepo`. No screen touches the API directly
   (Profile's locale and set-password's `password-changed` are the exceptions).
 - **Cache first** (LS-3): `myAssignmentsProvider` reads the per-user cache and
   lays queued work over it (`applyLocal`); `roundsRefreshProvider` does the
-  `GET /assignments`. One SQLite file per club; every row carries its user.
+  `GET /assignments`. One SQLite file (`o_house.db`, schema v2; v1 is the
+  pre-Step-3 file and is upgraded in place, old unsent rows kept aside in
+  `legacy_outbox`); every row carries its user.
 - **Offline shape**: writes are enqueued (`answer` / `photo` / `submit`, ids
-  fixed at capture, evidence in `documents/evidence/<club>/`). `SyncService`
+  fixed at capture, evidence in `documents/evidence/`). `SyncService`
   sends them per round in order; a 422 `refused` parks the op (banner → Retry /
   Dismiss), everything else retries with backoff. See `data/sync.dart`.
 
@@ -170,7 +185,8 @@ does not cut — it *shrinks* into the next screen's header.
 
 | File | Purpose |
 |---|---|
-| `lib/main.dart` | Boot: portrait lock, `initSupabase()`, `ProviderScope` |
+| `lib/main.dart` | Boot: portrait lock, `initSupabase()` with the tenant's project, `ProviderScope` |
+| `lib/tenant.dart` | **Clubs.** `enum Tenant`, `TenantConfig` (API slug, names, Supabase URL + publishable key, brand colours, logo), tenant from `appFlavor` checked against `TENANT_NAME`, `apiBaseUrl` from `ENVIRONMENT` |
 | `lib/app.dart` | `MaterialApp.router`, theme, locale, l10n delegates |
 | `lib/router.dart` | All routes + auth redirect + `GoRouterRefreshStream` |
 | `lib/supabase.dart` | Client init, re-exports `supabase_flutter`, `phoneToSyntheticEmail()` |
@@ -183,8 +199,9 @@ does not cut — it *shrinks* into the next screen's header.
 |---|---|
 | `lib/data/providers.dart` | Every Riverpod provider |
 | `lib/data/assignments_repo.dart` | **The seam.** Reads/refresh/writes + demo-mode branch. Refresh fetches the last 7 days plus anything in `follow_up`, items in chunks of 50 rounds |
-| `lib/data/local_db.dart` | sqflite: `cached_assignments`, `outbox`, `settings` |
-| `lib/data/sync.dart` | Outbox drain, storage upload, `isTerminalError`, `buildStoragePath`, `markItemDoneParams` |
+| `lib/data/api_client.dart` | The only way to the data: `X-Club`, bearer, `Idempotency-Key`, one 401 refresh, the refusal contract (`ApiRefused` / `ApiUnavailable`) |
+| `lib/data/local_db.dart` | sqflite v2: `rounds`, `profiles`, `outbox`, `drafts`, `settings`, all keyed by user |
+| `lib/data/sync.dart` | SyncService v2: per-round order, backoff, parking (Retry / Dismiss), rerun flag, `SyncStatus` for the banner |
 | `lib/data/fixtures.dart` | Demo data behind `kDemoData` (currently `false`) |
 
 Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
@@ -403,4 +420,22 @@ Layout, camera and live network paths are verified manually by design.
 4. Phase 3: optimistic local updates + cache-first reads.
 5. Phase 4: surface terminal sync rejections to the user.
 6. Apply `0002_storage_scoping.sql` before this app has any outside reach.
-7. Real `applicationId` before any release build.
+7. Real `applicationId` (`com.blueribbon.<newapp>.owest`) before any release build.
+
+## 10. Clubs (one app per club, same code)
+
+The tenant method of the members' app, Android only:
+
+- **Native identity:** a flavor per club in `android/app/build.gradle.kts`
+  (`applicationId`, `app_name`), icons in `android/app/src/<tenant>/res/`,
+  from Step 5 `google-services.json` there too, release signing from a
+  gitignored `android/<tenant>.properties` (debug keys without it).
+- **Dart:** `lib/tenant.dart`. Only public values: the Supabase secret key
+  lives in the API alone. Brand colours (`AppColors.ink/cyan/cyanDark/cyanTint`)
+  come from the tenant; magenta and the neutrals are shared.
+- **Assets:** `assets/tenants/<tenant>/logo.png`.
+- **Tests** run as OWEST (`test/flutter_test_config.dart`) and override
+  `userIdProvider` to signed-out, since there is no Supabase in tests.
+- **Adding a club:** enum value + `TenantConfig` + `assets/tenants/<t>/`;
+  flavor block, icons, `google-services.json`, `<t>.properties`; its entry in
+  the API's `CLUBS`; a Play listing under the confirmed package name.

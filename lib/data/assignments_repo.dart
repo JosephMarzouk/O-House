@@ -12,13 +12,12 @@ import 'local_db.dart';
 
 const _uuid = Uuid();
 
-/// Where a club's unsent photos and signatures live: the app's documents
-/// folder, which the OS does not purge the way it purges caches (LS-1).
-/// Payloads store only the file NAME: iOS moves the container between app
-/// updates, so an absolute path saved today can be wrong tomorrow.
-Future<Directory> evidenceDir(String clubSlug) async {
+/// Where unsent photos and signatures live: the app's documents folder,
+/// which the OS does not purge the way it purges caches (LS-1). Payloads
+/// store only the file NAME, so a moved app container cannot break them.
+Future<Directory> evidenceDir() async {
   final d = Directory(
-    p.join((await getApplicationDocumentsDirectory()).path, 'evidence', clubSlug),
+    p.join((await getApplicationDocumentsDirectory()).path, 'evidence'),
   );
   await d.create(recursive: true);
   return d;

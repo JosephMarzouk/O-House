@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 
+import 'tenant.dart';
+
 /// The Broadsheet palette from the design handoff
 /// (.design-preview-tmp/_ds/broadsheet-*/styles.css). Named for the role each
 /// colour plays, not its hue — `magenta` is only ever an alarm state
 /// (rejected, overdue, follow-up), and nothing else in the app may reach for
 /// it.
+///
+/// The four brand colours come from this build's club (tenant.dart), so they
+/// are `final`, not `const`. Everything else is shared by every club.
 abstract final class AppColors {
   /// accent-900 — the splash ground and every screen's header block.
-  static const ink = Color(0xFF0E213F);
+  static final ink = tenant.ink;
 
   /// accent — every primary action.
-  static const cyan = Color(0xFF0088B0);
+  static final cyan = tenant.accent;
 
   /// accent-700 — link text and pressed primaries.
-  static const cyanDark = Color(0xFF006786);
+  static final cyanDark = tenant.accentDark;
 
   /// accent-100 — the offline banner's ground.
-  static const cyanTint = Color(0xFFE9F8FF);
+  static final cyanTint = tenant.accentTint;
 
   /// accent-2-700 — rejected, overdue and follow-up only.
   static const magenta = Color(0xFFAA0B56);
@@ -135,22 +140,22 @@ ThemeData buildTheme() {
       labelLarge: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
       labelSmall: kSectionLabel,
     ),
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: AppColors.ink,
       foregroundColor: AppColors.paper,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: kRadiusHeader),
+      shape: const RoundedRectangleBorder(borderRadius: kRadiusHeader),
     ),
-    inputDecorationTheme: const InputDecorationTheme(
+    inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.surface,
-      constraints: BoxConstraints(minHeight: kControlHeight),
-      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      border: OutlineInputBorder(
+      constraints: const BoxConstraints(minHeight: kControlHeight),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      border: const OutlineInputBorder(
         borderRadius: kRadiusControl,
         borderSide: BorderSide(color: AppColors.divider),
       ),
-      enabledBorder: OutlineInputBorder(
+      enabledBorder: const OutlineInputBorder(
         borderRadius: kRadiusControl,
         borderSide: BorderSide(color: AppColors.divider),
       ),

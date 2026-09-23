@@ -17,7 +17,7 @@ class TaskProgressBar extends StatelessWidget {
     super.key,
     required this.done,
     required this.total,
-    this.fill = AppColors.cyan,
+    this.fill,
     this.track = const Color(0x1F201E1D), // text @ 12%
     this.height = 6,
     this.showLabel = false,
@@ -26,7 +26,8 @@ class TaskProgressBar extends StatelessWidget {
 
   final int done;
   final int total;
-  final Color fill;
+  /// Defaults to the club's accent.
+  final Color? fill;
   final Color track;
   final double height;
   final bool showLabel;
@@ -57,7 +58,7 @@ class TaskProgressBar extends StatelessWidget {
         child: FractionallySizedBox(
           widthFactor: fraction,
           heightFactor: 1,
-          child: DecoratedBox(decoration: BoxDecoration(color: fill)),
+          child: DecoratedBox(decoration: BoxDecoration(color: fill ?? AppColors.cyan)),
         ),
       ),
     );
