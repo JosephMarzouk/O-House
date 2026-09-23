@@ -1,0 +1,20 @@
+# Generated or design-only: noise for a code graph.
+.design-preview-tmp/
+design_handoff_o_house_app/
+linux/
+windows/
+macos/
+web/
+ios/Runner/Assets.xcassets/
+ios/Flutter/
+android/app/src/main/res/
+lib/l10n/app_localizations*.dart
+lib/l10n/untranslated.txt
+build/
+.dart_tool/
+graphify-out/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.svg
