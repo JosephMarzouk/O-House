@@ -202,7 +202,7 @@ does not cut — it *shrinks* into the next screen's header.
 | `lib/data/api_client.dart` | The only way to the data: `X-Club`, bearer, `Idempotency-Key`, one 401 refresh, the refusal contract (`ApiRefused` / `ApiUnavailable`) |
 | `lib/data/local_db.dart` | sqflite v2: `rounds`, `profiles`, `outbox`, `drafts`, `settings`, all keyed by user |
 | `lib/data/sync.dart` | SyncService v2: per-round order, backoff, parking (Retry / Dismiss), rerun flag, `SyncStatus` for the banner |
-| `lib/data/fixtures.dart` | Demo data behind `kDemoData` (currently `false`) |
+| `lib/data/fixtures.dart` | Demo data for tests and `main_dev_preview.dart` (injected through provider overrides; the app never reads it) |
 
 Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 `outboxCountProvider`, `authStateProvider`, `currentProfileProvider`,
@@ -245,8 +245,9 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 done/total arithmetic; `fillFor(status)`) · `subtask_tile.dart` (the answer
 control per item type — Yes/No or Pass/Fail pair, number field forced LTR,
 text field — and the follow-up note; the tile body no longer toggles) ·
-`photo_thumb.dart` (resolves a device path, a bucket path or a full URL via
-`mediaUrl`) · `sync_banner.dart`.
+`photo_thumb.dart` (a queued file from disk, a stored path through the signed
+link `GET /assignments/:id` returns) · `sync_banner.dart` (offline / sending /
+needs attention, and the Retry / Dismiss sheet).
 
 ### Localization (`lib/l10n/`)
 
@@ -319,9 +320,8 @@ call, not executable by clients.
 - `mark_item_done(p_item_id, p_note, p_answer)` stores the answer and judges
   it with `answer_ok()`: no rule, or a matching answer → `done`; a wrong **or
   missing** answer on a rule item → `follow_up`. It never raises over an
-  answer — an unknown error would jam the outbox. The app sends `p_answer`
-  only when it has one (`markItemDoneParams`), so pre-0013 queued rows still
-  replay.
+  answer — an unknown error would jam the outbox. The app sends `answer`
+  only when it has one (the queued `answer` op, through the API).
 - Wire values: yesno `yes`/`no`, pass_fail `pass`/`fail`, number a decimal
   string with Arabic digits and `٫`/`,` folded (`normalizeAnswer`), text
   trimmed. Text compares case- and space-insensitively server-side.
@@ -346,10 +346,11 @@ is ever switched on, only that function and its one call site change.
 
 ### Storage
 
-One bucket, `checklist-media`, **public**. Paths: `photos/{assignment_id}/{item_id}-{µs}.jpg`,
-`signatures/{assignment_id}-{µs}.png`. `buildStoragePath()` is unit-tested
-because `0002`'s RLS policy structurally depends on that exact shape. Uploads
-use `upsert: true` so replay is idempotent.
+One bucket, `checklist-media` (going private at plan Step 4). Since Step 3 the
+app never touches Storage: it sends the file to the API, which stores it at
+`photos/{assignment_id}/{item_id}-{photoId}.jpg` or
+`signatures/{assignment_id}-{signatureId}.png`, from ids fixed at capture, so a
+replay writes the same object.
 
 ---
 
@@ -375,13 +376,14 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 
 ---
 
-## 7. Tests (`test/`, 98 tests, all passing)
+## 7. Tests (`test/`, 110 tests, all passing)
 
 | File | Covers |
 |---|---|
 | `tasks_logic_test.dart` | Pure logic: `tabFor` (asserted as a *total* partition — a bug there hides work rather than erroring; `follow_up` → Today whatever its date), `matchesQuery`, `normalizeAnswer` (Arabic-Indic digits, `٫`, `,`), answer-based staging, `canSubmitStaged` incl. the follow-up resubmit gate, `itemPhotos` |
-| `outbox_test.dart` | `isTerminalError` (terminal vs. retryable RPC failures), `buildStoragePath`, `mediaUrl`; `p_answer` in the queued `mark_item_done` payload (through the real repo, with a capturing `LocalDb`) and in `markItemDoneParams` only when non-null |
-| `submit_sync_test.dart` | That submitting drains the outbox, drains *after* the enqueue, scopes the drain to its own round, re-reads the round *before* the success screen is built, and — the lie that hid the bug — never shows the success screen when the queue stopped |
+| `outbox_test.dart` | The refusal contract as the phone reads it (`classifyResponse`), the 401 refresh-and-retry, and SyncService against fakes: per-round order, a 503 stops one round, no response stops all, parking + Retry, evidence deleted only after a 2xx, MISSING_FILE, user scoping, the rerun flag, refresh after a send; `backoff`, `applyLocal`, `isoWithOffset`, `RoundDraft`, `syntheticEmailToPhone` |
+| `submit_sync_test.dart` | The signature flow: queue then drain, success built on the re-read, a refused round reports why and goes Home instead of claiming success, the supervisor note travels with the submit, an empty pad does nothing |
+| `tenant_test.dart` | `resolveTenant` fails fast (missing, unknown, mismatched `TENANT_NAME`), every tenant config is complete, the API client sends the tenant's club, OWEST's brand colours |
 | `app_header_test.dart` | Header height/logo consistency across every screen in both locales; submission flow; signature button and pad sizing |
 | `home_screen_test.dart` | Stat counts, today-filter, Next up ordering, ink hand-off cases, pull-to-refresh |
 | `tasks_screens_test.dart` | Both dense screens pumped at real phone width in EN *and* AR — a widget test fails on RenderFlex overflow, which is the cheap way to keep Arabic honest. Also a `follow_up` round built in-test (the fixtures stay untouched): the flag note, Yes/No and number inputs (Arabic digits), the resubmit gate, LTR number field under RTL, and the success screen's follow-up face |
