@@ -70,7 +70,7 @@ Refactored away in `8f4202a`, do not resurrect:
 |---|---|---|
 | 1 | Online-only reads/writes, all screens | **Done** |
 | 2 | Image compression before queuing | **Done (Step 3)** — the picker itself: 1600 px long edge, quality 75 |
-| 3 | Offline writes: outbox drain, optimistic local updates, cache reads | **Code done (plan Step 3)** — every read and write goes through the O House API (`data/api_client.dart`); cache-first providers; SyncService v2 (per-round order, backoff, parking with Retry/Dismiss, user-scoped); one app per club (tenant flavors). Reads verified on a real phone against the local API; writes not yet end to end |
+| 3 | Offline writes: outbox drain, optimistic local updates, cache reads | **Code done (plan Step 3)** — every read and write goes through the O House API (`data/api_client.dart`); cache-first providers; SyncService v2 (per-round order, backoff, parking with Retry/Dismiss, user-scoped); one app per club (tenant flavors). Verified on a real phone against the local API: reads, and an offline submit (Wi-Fi off) that sent itself on reconnect, signature in storage, `completed_at` = signing time |
 | 4 | Push notifications | **Not started** — `firebase_core`/`firebase_messaging` in pubspec, zero Dart references, no `google-services.json` |
 
 ### Known issues
@@ -134,7 +134,13 @@ main.dart → initSupabase() → ProviderScope → OHouseApp (app.dart)
   every call). `supabase_flutter` is for sign-in only, initialized with this
   build's club (`tenant.dart`).
 - **The one seam**: `AssignmentsRepo`. No screen touches the API directly
-  (Profile's locale and set-password's `password-changed` are the exceptions).
+  (Profile's locale is the exception).
+- **No password screen.** Staff never change their password in the app
+  (business rule): only an admin sets it, in the portal. Sign-in always lands
+  on Home; `profiles.must_change_password` is not read.
+- **About / Policies** come from `club_pages` (an admin writes them in the
+  portal), on `GET /me` as `pages`, cached in `settings` (`clubPagesProvider`)
+  so they show offline; empty → the built-in ARB line.
 - **Cache first** (LS-3): `myAssignmentsProvider` reads the per-user cache and
   lays queued work over it (`applyLocal`); `roundsRefreshProvider` does the
   `GET /assignments`. One SQLite file (`o_house.db`, schema v2; v1 is the
@@ -151,7 +157,6 @@ main.dart → initSupabase() → ProviderScope → OHouseApp (app.dart)
 |---|---|---|
 | `/splash` | `SplashScreen` | Cold boot only. Owns the routing decision. |
 | `/login` | `LoginScreen` | `NoTransitionPage` — owns its own ink animation |
-| `/set-password` | `SetPasswordScreen` | Forced when `must_change_password` |
 | `/home` `/tasks` `/profile` | `StatefulShellRoute.indexedStack` | Three peer tabs, state preserved, floating `AppNavBar` |
 | `/tasks/:id` | `TaskDetailScreen` | Top-level on purpose — no nav bar, keeps back arrow |
 | `/tasks/:id/signature` | `SignatureScreen` | |
@@ -206,7 +211,7 @@ does not cut — it *shrinks* into the next screen's header.
 
 Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 `outboxCountProvider`, `authStateProvider`, `currentProfileProvider`,
-`myAssignmentsProvider`, `assignmentByIdProvider(id)`.
+`myAssignmentsProvider`, `assignmentByIdProvider(id)`, `clubPagesProvider`.
 
 ### Models
 
@@ -222,7 +227,6 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 |---|---|
 | `features/auth/splash_screen.dart` | Restores session, loads profile, applies locale, routes |
 | `features/auth/login_screen.dart` | Phone + password. Ink header, language toggle, RTL-safe phone row |
-| `features/auth/set_password_screen.dart` | Forced first-login / post-reset change |
 | `features/splash_handoff.dart` | The hand-off mixin + shared flags/durations |
 | `features/locale_provider.dart` | `localeProvider`, persisted to the `settings` table |
 | `features/home/home_screen.dart` | Stat tiles, today's round summary, Next up, pull-to-refresh |
@@ -232,7 +236,7 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 | `features/assignments/signature_screen.dart` | Signature pad, forced LTR. Drains, then re-reads the round *before* Success |
 | `features/assignments/success_screen.dart` | Confirmation, names the submitted round. A second face for `follow_up` ("Sent — needs follow-up") |
 | `features/assignments/history_detail_screen.dart` | Read-only view of a submitted round, with each item's answer |
-| `features/profile/profile_screen.dart` | Phone, language toggle (`set_locale` RPC), about, policies, logout |
+| `features/profile/profile_screen.dart` | Phone, language toggle (`set_locale` RPC), About and Policies (the admin's `club_pages` text, else the built-in line), logout |
 
 ### Shared widgets (`lib/widgets/`)
 
@@ -376,13 +380,14 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 
 ---
 
-## 7. Tests (`test/`, 110 tests, all passing)
+## 7. Tests (`test/`, 113 tests, all passing)
 
 | File | Covers |
 |---|---|
 | `tasks_logic_test.dart` | Pure logic: `tabFor` (asserted as a *total* partition — a bug there hides work rather than erroring; `follow_up` → Today whatever its date), `matchesQuery`, `normalizeAnswer` (Arabic-Indic digits, `٫`, `,`), answer-based staging, `canSubmitStaged` incl. the follow-up resubmit gate, `itemPhotos` |
 | `outbox_test.dart` | The refusal contract as the phone reads it (`classifyResponse`), the 401 refresh-and-retry, and SyncService against fakes: per-round order, a 503 stops one round, no response stops all, parking + Retry, evidence deleted only after a 2xx, MISSING_FILE, user scoping, the rerun flag, refresh after a send; `backoff`, `applyLocal`, `isoWithOffset`, `RoundDraft`, `syntheticEmailToPhone` |
 | `submit_sync_test.dart` | The signature flow: queue then drain, success built on the re-read, a refused round reports why and goes Home instead of claiming success, the supervisor note travels with the submit, an empty pad does nothing |
+| `club_pages_test.dart` | Profile's About / Policies: the admin's text in the reader's language, the other language when one is empty, the built-in line when nothing is written |
 | `tenant_test.dart` | `resolveTenant` fails fast (missing, unknown, mismatched `TENANT_NAME`), every tenant config is complete, the API client sends the tenant's club, OWEST's brand colours |
 | `app_header_test.dart` | Header height/logo consistency across every screen in both locales; submission flow; signature button and pad sizing |
 | `home_screen_test.dart` | Stat counts, today-filter, Next up ordering, ink hand-off cases, pull-to-refresh |

@@ -15,12 +15,6 @@
   "loginHidePassword": "إخفاء كلمة المرور",
   "loginFooter": "{club} · للموظفين فقط",
 
-  "setPasswordTitle": "تعيين كلمة مرور جديدة",
-  "setPasswordLabel": "كلمة المرور الجديدة",
-  "setPasswordConfirmLabel": "تأكيد كلمة المرور",
-  "setPasswordButton": "حفظ ومتابعة",
-  "setPasswordMismatch": "كلمتا المرور غير متطابقتين.",
-  "setPasswordError": "تعذّر حفظ كلمة المرور الجديدة. حاول مرة أخرى.",
 
   "homeGreeting": "مرحباً، {name}",
   "@homeGreeting": { "placeholders": { "name": { "type": "String" } } },

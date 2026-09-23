@@ -9,7 +9,6 @@ import 'features/assignments/list_screen.dart';
 import 'features/assignments/signature_screen.dart';
 import 'features/assignments/success_screen.dart';
 import 'features/auth/login_screen.dart';
-import 'features/auth/set_password_screen.dart';
 import 'features/auth/splash_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/profile/profile_screen.dart';
@@ -23,7 +22,7 @@ final router = GoRouter(
   redirect: (context, state) {
     final loc = state.matchedLocation;
     // Splash owns the cold-boot routing decision, and login now owns the
-    // post-sign-in one — must_change_password included — itself (see
+    // post-sign-in one itself (see
     // login_screen.dart's _submit), so a redirect here would only ever be
     // racing it. Neither gets bounced by this rule.
     if (loc == '/splash' || loc == '/login') return null;
@@ -39,10 +38,6 @@ final router = GoRouter(
     GoRoute(
       path: '/login',
       pageBuilder: (c, s) => const NoTransitionPage(child: LoginScreen()),
-    ),
-    GoRoute(
-      path: '/set-password',
-      builder: (c, s) => const SetPasswordScreen(),
     ),
 
     // The three peer destinations. indexedStack keeps every branch alive, so

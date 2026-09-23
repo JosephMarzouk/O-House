@@ -13,9 +13,6 @@ bool splashHandoffPlayed = false;
 /// in initState so the ink keeps *moving* — collapsing from Login's header
 /// down to its own, shorter one — instead of cutting between two different
 /// header sizes on the single frame where the route swaps.
-///
-/// Only set when Login is actually heading for Home: the must-change-password
-/// detour goes to /set-password, which has no ink header to continue into.
 double? loginHandoffFromHeight;
 
 /// The splash's full-screen ink collapsing into a header.

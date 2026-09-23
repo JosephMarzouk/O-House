@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
@@ -123,7 +124,32 @@ final profileFetchProvider = FutureProvider<Profile?>((ref) async {
   final res = await repo.api.get('/me') as Map<String, dynamic>;
   final json = res['profile'] as Map<String, dynamic>;
   await repo.db.saveProfile(repo.userId, json);
+  // The club's About / Policies text rides on /me; cached with the profile
+  // so Profile shows it offline. Club-wide, so one settings row, not per user.
+  if (res['pages'] != null) {
+    await repo.db.setSetting(_clubPagesKey, jsonEncode(res['pages']));
+  }
   return _withPhone(Profile.fromJson(json));
+});
+
+const _clubPagesKey = 'club_pages';
+
+/// The club's pages written by an admin in the portal, by key (`about`,
+/// `policies`): `{body_en, body_ar}`. From the cache, refreshed with the
+/// profile. Empty until the first `/me` lands; the screen then shows its
+/// built-in line.
+final clubPagesProvider = FutureProvider<Map<String, Map<String, dynamic>>>((
+  ref,
+) async {
+  ref.watch(profileFetchProvider);
+  final repo = ref.watch(assignmentsRepoProvider);
+  if (repo == null) return {};
+  final raw = await repo.db.getSetting(_clubPagesKey);
+  if (raw == null) return {};
+  return {
+    for (final p in (jsonDecode(raw) as List).cast<Map<String, dynamic>>())
+      p['key'] as String: p,
+  };
 });
 
 /// The cached profile at once, replaced by the server's as soon as it lands.

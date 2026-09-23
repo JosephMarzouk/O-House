@@ -49,24 +49,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get setPasswordTitle => 'Set a new password';
-
-  @override
-  String get setPasswordLabel => 'New password';
-
-  @override
-  String get setPasswordConfirmLabel => 'Confirm password';
-
-  @override
-  String get setPasswordButton => 'Save and continue';
-
-  @override
-  String get setPasswordMismatch => 'Passwords don\'t match.';
-
-  @override
-  String get setPasswordError => 'Couldn\'t save your new password. Try again.';
-
-  @override
   String homeGreeting(String name) {
     return 'Welcome, $name';
   }

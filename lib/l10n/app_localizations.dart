@@ -170,42 +170,6 @@ abstract class AppLocalizations {
   /// **'{club} · staff access only'**
   String loginFooter(String club);
 
-  /// No description provided for @setPasswordTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Set a new password'**
-  String get setPasswordTitle;
-
-  /// No description provided for @setPasswordLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'New password'**
-  String get setPasswordLabel;
-
-  /// No description provided for @setPasswordConfirmLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirm password'**
-  String get setPasswordConfirmLabel;
-
-  /// No description provided for @setPasswordButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Save and continue'**
-  String get setPasswordButton;
-
-  /// No description provided for @setPasswordMismatch.
-  ///
-  /// In en, this message translates to:
-  /// **'Passwords don\'t match.'**
-  String get setPasswordMismatch;
-
-  /// No description provided for @setPasswordError.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save your new password. Try again.'**
-  String get setPasswordError;
-
   /// No description provided for @homeGreeting.
   ///
   /// In en, this message translates to:

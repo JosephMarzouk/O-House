@@ -49,25 +49,6 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get setPasswordTitle => 'تعيين كلمة مرور جديدة';
-
-  @override
-  String get setPasswordLabel => 'كلمة المرور الجديدة';
-
-  @override
-  String get setPasswordConfirmLabel => 'تأكيد كلمة المرور';
-
-  @override
-  String get setPasswordButton => 'حفظ ومتابعة';
-
-  @override
-  String get setPasswordMismatch => 'كلمتا المرور غير متطابقتين.';
-
-  @override
-  String get setPasswordError =>
-      'تعذّر حفظ كلمة المرور الجديدة. حاول مرة أخرى.';
-
-  @override
   String homeGreeting(String name) {
     return 'مرحباً، $name';
   }

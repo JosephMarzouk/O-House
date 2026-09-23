@@ -16,12 +16,6 @@
   "loginFooter": "{club} · staff access only",
   "@loginFooter": { "placeholders": { "club": { "type": "String" } } },
 
-  "setPasswordTitle": "Set a new password",
-  "setPasswordLabel": "New password",
-  "setPasswordConfirmLabel": "Confirm password",
-  "setPasswordButton": "Save and continue",
-  "setPasswordMismatch": "Passwords don't match.",
-  "setPasswordError": "Couldn't save your new password. Try again.",
 
   "homeGreeting": "Welcome, {name}",
   "@homeGreeting": { "placeholders": { "name": { "type": "String" } } },

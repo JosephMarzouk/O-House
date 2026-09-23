@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/localized_text.dart';
 import '../../supabase.dart';
 import '../../tenant.dart';
 import '../../theme.dart';
@@ -29,6 +30,16 @@ class ProfileScreen extends ConsumerWidget {
     final lang = Localizations.localeOf(context).languageCode;
     final app = tenant.appName(lang);
     final club = tenant.clubName(lang);
+    // The admin's text from the portal; the built-in line until there is one.
+    final pages = ref.watch(clubPagesProvider).valueOrNull ?? const {};
+    String page(String key, String fallback) {
+      final text = pickLocalized(
+        context,
+        pages[key]?['body_ar'] as String?,
+        pages[key]?['body_en'] as String?,
+      );
+      return text.isEmpty ? fallback : text;
+    }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -83,9 +94,7 @@ class ProfileScreen extends ConsumerWidget {
                     _ProfileRow(
                       icon: Icons.cloud_upload_outlined,
                       label: t.profileSyncStatus(pendingCount),
-                      onTap: parked > 0
-                          ? () => showParkedSheet(context)
-                          : null,
+                      onTap: parked > 0 ? () => showParkedSheet(context) : null,
                     ),
                   _SectionLabel(t.profileAboutSection),
                   _ProfileRow(
@@ -95,7 +104,7 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () => _showInfoSheet(
                       context,
                       t.profileAboutOHouse(app),
-                      t.profileAboutOHouseBody(app, club),
+                      page('about', t.profileAboutOHouseBody(app, club)),
                     ),
                   ),
                   _ProfileRow(
@@ -105,7 +114,7 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () => _showInfoSheet(
                       context,
                       t.profilePolicies,
-                      t.profilePoliciesBody,
+                      page('policies', t.profilePoliciesBody),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -235,8 +244,8 @@ class _ProfileRow extends StatelessWidget {
   );
 }
 
-/// A bottom sheet fixed to 66% of the screen height, for static content
-/// ("About O-House", "Policies") that has no dedicated route yet.
+/// A bottom sheet fixed to 66% of the screen height, for the club's About and
+/// Policies text (written by an admin in the portal, `club_pages`).
 Future<void> _showInfoSheet(BuildContext context, String title, String body) {
   return showModalBottomSheet<void>(
     context: context,

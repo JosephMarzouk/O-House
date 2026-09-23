@@ -44,8 +44,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
 
     // Fetch and hold run together, so a slow profile call eats into the 2s
-    // rather than being added to it — and the splash never cuts to Home
-    // before the must_change_password answer is in.
+    // rather than being added to it — and Home opens in the user's language.
     final pending = ref.read(currentProfileProvider.future);
     await hold;
 
@@ -63,7 +62,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
 
     ref.read(localeProvider.notifier).set(profile.locale);
-    context.go(profile.mustChangePassword ? '/set-password' : '/home');
+    // Always Home: passwords are set by an admin in the portal, never here.
+    context.go('/home');
   }
 
   @override

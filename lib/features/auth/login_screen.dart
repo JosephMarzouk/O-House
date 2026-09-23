@@ -94,8 +94,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ref.invalidate(userIdProvider);
     Profile? profile;
     try {
-      // Fresh from the server, not the cache: must_change_password decides
-      // where this sign-in lands.
+      // Fresh from the server, not the cache: its locale is applied before
+      // Home is built.
       profile = await ref
           .read(profileFetchProvider.future)
           .timeout(const Duration(seconds: 5));
@@ -108,15 +108,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if (profile != null) {
       ref.read(localeProvider.notifier).set(profile.locale);
     }
-    final mustChangePassword = profile?.mustChangePassword ?? false;
     // Hand Home the height our ink header is sitting at right now, so it can
     // carry on collapsing from there instead of snapping to its own, shorter
-    // header on the frame the route swaps. Only for /home — /set-password
-    // has no ink header to continue into.
-    if (!mustChangePassword) {
-      loginHandoffFromHeight = inkHeaderHeight(context, _headerContentHeight);
-    }
-    context.go(mustChangePassword ? '/set-password' : '/home');
+    // header on the frame the route swaps.
+    //
+    // Always Home: staff never change their password in the app. Only an
+    // admin sets it, from the portal (business rule), so profiles'
+    // must_change_password is not read here.
+    loginHandoffFromHeight = inkHeaderHeight(context, _headerContentHeight);
+    context.go('/home');
   }
 
   @override
