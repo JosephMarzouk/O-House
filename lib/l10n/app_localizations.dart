@@ -350,6 +350,12 @@ abstract class AppLocalizations {
   /// **'Expired'**
   String get statusExpired;
 
+  /// No description provided for @statusFollowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up'**
+  String get statusFollowUp;
+
   /// No description provided for @statusExtended.
   ///
   /// In en, this message translates to:
@@ -398,6 +404,78 @@ abstract class AppLocalizations {
   /// **'Rejected: {reason}'**
   String taskDetailRejectedReason(String reason);
 
+  /// No description provided for @answerYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get answerYes;
+
+  /// No description provided for @answerNo.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get answerNo;
+
+  /// No description provided for @answerPass.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass'**
+  String get answerPass;
+
+  /// No description provided for @answerFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Fail'**
+  String get answerFail;
+
+  /// No description provided for @answerNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number'**
+  String get answerNumberHint;
+
+  /// No description provided for @answerTextHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type your answer'**
+  String get answerTextHint;
+
+  /// No description provided for @answerRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{min}–{max}'**
+  String answerRange(String min, String max);
+
+  /// No description provided for @answerAtLeast.
+  ///
+  /// In en, this message translates to:
+  /// **'≥ {min}'**
+  String answerAtLeast(String min);
+
+  /// No description provided for @answerAtMost.
+  ///
+  /// In en, this message translates to:
+  /// **'≤ {max}'**
+  String answerAtMost(String max);
+
+  /// No description provided for @followUpNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs follow-up'**
+  String get followUpNeeded;
+
+  /// No description provided for @followUpYouAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'you answered {answer}'**
+  String followUpYouAnswered(String answer);
+
+  /// No description provided for @followUpExpected.
+  ///
+  /// In en, this message translates to:
+  /// **'expected {expected}'**
+  String followUpExpected(String expected);
+
   /// No description provided for @itemSheetTakePhoto.
   ///
   /// In en, this message translates to:
@@ -445,6 +523,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View submission'**
   String get successViewSubmission;
+
+  /// No description provided for @successFollowUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent — needs follow-up'**
+  String get successFollowUpTitle;
+
+  /// No description provided for @successFollowUpBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 answer didn\'t match} other{{count} answers didn\'t match}}'**
+  String successFollowUpBody(int count);
+
+  /// No description provided for @successReviewFlagged.
+  ///
+  /// In en, this message translates to:
+  /// **'Review flagged answers'**
+  String get successReviewFlagged;
 
   /// No description provided for @historyDetailChecklist.
   ///

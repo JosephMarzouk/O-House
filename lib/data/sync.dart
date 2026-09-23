@@ -56,6 +56,20 @@ bool isTerminalError(String message) => _terminalSignals.any(message.contains);
 String buildStoragePath(String key, String extension, {int? timestamp}) =>
     '$key-${timestamp ?? DateTime.now().microsecondsSinceEpoch}.$extension';
 
+/// mark_item_done()'s arguments, from its queued payload. Pure, unit-tested.
+///
+/// p_answer goes only when there is one. Leaving a null out costs nothing —
+/// the parameter defaults to null server-side — and it keeps two replays
+/// working that sending it would break: a row queued by a build from before
+/// answers existed (its payload has no p_answer key at all), and a database
+/// without 0013, where PostgREST matches named arguments and no
+/// mark_item_done takes a p_answer.
+Map<String, dynamic> markItemDoneParams(Map<String, dynamic> payload) => {
+  'p_item_id': payload['p_item_id'],
+  'p_note': payload['p_note'],
+  'p_answer': ?payload['p_answer'],
+};
+
 /// What `signature_url` and `photo_paths` actually contain, and how to render
 /// any of it. Three shapes reach the UI through one column, which is why this
 /// exists rather than a `startsWith('http')` check at the call site:
@@ -182,10 +196,7 @@ class SyncService {
       case 'mark_item_done':
         await supabase.rpc(
           'mark_item_done',
-          params: {
-            'p_item_id': payload['p_item_id'],
-            'p_note': payload['p_note'],
-          },
+          params: markItemDoneParams(payload),
         );
         break;
       case 'attach_item_photo':

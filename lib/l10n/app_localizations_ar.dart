@@ -154,6 +154,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get statusExpired => 'منتهية';
 
   @override
+  String get statusFollowUp => 'بحاجة إلى متابعة';
+
+  @override
   String get statusExtended => 'تم التمديد';
 
   @override
@@ -193,6 +196,52 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get answerYes => 'نعم';
+
+  @override
+  String get answerNo => 'لا';
+
+  @override
+  String get answerPass => 'ناجح';
+
+  @override
+  String get answerFail => 'راسب';
+
+  @override
+  String get answerNumberHint => 'أدخل رقمًا';
+
+  @override
+  String get answerTextHint => 'اكتب إجابتك';
+
+  @override
+  String answerRange(String min, String max) {
+    return 'من $min إلى $max';
+  }
+
+  @override
+  String answerAtLeast(String min) {
+    return '$min أو أكثر';
+  }
+
+  @override
+  String answerAtMost(String max) {
+    return '$max أو أقل';
+  }
+
+  @override
+  String get followUpNeeded => 'بحاجة إلى متابعة';
+
+  @override
+  String followUpYouAnswered(String answer) {
+    return 'إجابتك: $answer';
+  }
+
+  @override
+  String followUpExpected(String expected) {
+    return 'المتوقع: $expected';
+  }
+
+  @override
   String get itemSheetTakePhoto => 'التقاط صورة';
 
   @override
@@ -217,6 +266,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get successViewSubmission => 'عرض الإرسال';
+
+  @override
+  String get successFollowUpTitle => 'تم الإرسال — بحاجة إلى متابعة';
+
+  @override
+  String successFollowUpBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count إجابة غير مطابقة',
+      few: '$count إجابات غير مطابقة',
+      two: 'إجابتان غير مطابقتين',
+      one: 'إجابة واحدة غير مطابقة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get successReviewFlagged => 'مراجعة الإجابات غير المطابقة';
 
   @override
   String historyDetailChecklist(int done, int total) {

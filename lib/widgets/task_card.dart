@@ -18,6 +18,7 @@ class TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = assignment;
+    final round = pickLocalized(context, a.roundTitleAr, a.roundTitleEn);
     final title = pickLocalized(context, a.titleAr, a.titleEn);
     final site = pickLocalized(context, a.siteNameAr, a.siteNameEn);
     final window = formatWindow(a.windowStart, a.windowEnd);
@@ -43,6 +44,18 @@ class TaskCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // The round as a kicker over the place. Each card is one
+                // place, and the list deliberately does not group by round,
+                // so this is what lets a round's places read as one set.
+                if (round.isNotEmpty) ...[
+                  Text(
+                    round.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: kSectionLabel,
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

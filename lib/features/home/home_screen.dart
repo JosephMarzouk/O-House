@@ -138,7 +138,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
                             _StatTile(
                               label: t.homeInProgress,
-                              value: count('in_progress'),
+                              // follow_up is in progress from where staff
+                              // stand: sent once, but with flagged answers
+                              // still theirs to fix. Counting it anywhere
+                              // else — Submitted — would say it is done.
+                              value: count('in_progress') + count('follow_up'),
                               ground: AppColors.cyanTint,
                               number: AppColors.cyanDark,
                             ),

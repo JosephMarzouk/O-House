@@ -16,8 +16,7 @@ class Assignment {
   final String? windowStart; // 'HH:mm:ss', as returned by postgrest for `time`
   final String? windowEnd;
   final String status; // raw column
-  final String
-  effectiveStatus; // pending|in_progress|submitted|approved|rejected|expired
+  final String effectiveStatus; // pending|in_progress|submitted|approved|rejected|expired|follow_up
   final bool wasExtended;
   final String? extensionNote;
   final DateTime? submittedAt;
@@ -26,6 +25,13 @@ class Assignment {
   final String? signatureUrl;
   final String? reviewNote;
   final List<AssignmentItem> items;
+
+  /// The zone round this place was scheduled from (0013), via the view's
+  /// LEFT JOIN — null for a one-off task or a legacy row. Display only: the
+  /// card's kicker and the head of the subtitle. round_id itself is not
+  /// carried; nothing in the app groups by round.
+  final String? roundTitleEn;
+  final String? roundTitleAr;
 
   const Assignment({
     required this.id,
@@ -48,10 +54,16 @@ class Assignment {
     required this.signatureUrl,
     required this.reviewNote,
     this.items = const [],
+    this.roundTitleEn,
+    this.roundTitleAr,
   });
 
   int get doneCount => items.where((i) => i.status == 'done').length;
   bool get canSubmit => items.isNotEmpty && items.every((i) => i.isSatisfied);
+
+  /// follow_up is deliberately absent here and from [terminalStatuses]: a
+  /// round in follow_up is both editable and outstanding — it was sent, but
+  /// its flagged answers are this person's to fix, and it never expires.
   bool get isReadOnly =>
       const {'submitted', 'approved', 'expired'}.contains(effectiveStatus);
 
@@ -106,6 +118,8 @@ class Assignment {
     items: (json['items'] as List<dynamic>? ?? const [])
         .map((e) => AssignmentItem.fromJson(e as Map<String, dynamic>))
         .toList(),
+    roundTitleEn: json['round_title_en'] as String?,
+    roundTitleAr: json['round_title_ar'] as String?,
   );
 
   Map<String, dynamic> toCacheJson() => {
@@ -129,6 +143,8 @@ class Assignment {
     'signature_url': signatureUrl,
     'review_note': reviewNote,
     'items': items.map((i) => i.toJson()).toList(),
+    'round_title_en': roundTitleEn,
+    'round_title_ar': roundTitleAr,
   };
 
   Assignment copyWithItems(List<AssignmentItem> items) => Assignment(
@@ -152,5 +168,7 @@ class Assignment {
     signatureUrl: signatureUrl,
     reviewNote: reviewNote,
     items: items,
+    roundTitleEn: roundTitleEn,
+    roundTitleAr: roundTitleAr,
   );
 }

@@ -13,7 +13,12 @@ import 'package:o_house/models/assignment_item.dart';
 ///
 /// `canSubmitStaged` is the partial-submit gate. It deliberately differs from
 /// Assignment.canSubmit (all items done) and from the server's contract, so
-/// there is nothing else in the codebase to check it against.
+/// there is nothing else in the codebase to check it against. Since 0013 it
+/// also carries the follow-up rule — a resubmit needs a fresh answer — which
+/// fails the same quiet way: a button that is enabled or disabled wrongly.
+///
+/// `normalizeAnswer` is the wire form of a typed answer, and a digit left in
+/// Arabic-Indic form is stored — and quoted back to staff — as typed.
 ///
 /// Layout, the camera, and the ink headers are left to manual verification.
 AssignmentItem _item(
@@ -39,6 +44,7 @@ AssignmentItem _item(
 
 Assignment _a({
   DateTime? scheduledDate,
+  String status = 'pending',
   String titleEn = 'Morning round',
   String titleAr = 'الجولة الصباحية',
   String? siteNameEn = 'Swimming pool',
@@ -55,8 +61,8 @@ Assignment _a({
   scheduledDate: scheduledDate,
   windowStart: '07:00:00',
   windowEnd: '11:00:00',
-  status: 'pending',
-  effectiveStatus: 'pending',
+  status: status,
+  effectiveStatus: status,
   wasExtended: false,
   extensionNote: null,
   submittedAt: null,
@@ -97,6 +103,68 @@ void main() {
     test('an assignment with no date is never dropped', () {
       expect(tabFor(_a(), now), TaskTab.today);
     });
+
+    test('a follow_up round is in Today whatever its date', () {
+      // Sent days ago but still waiting on this person — by day alone it
+      // would be buried in History, where nobody looks for work.
+      expect(
+        tabFor(
+          _a(scheduledDate: DateTime(2026, 8, 20), status: 'follow_up'),
+          now,
+        ),
+        TaskTab.today,
+      );
+      expect(
+        tabFor(
+          _a(scheduledDate: DateTime(2026, 9, 5), status: 'follow_up'),
+          now,
+        ),
+        TaskTab.today,
+      );
+    });
+  });
+
+  group('normalizeAnswer', () {
+    test('folds Arabic-Indic digits and the Arabic decimal separator', () {
+      expect(normalizeAnswer('number', '٢٫٥'), '2.5');
+      expect(normalizeAnswer('number', '-٠٫٧٥'), '-0.75');
+    });
+
+    test('folds the extended (Persian/Urdu) digit set too', () {
+      expect(normalizeAnswer('number', '۱۲۰'), '120');
+    });
+
+    test('reads a decimal comma as a point, and trims', () {
+      expect(normalizeAnswer('number', ' 3,5 '), '3.5');
+      expect(normalizeAnswer('number', '7'), '7');
+    });
+
+    test('only trims every other type', () {
+      // A comma in free text is just a comma; digits stay as written.
+      expect(normalizeAnswer('text', '  3,5 kg ٢ '), '3,5 kg ٢');
+      expect(normalizeAnswer('yesno', ' yes '), 'yes');
+      expect(normalizeAnswer('pass_fail', 'fail'), 'fail');
+    });
+
+    test('whitespace alone is no answer at all', () {
+      expect(normalizeAnswer('number', '   '), isEmpty);
+      expect(normalizeAnswer('text', '\n '), isEmpty);
+    });
+  });
+
+  group('answers', () {
+    test('any staged answer counts, a "no" included', () {
+      // A "no" is an answer, not an empty box — the rule decides if it is
+      // the right one.
+      expect(isItemChecked(_item('i1'), {'i1': 'no'}), isTrue);
+      expect(isItemChecked(_item('i1'), {}), isFalse);
+    });
+
+    test('a follow_up item is unanswered until it is answered again', () {
+      final flagged = _item('i1', status: 'follow_up');
+      expect(isItemChecked(flagged, {}), isFalse);
+      expect(isItemChecked(flagged, {'i1': 'yes'}), isTrue);
+    });
   });
 
   group('matchesQuery', () {
@@ -119,15 +187,15 @@ void main() {
   });
 
   group('canSubmitStaged', () {
-    test('nothing ticked cannot be submitted', () {
+    test('nothing answered cannot be submitted', () {
       final a = _a(items: [_item('i1')]);
       expect(canSubmitStaged(a, {}, {}), isFalse);
     });
 
-    test('a ticked place that owes a photo blocks the submit', () {
+    test('an answered place that owes a photo blocks the submit', () {
       final a = _a(items: [_item('i1', requiresPhoto: true)]);
-      expect(canSubmitStaged(a, {'i1'}, {}), isFalse);
-      expect(missingPhotoCount(a, {'i1'}, {}), 1);
+      expect(canSubmitStaged(a, {'i1': 'yes'}, {}), isFalse);
+      expect(missingPhotoCount(a, {'i1': 'yes'}, {}), 1);
     });
 
     test('a photo staged this session satisfies it', () {
@@ -135,7 +203,7 @@ void main() {
       expect(
         canSubmitStaged(
           a,
-          {'i1'},
+          {'i1': 'yes'},
           {
             'i1': ['/tmp/shot.jpg'],
           },
@@ -150,15 +218,15 @@ void main() {
           _item('i1', requiresPhoto: true, photoPaths: const ['photos/x.jpg']),
         ],
       );
-      expect(canSubmitStaged(a, {'i1'}, {}), isTrue);
+      expect(canSubmitStaged(a, {'i1': 'no'}, {}), isTrue);
     });
 
-    test('an unticked place that requires a photo does not block', () {
+    test('an unanswered place that requires a photo does not block', () {
       // This is the whole point of partial submit: leave the padel court for
       // later and send the pool round now.
       final a = _a(items: [_item('i1'), _item('i2', requiresPhoto: true)]);
-      expect(canSubmitStaged(a, {'i1'}, {}), isTrue);
-      expect(missingPhotoCount(a, {'i1'}, {}), 0);
+      expect(canSubmitStaged(a, {'i1': 'yes'}, {}), isTrue);
+      expect(missingPhotoCount(a, {'i1': 'yes'}, {}), 0);
     });
 
     test('a place already done on the server counts as ticked', () {
@@ -170,6 +238,60 @@ void main() {
     test('a done place still owing a photo blocks the whole round', () {
       final a = _a(items: [_item('i1', status: 'done', requiresPhoto: true)]);
       expect(canSubmitStaged(a, {}, {}), isFalse);
+    });
+  });
+
+  // A follow_up round was sent once already, so what the server holds proves
+  // nothing new; only an answer made now does.
+  group('the follow-up submit gate', () {
+    test('work already on the server is not enough to resend', () {
+      final a = _a(
+        status: 'follow_up',
+        items: [
+          _item('i1', status: 'done'),
+          _item('i2', status: 'follow_up'),
+        ],
+      );
+      // The same round outside follow_up would pass on the done item alone.
+      expect(canSubmitStaged(a, {}, {}), isFalse);
+    });
+
+    test('fixing one of several flagged answers is enough', () {
+      // Partial fixes are allowed; the round stays in follow_up server-side
+      // until none are left, rather than the app holding the resend back.
+      final a = _a(
+        status: 'follow_up',
+        items: [
+          _item('i1', status: 'follow_up'),
+          _item('i2', status: 'follow_up'),
+          _item('i3', status: 'follow_up'),
+        ],
+      );
+      expect(canSubmitStaged(a, {'i2': 'yes'}, {}), isTrue);
+    });
+
+    test('a flagged place owes its photo even while not re-answered', () {
+      // submit_assignment() counts follow_up items as answered work, so a
+      // gate that let this through would open onto a MISSING_PHOTO.
+      final a = _a(
+        status: 'follow_up',
+        items: [
+          _item('i1', status: 'follow_up', requiresPhoto: true),
+          _item('i2'),
+        ],
+      );
+      expect(missingPhotoCount(a, {'i2': 'no'}, {}), 1);
+      expect(canSubmitStaged(a, {'i2': 'no'}, {}), isFalse);
+      expect(
+        canSubmitStaged(
+          a,
+          {'i2': 'no'},
+          {
+            'i1': ['/tmp/retake.jpg'],
+          },
+        ),
+        isTrue,
+      );
     });
   });
 

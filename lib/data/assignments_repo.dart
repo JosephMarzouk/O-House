@@ -43,25 +43,62 @@ class AssignmentsRepo {
 
   Future<List<Assignment>> refreshFromServer(String assigneeId) async {
     if (kDemoData) return List.of(_demoList);
+
+    // Used to be the person's entire history, one items query per round,
+    // one after another — fine at a handful of rows, not once every zone
+    // round became one task per place. It also pulled the old inspector
+    // client's undated rows (scheduled_date NULL, most of the table) into
+    // Today; NULL fails the gte below, and those rows are never follow_up.
+    //
+    // ponytail: a 7-day look-back. A round older than that vanishes from the
+    // app unless it is in follow_up, which never expires and is the one kind
+    // of old round still waiting on this person. An older round sent back as
+    // in_progress or rejected drops off with the rest — widen the window, or
+    // add those statuses to the or-filter, if that ever bites.
+    //
+    // Raw `status` in the filter, against the read-effective_status rule, on
+    // purpose: follow_up is written, never derived from the clock, so the
+    // two columns agree on it by construction (see assignments_v).
+    final since = DateTime.now()
+        .subtract(const Duration(days: 7))
+        .toIso8601String()
+        .substring(0, 10); // yyyy-MM-dd, local — a day's drift is harmless
     final rows = await supabase
         .from('assignments_v')
         .select()
         .eq('inspector_id', assigneeId)
+        .or('scheduled_date.gte.$since,status.eq.follow_up')
         .order('scheduled_date');
 
-    final assignments = <Assignment>[];
-    for (final row in rows as List) {
-      final assignment = Assignment.fromJson(row as Map<String, dynamic>);
-      final itemRows = await supabase
-          .from('assignment_items')
-          .select()
-          .eq('assignment_id', assignment.id)
-          .order('sort_order');
-      final items = (itemRows as List)
-          .map((r) => AssignmentItem.fromJson(r as Map<String, dynamic>))
-          .toList();
-      assignments.add(assignment.copyWithItems(items));
+    // One items request per 50 rounds, all in flight at once, instead of one
+    // per round in sequence.
+    //
+    // ponytail: 50 ids a request stays under PostgREST's default 1000-row
+    // cap only while checklists average under 20 items — the longest live
+    // template has 10, so ~500 rows at worst. Past the cap a response is
+    // truncated SILENTLY and items simply go missing from their rounds, so
+    // shrink the chunk or page with .range() before checklists grow that
+    // long.
+    final ids = [for (final r in rows) r['id'] as String];
+    final pages = await Future.wait([
+      for (var i = 0; i < ids.length; i += 50)
+        supabase
+            .from('assignment_items')
+            .select()
+            .inFilter('assignment_id', ids.skip(i).take(50).toList())
+            .order('sort_order'),
+    ]);
+    // Each page is sorted by sort_order and grouping keeps relative order,
+    // so every round's checklist comes out in order.
+    final itemsFor = <String, List<AssignmentItem>>{};
+    for (final r in pages.expand((page) => page)) {
+      final item = AssignmentItem.fromJson(r);
+      (itemsFor[item.assignmentId] ??= []).add(item);
     }
+    final assignments = [
+      for (final r in rows)
+        Assignment.fromJson(r).copyWithItems(itemsFor[r['id']] ?? const []),
+    ];
 
     // Best-effort, for the same reason locale_provider guards its reads: with
     // no sqflite platform (web preview, headless tests) this throws, and
@@ -78,12 +115,20 @@ class AssignmentsRepo {
 
   // ---- writes: local + outbox, one RPC per queued op (§2, §8) -----------
 
+  /// [answer] arrives already in wire form (normalizeAnswer in
+  /// detail_screen.dart). The server decides what it means: against the
+  /// item's `correct` rule it lands the item on done or follow_up.
   Future<void> markItemDone(
     String assignmentId,
     String itemId, {
     String? note,
+    String? answer,
   }) async {
     if (kDemoData) {
+      // Stores the answer and marks done, whatever the answer is. Whether it
+      // matches the item's rule is decided only server-side, by answer_ok()
+      // inside mark_item_done() (0013) — the demo has no server to ask, so it
+      // never produces a follow_up of its own.
       _patchItem(
         assignmentId,
         itemId,
@@ -93,6 +138,7 @@ class AssignmentsRepo {
           'done_at': DateTime.now().toIso8601String(),
           'note': note ?? i.note,
           'reject_note': null,
+          'answer': answer ?? i.answer,
         }),
       );
       // Same parent transition mark_item_done() makes server-side.
@@ -106,7 +152,9 @@ class AssignmentsRepo {
       id: _uuid.v4(),
       assignmentId: assignmentId,
       op: 'mark_item_done',
-      payload: {'p_item_id': itemId, 'p_note': note},
+      // Queued even when null; replay leaves a null out of the call (see
+      // markItemDoneParams in sync.dart for why that matters).
+      payload: {'p_item_id': itemId, 'p_note': note, 'p_answer': answer},
     );
     // Optimistic local update so the UI reflects it before sync drains.
     // TODO(phase-3): update the cached assignment's item status in place.

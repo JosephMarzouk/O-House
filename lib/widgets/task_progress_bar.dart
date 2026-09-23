@@ -9,7 +9,9 @@ import '../theme.dart';
 /// Home make, for the same reason: the caller already knows which case it is.
 ///
 /// Use [fillFor] to get the design's status-driven fill (artboard 1c: the bar
-/// turns magenta on a rejected round and cyan-dark once it has been sent).
+/// turns magenta on a rejected round and cyan-dark once it has been sent). A
+/// follow_up round has been sent too, but it reads magenta: what the bar is
+/// showing then is flagged answers still to fix, not a finished round.
 class TaskProgressBar extends StatelessWidget {
   const TaskProgressBar({
     super.key,
@@ -35,7 +37,7 @@ class TaskProgressBar extends StatelessWidget {
 
   static Color fillFor(String effectiveStatus) => switch (effectiveStatus) {
     'submitted' || 'approved' => AppColors.cyanDark,
-    'rejected' => AppColors.magenta,
+    'rejected' || 'follow_up' => AppColors.magenta,
     _ => AppColors.cyan,
   };
 

@@ -14,6 +14,14 @@ import '../../theme.dart';
 /// It takes the assignment id so it can name what was just sent — a success
 /// screen that cannot tell you *which* round it submitted is not confirming
 /// much.
+///
+/// It has a second face for a round that came back in follow_up: sent, but
+/// with at least one answer that missed its item's rule, so the round waits
+/// on this person rather than on a supervisor (0013). "Submitted for review"
+/// would be false there, so that face says how many answers did not match
+/// and leads back into the round. It relies on the signature screen having
+/// re-read the round before navigating here — the status only exists once
+/// the server has judged the answers.
 class SuccessScreen extends ConsumerWidget {
   const SuccessScreen({super.key, required this.assignmentId});
   final String assignmentId;
@@ -24,14 +32,56 @@ class SuccessScreen extends ConsumerWidget {
     final a = ref.watch(assignmentByIdProvider(assignmentId));
     final locale = Localizations.localeOf(context).toString();
 
+    final Widget hero;
+    final String title;
     String? detail;
-    if (a != null) {
-      final title = pickLocalized(context, a.titleAr, a.titleEn);
-      final site = pickLocalized(context, a.siteNameAr, a.siteNameEn);
-      // submitted_at is filled in by the server, so it is still null here on
-      // the hop straight from the signature pad.
-      final at = DateFormat.Hm(locale).format(a.submittedAt ?? DateTime.now());
-      detail = t.successDetail(site.isEmpty ? title : '$title — $site', at);
+    final (String, VoidCallback) primary;
+    final (String, VoidCallback) secondary;
+
+    if (a != null && a.effectiveStatus == 'follow_up') {
+      hero = Container(
+        width: 104,
+        height: 104,
+        decoration: const BoxDecoration(
+          color: AppColors.magentaTint,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.flag_outlined,
+          size: 52,
+          color: AppColors.magenta,
+        ),
+      );
+      title = t.successFollowUpTitle;
+      detail = t.successFollowUpBody(a.items.where((i) => i.isFollowUp).length);
+      // go, not push: a pushed round would pop straight back onto this
+      // screen — the trap HistoryDetailScreen's close button documents.
+      primary = (
+        t.successReviewFlagged,
+        () => context.go('/tasks/$assignmentId'),
+      );
+      secondary = (t.successBackButton, () => context.go('/tasks'));
+    } else {
+      hero = const Icon(
+        Icons.verified_rounded,
+        size: 104,
+        color: AppColors.cyan,
+      );
+      title = t.successTitle;
+      if (a != null) {
+        final name = pickLocalized(context, a.titleAr, a.titleEn);
+        final site = pickLocalized(context, a.siteNameAr, a.siteNameEn);
+        // submitted_at is filled in by the server, so it is still null here
+        // on the hop straight from the signature pad.
+        final at = DateFormat.Hm(locale)
+            .format(a.submittedAt ?? DateTime.now());
+        detail = t.successDetail(site.isEmpty ? name : '$name — $site', at);
+      }
+      primary = (t.successBackButton, () => context.go('/tasks'));
+      secondary = (
+        t.successViewSubmission,
+        () => context.push('/history/$assignmentId'),
+      );
     }
 
     return Scaffold(
@@ -45,14 +95,10 @@ class SuccessScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.verified_rounded,
-                      size: 104,
-                      color: AppColors.cyan,
-                    ),
+                    hero,
                     const SizedBox(height: 28),
                     Text(
-                      t.successTitle,
+                      title,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 30,
@@ -83,18 +129,15 @@ class SuccessScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  FilledButton(
-                    onPressed: () => context.go('/tasks'),
-                    child: Text(t.successBackButton),
-                  ),
+                  FilledButton(onPressed: primary.$2, child: Text(primary.$1)),
                   const SizedBox(height: 6),
                   TextButton(
-                    onPressed: () => context.push('/history/$assignmentId'),
+                    onPressed: secondary.$2,
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.cyan,
                       minimumSize: const Size.fromHeight(52),
                     ),
-                    child: Text(t.successViewSubmission),
+                    child: Text(secondary.$1),
                   ),
                 ],
               ),

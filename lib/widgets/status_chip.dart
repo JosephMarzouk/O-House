@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../theme.dart';
 
-/// Six statuses (§6/§13) plus an independent "extended" marker that can
-/// sit alongside any of them — extension never changes effective_status
-/// away from what it would otherwise be once un-expired.
+/// Seven statuses (§6/§13, plus 0013's follow_up) and an independent
+/// "extended" marker that can sit alongside any of them — extension never
+/// changes effective_status away from what it would otherwise be once
+/// un-expired.
 ///
 /// The four tag treatments come from artboard 1c of the design handoff: a
 /// tinted tag for work in flight, solid grounds for the two closed states,
 /// and an outline for overdue. Colours are palette-only — magenta is reserved
-/// for rejected and overdue, per AppColors' rule.
+/// for the alarm states, rejected, overdue and follow-up, per AppColors' rule.
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.status, this.wasExtended = false});
   final String
-  status; // pending|in_progress|submitted|approved|rejected|expired
+  status; // pending|in_progress|submitted|approved|rejected|expired|follow_up
   final bool wasExtended;
 
   @override
@@ -62,6 +63,16 @@ class StatusChip extends StatelessWidget {
         AppColors.magenta,
         Icons.timer_off_outlined,
         true,
+      ),
+      // Tinted like in_progress, not solid like rejected: sent, but with
+      // answers of this person's own to fix — work in flight, in alarm
+      // colours. The same tint/deep pair the portal's follow-up tag uses.
+      'follow_up' => (
+        t.statusFollowUp,
+        AppColors.magentaTint,
+        AppColors.magentaDeep,
+        Icons.flag_outlined,
+        false,
       ),
       _ => (
         status,

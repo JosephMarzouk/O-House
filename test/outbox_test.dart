@@ -1,11 +1,76 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:o_house/data/assignments_repo.dart';
+import 'package:o_house/data/local_db.dart';
 import 'package:o_house/data/sync.dart';
 
-// Pure-logic checks for the two things in the outbox path most likely to
+// Pure-logic checks for the things in the outbox path most likely to
 // silently rot — see §11 of the plan. Network/db-touching FIFO replay is
 // exercised manually per §11 item 7 until Phase 3 gives SyncService a
 // fake client to test against.
+
+/// Records what the repo queues instead of writing it to sqflite, which has
+/// no test binding. `implements` rather than a subclass: LocalDb's only
+/// constructor is private. Everything but enqueue is left unimplemented.
+class _CapturingDb implements LocalDb {
+  final payloads = <Map<String, dynamic>>[];
+
+  @override
+  Future<void> enqueue({
+    required String id,
+    required String assignmentId,
+    required String op,
+    required Map<String, dynamic> payload,
+  }) async => payloads.add(payload);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
+  // The answer is the whole point of 0013's mark_item_done — a queue that
+  // quietly dropped it would flag every rule item on the server as unanswered
+  // while the device showed it answered.
+  group('mark_item_done answers', () {
+    test('the queued op carries the answer', () async {
+      final db = _CapturingDb();
+      await AssignmentsRepo(db).markItemDone('a1', 'i1', answer: '2.5');
+
+      expect(db.payloads.single, {
+        'p_item_id': 'i1',
+        'p_note': null,
+        'p_answer': '2.5',
+      });
+    });
+
+    test('replay sends the answer', () {
+      expect(
+        markItemDoneParams({
+          'p_item_id': 'i1',
+          'p_note': null,
+          'p_answer': 'no',
+        }),
+        {'p_item_id': 'i1', 'p_note': null, 'p_answer': 'no'},
+      );
+    });
+
+    test('replay leaves a missing answer out of the call entirely', () {
+      // A row queued by a build from before answers existed has no key at
+      // all; naming p_answer against a pre-0013 database matches no function.
+      expect(markItemDoneParams({'p_item_id': 'i1', 'p_note': null}), {
+        'p_item_id': 'i1',
+        'p_note': null,
+      });
+      expect(
+        markItemDoneParams({
+          'p_item_id': 'i1',
+          'p_note': 'x',
+          'p_answer': null,
+        }),
+        {'p_item_id': 'i1', 'p_note': 'x'},
+      );
+    });
+  });
+
   group('isTerminalError', () {
     test('recognizes every signal the RPC will keep raising', () {
       expect(isTerminalError('ASSIGNMENT_EXPIRED'), isTrue);

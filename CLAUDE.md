@@ -39,14 +39,13 @@ fake data: `?screen=home|tasks|profile`, `?lang=ar`.
 
 ## 2. Current state — READ THIS FIRST
 
-**Everything past commit `1bdfff3` ("Finishing - Splash & Login") is
-uncommitted.** That commit only covers splash + login. The entire Home, Tasks,
-Task detail, Signature, Success, History and Profile build — plus the shared
-`widgets/` extraction and 5 of the 7 test files — is sitting in the working
-tree. `git status` will show ~28 modified/deleted and ~13 untracked files.
-Commit before doing anything destructive.
+**Branch `rounds-follow-up-tracker`.** Commit `8f4202a` checkpoints the whole
+Home, Tasks, Task detail, Signature, Success, History and Profile build (and
+the shared `widgets/` extraction and its tests) on top of `1bdfff3` ("Finishing
+- Splash & Login"); `main` still stops at `1bdfff3`. The answers / follow-up /
+zone-round work (migration 0013) sits uncommitted on top of `8f4202a`.
 
-Deleted-but-not-staged (refactored away, do not resurrect):
+Refactored away in `8f4202a`, do not resurrect:
 `lib/features/assignments/item_sheet.dart` → folded into `subtask_tile.dart`;
 `lib/features/auth/custom_widgets/LanguageToggle.dart` → `lib/widgets/language_toggle.dart`;
 `lib/main_dev_home_preview.dart` → `lib/main_dev_preview.dart`;
@@ -72,12 +71,15 @@ Deleted-but-not-staged (refactored away, do not resurrect):
    itself a network `select()` awaited first, and `myAssignments()` has no
    assignee filter, so a naive cache read leaks one staff member's rounds to
    the next on a shared device.
-2. **Retrying Submit duplicates photo evidence.** `detail_screen._submit`
-   re-enables itself when the signature route pops and never clears
-   `_newPhotos`/`_checked`. Back out of signing, tap Submit again, and the same
-   file is enqueued twice under two `microsecondsSinceEpoch` paths — defeating
-   `attach_item_photo`'s `not (p_storage_path = any(photo_paths))` guard. There
-   is deliberately no way to delete a photo, so it is permanent.
+2. **Retrying Submit duplicates photo evidence.** *(Unchanged by the
+   answers/follow-up work.)* `detail_screen._submit` re-enables itself when
+   the signature route pops and never clears `_newPhotos`/`_answers`. Back out
+   of signing, tap Submit again, and the same file is enqueued twice under two
+   `microsecondsSinceEpoch` paths — defeating `attach_item_photo`'s
+   `not (p_storage_path = any(photo_paths))` guard. There is deliberately no
+   way to delete a photo, so it is permanent. (The answers are re-queued too,
+   but harmlessly: the same answer twice lands the same verdict, and
+   `flagged_answer` keeps only the first miss.)
 3. **Storage bucket is unscoped.** `checklist-media` is public with
    bucket-id-only RLS — any signed-in user can read/write any object.
    `supabase/migrations/0002_storage_scoping.sql` is the drafted fix, **not
@@ -172,9 +174,9 @@ does not cut — it *shrinks* into the next screen's header.
 | File | Purpose |
 |---|---|
 | `lib/data/providers.dart` | Every Riverpod provider |
-| `lib/data/assignments_repo.dart` | **The seam.** Reads/refresh/writes + demo-mode branch |
+| `lib/data/assignments_repo.dart` | **The seam.** Reads/refresh/writes + demo-mode branch. Refresh fetches the last 7 days plus anything in `follow_up`, items in chunks of 50 rounds |
 | `lib/data/local_db.dart` | sqflite: `cached_assignments`, `outbox`, `settings` |
-| `lib/data/sync.dart` | Outbox drain, storage upload, `isTerminalError`, `buildStoragePath` |
+| `lib/data/sync.dart` | Outbox drain, storage upload, `isTerminalError`, `buildStoragePath`, `markItemDoneParams` |
 | `lib/data/fixtures.dart` | Demo data behind `kDemoData` (currently `false`) |
 
 Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
@@ -185,8 +187,8 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 
 | File | Purpose |
 |---|---|
-| `lib/models/assignment.dart` | Mirrors `assignments_v`. `doneCount`, `canSubmit`, `isReadOnly`, `isTerminal`, `isToday` |
-| `lib/models/assignment_item.dart` | Mirrors `assignment_items`. `isSatisfied` |
+| `lib/models/assignment.dart` | Mirrors `assignments_v`. `doneCount`, `canSubmit`, `isReadOnly`, `isTerminal`, `isToday`, `roundTitleEn/Ar` |
+| `lib/models/assignment_item.dart` | Mirrors `assignment_items`. `isSatisfied`, `isFollowUp`, `answer`, `correct`, `flaggedAnswer/At` |
 | `lib/models/profile.dart` | Mirrors `profiles` |
 
 ### Features
@@ -200,11 +202,11 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 | `features/locale_provider.dart` | `localeProvider`, persisted to the `settings` table |
 | `features/home/home_screen.dart` | Stat tiles, today's round summary, Next up, pull-to-refresh |
 | `features/home/home_header.dart` | Animated logo/text overlay + shared `HeaderText` |
-| `features/assignments/list_screen.dart` | Three tabs (`tabFor`), search (`matchesQuery`) |
-| `features/assignments/detail_screen.dart` | The checklist. `isItemChecked`, `itemPhotos`, `missingPhotoCount`, `canSubmitStaged` |
-| `features/assignments/signature_screen.dart` | Signature pad, forced LTR |
-| `features/assignments/success_screen.dart` | Confirmation, names the submitted round |
-| `features/assignments/history_detail_screen.dart` | Read-only view of a submitted round |
+| `features/assignments/list_screen.dart` | Three tabs (`tabFor` — `follow_up` is always Today), search (`matchesQuery`) |
+| `features/assignments/detail_screen.dart` | The checklist. `normalizeAnswer`, `isItemChecked`, `itemPhotos`, `missingPhotoCount`, `canSubmitStaged` (staged answers, not ticks; the follow-up resubmit gate) |
+| `features/assignments/signature_screen.dart` | Signature pad, forced LTR. Drains, then re-reads the round *before* Success |
+| `features/assignments/success_screen.dart` | Confirmation, names the submitted round. A second face for `follow_up` ("Sent — needs follow-up") |
+| `features/assignments/history_detail_screen.dart` | Read-only view of a submitted round, with each item's answer |
 | `features/profile/profile_screen.dart` | Phone, language toggle (`set_locale` RPC), about, policies, logout |
 
 ### Shared widgets (`lib/widgets/`)
@@ -213,18 +215,23 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 `HeaderIconButton`) · `error_snack.dart` (the one place a failure the user is waiting on becomes visible) · `app_nav_bar.dart` (floating 3-tab bar + `navBarExtent()`
 — **every scrollable branch owes its last row this much bottom padding**) ·
 `ink_handoff_panel.dart` · `brand_logo/panel/wordmark.dart` ·
-`language_toggle.dart` · `status_chip.dart` (6 statuses + extended marker) ·
-`task_card.dart` · `task_progress_bar.dart` (owns done/total arithmetic;
-`fillFor(status)`) · `subtask_tile.dart` · `photo_thumb.dart` (resolves a device path, a bucket path
-or a full URL via `mediaUrl`) · `sync_banner.dart`.
+`language_toggle.dart` · `status_chip.dart` (7 statuses + extended marker) ·
+`task_card.dart` (round-title kicker) · `task_progress_bar.dart` (owns
+done/total arithmetic; `fillFor(status)`) · `subtask_tile.dart` (the answer
+control per item type — Yes/No or Pass/Fail pair, number field forced LTR,
+text field — and the follow-up note; the tile body no longer toggles) ·
+`photo_thumb.dart` (resolves a device path, a bucket path or a full URL via
+`mediaUrl`) · `sync_banner.dart`.
 
 ### Localization (`lib/l10n/`)
 
-86 keys in `app_en.arb` / `app_ar.arb`, both complete (`untranslated.txt` is
+91 keys in `app_en.arb` / `app_ar.arb`, both complete (`untranslated.txt` is
 `{}`). `app_localizations*.dart` are **generated** — edit the `.arb` files and
 run `flutter gen-l10n`. `localized_text.dart` is hand-written:
 `pickLocalized()` (EN/AR column pair with fallback), `formatWindow()`,
-`assignmentSubtitle()`.
+`assignmentSubtitle()` (round title first), `formatAnswer()` (yes/no and
+pass/fail keywords → localized words), `formatCorrect()` (a `correct` rule as
+the expected answer: "Yes", "1–3", "≥ 1"; words in Arabic).
 
 ---
 
@@ -239,6 +246,11 @@ run `flutter gen-l10n`. `localized_text.dart` is hand-written:
 | `0004_synthetic_email_fallback.sql` | yes | Extract real phone from `@ohouse.internal` |
 | `0005_profile_self_update_rpc.sql` | yes | `set_locale()` RPC |
 | `0006_partial_submit.sql` | yes | `submit_assignment()` accepts a partial round |
+| `0007`–`0012` | — | Portal-side hardening (fail-closed RPC guards, the inspector portal, phone privacy). **These files live in the admin repo**, `o-house-admin/supabase/migrations/`, not here |
+| `0013_rounds_follow_up.sql` | yes (live) | **Also in the admin repo**: `o-house-admin/supabase/migrations/0013_rounds_follow_up.sql` (+ `0013_verify.sql`). Zone rounds, answer capture, correct answers and `follow_up` — see below |
+
+Migrations live in two repos now: this one up to 0006, `o-house-admin` from
+0007. Check both before assuming the live schema.
 
 ### Vocabulary trap
 
@@ -252,20 +264,52 @@ live checklist state is in `assignment_items`.
 - `profiles` — + `phone` (partial-unique), `active`, `must_change_password`,
   `locale`, roles widened to `admin|manager|inspector|cleaner`
 - `submissions` — + lifecycle, `scheduled_date`, `window_start/end`,
-  `extended_until`, `client_id` (idempotency), `late_sync`, `signature_url`
+  `extended_until`, `client_id` (idempotency), `late_sync`, `signature_url`,
+  `round_id` (0013). Status adds `follow_up` (0013)
 - `assignment_items` — the checklist, promoted out of JSON. Column names mirror
-  `templates.items` keys exactly. RLS: **SELECT only**
+  `templates.items` keys exactly. RLS: **SELECT only**. Since 0013:
+  `correct jsonb` (null = no rule; `{"eq": "yes"|"no"|"pass"|"fail"|"<text>"}`
+  or `{"min": n, "max": n}`, either bound optional), `answer` (the latest),
+  `flagged_answer` + `flagged_at` (the first wrong answer, kept as history).
+  Status `pending | done | rejected | follow_up`
+- `round_templates`, `rounds` (0013) — zone rounds, managed from the portal.
+  The app only sees a round's title, through the view
 - `device_tokens` — FCM push targets (unused so far)
 - `assignments_v` — the view the app reads. **Always read `effective_status`,
   never `status`.** Expiry is derived from the clock, not stored; handles
-  overnight windows; `Africa/Cairo` throughout
+  overnight windows; `Africa/Cairo` throughout. `follow_up` is **never**
+  clock-expired. + `round_id`, `round_title_en/ar` (null outside a round)
 
 ### RPCs (all `SECURITY DEFINER`, revoked from `anon`)
 
 `create_assignment` · `mark_item_done` · `attach_item_photo` ·
 `submit_assignment` (the real trust boundary — the disabled Submit button is
 convenience only) · `extend_assignment` · `reject_items` ·
-`approve_assignment` · `set_locale`
+`approve_assignment` · `set_locale` · `schedule_rounds` (portal only).
+`answer_ok()` is not one of them: a plain immutable helper the answer RPCs
+call, not executable by clients.
+
+### Answers and follow-up (0013)
+
+- `mark_item_done(p_item_id, p_note, p_answer)` stores the answer and judges
+  it with `answer_ok()`: no rule, or a matching answer → `done`; a wrong **or
+  missing** answer on a rule item → `follow_up`. It never raises over an
+  answer — an unknown error would jam the outbox. The app sends `p_answer`
+  only when it has one (`markItemDoneParams`), so pre-0013 queued rows still
+  replay.
+- Wire values: yesno `yes`/`no`, pass_fail `pass`/`fail`, number a decimal
+  string with Arabic digits and `٫`/`,` folded (`normalizeAnswer`), text
+  trimmed. Text compares case- and space-insensitively server-side.
+- `submit_assignment` counts `done` and `follow_up` items as answered (for
+  `EMPTY_SUBMISSION:`/`MISSING_PHOTO:`); any `follow_up` item puts the round
+  in `follow_up`, else `submitted`. A `follow_up` round has no deadline, can
+  be resubmitted after re-answering some flagged items (partial fixes are
+  allowed), and keeps its first `submitted_at`/`late_sync`.
+- In the app a `follow_up` item is editable and counts as **unanswered**
+  until re-answered; the expected answer is shown only on flagged items;
+  resubmitting a `follow_up` round needs at least one fresh answer.
+- Rollout order matters: an app older than this one sends no answer, so any
+  item with a rule would flag. Set correct answers only once staff update.
 
 ### Auth quirk
 
@@ -291,7 +335,9 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 (1c = tasks list, 1d = task detail, 1h = success, 1i = history).
 
 - Palette lives **only** in `AppColors`, named by role not hue. `magenta` is
-  reserved for rejected/overdue and nothing else may use it.
+  reserved for the alarm states — rejected, overdue, follow-up — and nothing
+  else may use it. A "No" or "Fail" answer is *not* an alarm; picked, it is
+  cyan like any other choice.
 - Fonts: Source Serif 4 (Latin) with Noto Naskh Arabic as
   `fontFamilyFallback` — one `TextTheme` serves both locales, no per-locale
   branch. Button text lives on `TextTheme.labelLarge`, **not**
@@ -304,16 +350,16 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 
 ---
 
-## 7. Tests (`test/`, 72 tests, all passing)
+## 7. Tests (`test/`, 98 tests, all passing)
 
 | File | Covers |
 |---|---|
-| `tasks_logic_test.dart` | Pure logic: `tabFor` (asserted as a *total* partition — a bug there hides work rather than erroring), `matchesQuery`, `canSubmitStaged`, `itemPhotos` |
-| `outbox_test.dart` | `isTerminalError` (terminal vs. retryable RPC failures), `buildStoragePath`, `mediaUrl` |
-| `submit_sync_test.dart` | That submitting drains the outbox, drains *after* the enqueue, scopes the drain to its own round, and — the lie that hid the bug — never shows the success screen when the queue stopped |
+| `tasks_logic_test.dart` | Pure logic: `tabFor` (asserted as a *total* partition — a bug there hides work rather than erroring; `follow_up` → Today whatever its date), `matchesQuery`, `normalizeAnswer` (Arabic-Indic digits, `٫`, `,`), answer-based staging, `canSubmitStaged` incl. the follow-up resubmit gate, `itemPhotos` |
+| `outbox_test.dart` | `isTerminalError` (terminal vs. retryable RPC failures), `buildStoragePath`, `mediaUrl`; `p_answer` in the queued `mark_item_done` payload (through the real repo, with a capturing `LocalDb`) and in `markItemDoneParams` only when non-null |
+| `submit_sync_test.dart` | That submitting drains the outbox, drains *after* the enqueue, scopes the drain to its own round, re-reads the round *before* the success screen is built, and — the lie that hid the bug — never shows the success screen when the queue stopped |
 | `app_header_test.dart` | Header height/logo consistency across every screen in both locales; submission flow; signature button and pad sizing |
 | `home_screen_test.dart` | Stat counts, today-filter, Next up ordering, ink hand-off cases, pull-to-refresh |
-| `tasks_screens_test.dart` | Both dense screens pumped at real phone width in EN *and* AR — a widget test fails on RenderFlex overflow, which is the cheap way to keep Arabic honest |
+| `tasks_screens_test.dart` | Both dense screens pumped at real phone width in EN *and* AR — a widget test fails on RenderFlex overflow, which is the cheap way to keep Arabic honest. Also a `follow_up` round built in-test (the fixtures stay untouched): the flag note, Yes/No and number inputs (Arabic digits), the resubmit gate, LTR number field under RTL, and the success screen's follow-up face |
 | `login_screen_test.dart` | Empty-field guard, password reveal, LTR phone row under RTL |
 | `theme_test.dart` | Theme invariants |
 
@@ -331,7 +377,8 @@ Layout, camera and live network paths are verified manually by design.
 - Read `effective_status`, never `status`.
 - No screen touches Supabase for assignment data — go through `AssignmentsRepo`.
 - Every scrollable inside the shell needs `navBarExtent(context)` bottom padding.
-- The signature pad and the phone-number row are forced LTR regardless of locale.
+- The signature pad, the phone-number row and the number answer field are
+  forced LTR regardless of locale.
 - There is deliberately **no way to delete a photo** — `attach_item_photo` is
   `array_append` server-side and nothing removes from it. Evidence, once taken,
   stands.

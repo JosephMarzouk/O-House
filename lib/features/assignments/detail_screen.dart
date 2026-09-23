@@ -15,47 +15,97 @@ import '../../widgets/error_snack.dart';
 import '../../widgets/subtask_tile.dart';
 import '../../widgets/task_progress_bar.dart';
 
-/// A subtask counts as ticked if it was already done on the server or the user
-/// has ticked it this session. Nothing is written until Submit & Sign, so the
-/// staged set is the only place a fresh tick lives.
-bool isItemChecked(AssignmentItem i, Set<String> staged) =>
-    i.status == 'done' || staged.contains(i.id);
+/// The wire form of a typed answer — what mark_item_done() receives as
+/// p_answer. Pure, unit-tested.
+///
+/// A number arrives in whatever digits the keyboard produced — an Arabic
+/// keyboard types ٢٫٥ — so both Arabic-Indic digit sets and the ٫ and ,
+/// decimal separators fold to ASCII. answer_ok() folds the same set before
+/// its own numeric compare (0013's translate()), so this is not what lets a
+/// right answer pass. It is what makes the answer that is *stored* — and
+/// quoted back in the flag note and on the dashboard — read the same
+/// whichever keyboard typed it. Every other type is only trimmed: yes/no and
+/// pass/fail are canonical already, and free text is matched without regard
+/// to case server-side, where a comma is just a comma.
+String normalizeAnswer(String type, String raw) {
+  final s = raw.trim();
+  if (type != 'number') return s;
+  // In order: ٠-٩ Arabic-Indic; ۰-۹ Extended Arabic-Indic (Persian/Urdu
+  // layouts); ٫ the Arabic decimal separator, or a comma, to a point.
+  return String.fromCharCodes([
+    for (final c in s.runes)
+      if (c >= 0x0660 && c <= 0x0669)
+        c - 0x0660 + 0x30
+      else if (c >= 0x06F0 && c <= 0x06F9)
+        c - 0x06F0 + 0x30
+      else if (c == 0x066B || c == 0x2C)
+        0x2E
+      else
+        c,
+  ]);
+}
+
+/// A place counts as answered if it was already done on the server or has an
+/// answer staged this session. Nothing is written until Submit & Sign, so the
+/// staged map is the only place a fresh answer lives.
+///
+/// A follow_up item is deliberately NOT answered: its answer is on the server
+/// but wrong, and it only counts again once it is re-answered here. The
+/// progress count and the follow-up submit gate both depend on that.
+bool isItemChecked(AssignmentItem i, Map<String, String> staged) =>
+    i.status == 'done' || staged.containsKey(i.id);
 
 List<String> itemPhotos(AssignmentItem i, Map<String, List<String>> staged) => [
   ...i.photoPaths,
   ...?staged[i.id],
 ];
 
-/// Ticked places that still owe a photo. Drives both the submit gate and the
+/// Answered places that still owe a photo. Drives both the submit gate and the
 /// caption under the disabled button.
+///
+/// A follow_up item owes its photo whether or not it is re-answered:
+/// submit_assignment() counts done AND follow_up items as answered work
+/// (0013), so leaving it out here would open the button onto a MISSING_PHOTO
+/// the server raises every time. It normally has one already — its first
+/// submit could not have gone without — so this only bites when that upload
+/// was dropped.
 int missingPhotoCount(
   Assignment a,
-  Set<String> checked,
+  Map<String, String> answers,
   Map<String, List<String>> newPhotos,
 ) => a.items
     .where(
       (i) =>
-          isItemChecked(i, checked) &&
+          (isItemChecked(i, answers) || i.isFollowUp) &&
           i.requiresPhoto &&
           itemPhotos(i, newPhotos).isEmpty,
     )
     .length;
 
-/// Every subtask the user actually ticked that requires a photo must have one.
-/// Unticked subtasks are simply left not-done — they do not block submission.
+/// Every place the user actually answered that requires a photo must have
+/// one. Unanswered places are simply left not-done — they do not block
+/// submission.
 ///
 /// Deliberately not Assignment.canSubmit, which encodes the all-done rule.
 ///
 /// submit_assignment() agrees with this gate as of 0006_partial_submit.sql —
-/// it requires at least one done item and evidence only from the items
-/// claimed done, not from every item on the round.
+/// it requires at least one answered item and evidence only from the items
+/// claimed answered, not from every item on the round.
+///
+/// A follow_up round has been submitted once already, so the work sitting on
+/// the server proves nothing new: resubmitting it takes at least one answer
+/// staged this session. A partial fix is enough — correct one of three
+/// flagged items and send it; the round stays in follow_up until none are
+/// left (0013).
 bool canSubmitStaged(
   Assignment a,
-  Set<String> checked,
+  Map<String, String> answers,
   Map<String, List<String>> newPhotos,
 ) {
-  final anyChecked = a.items.any((i) => isItemChecked(i, checked));
-  return anyChecked && missingPhotoCount(a, checked, newPhotos) == 0;
+  final anyAnswered = a.effectiveStatus == 'follow_up'
+      ? a.items.any((i) => answers.containsKey(i.id))
+      : a.items.any((i) => isItemChecked(i, answers));
+  return anyAnswered && missingPhotoCount(a, answers, newPhotos) == 0;
 }
 
 /// §6, screen 6 — artboard 1d. Read-only once effective_status is submitted/
@@ -70,13 +120,48 @@ class TaskDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
-  /// Ticks made this session, not yet written anywhere.
-  final Set<String> _checked = {};
+  /// itemId -> answer made this session, already normalized, not yet written
+  /// anywhere. An unanswered item is absent — never mapped to ''.
+  final Map<String, String> _answers = {};
+
+  /// itemId -> the number/text field's controller. Here rather than in the
+  /// tile: the list builds lazily, and a tile scrolled out of reach is
+  /// disposed along with anything it owns.
+  final Map<String, TextEditingController> _controllers = {};
 
   /// itemId -> local file paths captured this session.
   final Map<String, List<String>> _newPhotos = {};
 
   bool _submitting = false;
+
+  @override
+  void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  /// A done item's field shows what was sent. A follow_up item's starts
+  /// empty: its answer is the wrong one, quoted in the flag note rather than
+  /// offered up for sending again.
+  TextEditingController _controllerFor(AssignmentItem item) =>
+      _controllers.putIfAbsent(
+        item.id,
+        () => TextEditingController(
+          text: item.status == 'done' ? item.answer ?? '' : '',
+        ),
+      );
+
+  /// A cleared choice or an emptied field un-answers the item.
+  void _stage(AssignmentItem item, String? raw) => setState(() {
+    final answer = normalizeAnswer(item.type, raw ?? '');
+    if (answer.isEmpty) {
+      _answers.remove(item.id);
+    } else {
+      _answers[item.id] = answer;
+    }
+  });
 
   Future<void> _takePhoto(AssignmentItem item) async {
     // Camera only, never the gallery — a photo from the gallery is not
@@ -98,14 +183,18 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     // exception nowhere the user could see it.
     try {
       // Photos first, so each item satisfies its requires_photo check by the
-      // time it is marked done.
+      // time it is answered.
       for (final entry in _newPhotos.entries) {
         for (final path in entry.value) {
           await repo.attachItemPhoto(widget.assignmentId, entry.key, path);
         }
       }
-      for (final itemId in _checked) {
-        await repo.markItemDone(widget.assignmentId, itemId);
+      for (final entry in _answers.entries) {
+        await repo.markItemDone(
+          widget.assignmentId,
+          entry.key,
+          answer: entry.value,
+        );
       }
     } catch (e, s) {
       debugPrint('[submit] queueing failed: $e\n$s');
@@ -137,7 +226,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
     final readOnly = assignment.isReadOnly;
     final done = assignment.items
-        .where((i) => isItemChecked(i, _checked))
+        .where((i) => isItemChecked(i, _answers))
         .length;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -154,17 +243,19 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, i) {
                   final item = assignment.items[i];
-                  // A tick already on the server cannot be taken back; only
-                  // this session's ticks are reversible.
+                  // A done answer is already on the server and cannot be
+                  // taken back; only this session's are reversible. A
+                  // follow_up item stays open — re-answering it is the point.
                   final locked = readOnly || item.status == 'done';
+                  final typed = item.type == 'number' || item.type == 'text';
                   return SubtaskTile(
                     item: item,
-                    checked: isItemChecked(item, _checked),
+                    staged: _answers[item.id],
+                    checked: isItemChecked(item, _answers),
                     locked: locked,
                     photos: itemPhotos(item, _newPhotos),
-                    onToggle: () => setState(() {
-                      if (!_checked.remove(item.id)) _checked.add(item.id);
-                    }),
+                    controller: typed ? _controllerFor(item) : null,
+                    onAnswer: (raw) => _stage(item, raw),
                     onCamera: () => _takePhoto(item),
                   );
                 },
@@ -172,7 +263,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
             ),
             _BottomBar(
               assignment: assignment,
-              checked: _checked,
+              answers: _answers,
               newPhotos: _newPhotos,
               submitting: _submitting,
               onSubmit: _submit,
@@ -250,14 +341,14 @@ class _Header extends StatelessWidget {
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.assignment,
-    required this.checked,
+    required this.answers,
     required this.newPhotos,
     required this.submitting,
     required this.onSubmit,
   });
 
   final Assignment assignment;
-  final Set<String> checked;
+  final Map<String, String> answers;
   final Map<String, List<String>> newPhotos;
   final bool submitting;
   final VoidCallback onSubmit;
@@ -277,8 +368,8 @@ class _BottomBar extends StatelessWidget {
     }
     if (assignment.isReadOnly) return const SizedBox.shrink();
 
-    final missing = missingPhotoCount(assignment, checked, newPhotos);
-    final canSubmit = canSubmitStaged(assignment, checked, newPhotos);
+    final missing = missingPhotoCount(assignment, answers, newPhotos);
+    final canSubmit = canSubmitStaged(assignment, answers, newPhotos);
 
     return _Bar(
       child: Column(

@@ -108,7 +108,17 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rejected = item.status == 'rejected';
+    final t = AppLocalizations.of(context)!;
+    final flagged = item.isFollowUp;
+    // A glyph, not a checkbox — nothing here is toggleable any more. One per
+    // outcome: a place a partial submit left unanswered gets a dash, where it
+    // used to share the done check and claim work that was never sent.
+    final (icon, ink) = switch (item.status) {
+      'done' => (Icons.check, AppColors.cyanDark),
+      'rejected' => (Icons.close, AppColors.magenta),
+      'follow_up' => (Icons.flag_outlined, AppColors.magenta),
+      _ => (Icons.remove, const Color(0x66201E1D)), // text @ 40%
+    };
     return Container(
       constraints: const BoxConstraints(minHeight: 60),
       padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
@@ -119,17 +129,37 @@ class _ItemRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // A glyph, not a checkbox — nothing here is toggleable any more.
           Icon(
-            rejected ? Icons.close : Icons.check,
+            icon,
             size: 18,
-            color: rejected ? AppColors.magenta : AppColors.cyanDark,
+            color: ink,
+            semanticLabel: flagged ? t.followUpNeeded : null,
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(
-              pickLocalized(context, item.textAr, item.textEn),
-              style: const TextStyle(fontSize: 16, height: 1.3),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pickLocalized(context, item.textAr, item.textEn),
+                  style: const TextStyle(fontSize: 16, height: 1.3),
+                ),
+                // What was answered, as sent. A flagged one in magenta, like
+                // its flag — it is the answer that missed.
+                if (item.answer != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    formatAnswer(context, item.answer!),
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      height: 1.3,
+                      color: flagged
+                          ? AppColors.magenta
+                          : const Color(0x99201E1D), // text @ 60%
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           for (final path in item.photoPaths) ...[

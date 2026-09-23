@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 /// The Broadsheet palette from the design handoff
 /// (.design-preview-tmp/_ds/broadsheet-*/styles.css). Named for the role each
-/// colour plays, not its hue — `magenta` is only ever rejected/overdue, and
-/// nothing else in the app may reach for it.
+/// colour plays, not its hue — `magenta` is only ever an alarm state
+/// (rejected, overdue, follow-up), and nothing else in the app may reach for
+/// it.
 abstract final class AppColors {
   /// accent-900 — the splash ground and every screen's header block.
   static const ink = Color(0xFF0E213F);
@@ -17,10 +18,11 @@ abstract final class AppColors {
   /// accent-100 — the offline banner's ground.
   static const cyanTint = Color(0xFFE9F8FF);
 
-  /// accent-2-700 — rejected and overdue only.
+  /// accent-2-700 — rejected, overdue and follow-up only.
   static const magenta = Color(0xFFAA0B56);
 
-  /// accent-2-100 — ground for the expired/rejected stat tile.
+  /// accent-2-100 — ground for the expired/rejected stat tile, and for
+  /// everything follow-up: the chip, a flagged item's note, the success hero.
   static const magentaTint = Color(0xFFFFF1F4);
 
   /// accent-2-900 — label text on [magentaTint]; needs the extra depth

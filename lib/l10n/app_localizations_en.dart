@@ -151,6 +151,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusExpired => 'Expired';
 
   @override
+  String get statusFollowUp => 'Follow-up';
+
+  @override
   String get statusExtended => 'Extended';
 
   @override
@@ -188,6 +191,52 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get answerYes => 'Yes';
+
+  @override
+  String get answerNo => 'No';
+
+  @override
+  String get answerPass => 'Pass';
+
+  @override
+  String get answerFail => 'Fail';
+
+  @override
+  String get answerNumberHint => 'Enter a number';
+
+  @override
+  String get answerTextHint => 'Type your answer';
+
+  @override
+  String answerRange(String min, String max) {
+    return '$min–$max';
+  }
+
+  @override
+  String answerAtLeast(String min) {
+    return '≥ $min';
+  }
+
+  @override
+  String answerAtMost(String max) {
+    return '≤ $max';
+  }
+
+  @override
+  String get followUpNeeded => 'Needs follow-up';
+
+  @override
+  String followUpYouAnswered(String answer) {
+    return 'you answered $answer';
+  }
+
+  @override
+  String followUpExpected(String expected) {
+    return 'expected $expected';
+  }
+
+  @override
   String get itemSheetTakePhoto => 'Take photo';
 
   @override
@@ -212,6 +261,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get successViewSubmission => 'View submission';
+
+  @override
+  String get successFollowUpTitle => 'Sent — needs follow-up';
+
+  @override
+  String successFollowUpBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count answers didn\'t match',
+      one: '1 answer didn\'t match',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get successReviewFlagged => 'Review flagged answers';
 
   @override
   String historyDetailChecklist(int done, int total) {

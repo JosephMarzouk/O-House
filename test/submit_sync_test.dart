@@ -47,6 +47,12 @@ class _SpySync extends SyncService {
   int submittedWhenDrained = -1;
   String? watched;
 
+  /// Fetches of the round list, and how many there had been by the time the
+  /// success screen was first built. Kept here because this spy is already
+  /// the one handle each test holds.
+  int fetches = 0;
+  int? fetchesAtSuccess;
+
   @override
   Future<void> start() async {}
 
@@ -129,7 +135,10 @@ Future<_SpySync> _pumpSignature(
       ),
       GoRoute(
         path: '/tasks/:id/success',
-        builder: (_, _) => const Scaffold(body: Text('success')),
+        builder: (_, _) {
+          sync.fetchesAtSuccess ??= sync.fetches;
+          return const Scaffold(body: Text('success'));
+        },
       ),
     ],
   );
@@ -140,7 +149,10 @@ Future<_SpySync> _pumpSignature(
       overrides: [
         assignmentsRepoProvider.overrideWithValue(repo),
         syncServiceProvider.overrideWithValue(sync),
-        myAssignmentsProvider.overrideWith((ref) => demoAssignments()),
+        myAssignmentsProvider.overrideWith((ref) {
+          sync.fetches++;
+          return demoAssignments();
+        }),
         currentProfileProvider.overrideWith((ref) => _profile),
         outboxCountProvider.overrideWith((ref) => 0),
       ],
@@ -247,6 +259,25 @@ void main() {
     await _tapSubmit(tester, sync);
 
     expect(find.text('success'), findsOneWidget);
+  });
+
+  // The success screen picks its face — "submitted for review" or "needs
+  // follow-up" — from the round's status, and only the server knows which it
+  // is once it has judged the answers. A bare invalidate here let it paint the
+  // stale status first; nothing had re-read the round by the time it built.
+  testWidgets('the round is re-read before the success screen is built', (
+    tester,
+  ) async {
+    final sync = await _pumpSignature(tester);
+    await _sign(tester);
+    await _tapSubmit(tester, sync);
+
+    expect(find.text('success'), findsOneWidget);
+    expect(
+      sync.fetchesAtSuccess,
+      1,
+      reason: 'the success screen must be built on the post-submit re-read',
+    );
   });
 
   // The lie that hid the original bug: the round read "Submitted for review"

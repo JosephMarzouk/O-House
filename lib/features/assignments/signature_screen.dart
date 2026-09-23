@@ -113,7 +113,22 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
       return;
     }
 
-    ref.invalidate(myAssignmentsProvider);
+    // Awaited, not a bare invalidate. The success screen picks its face from
+    // this round's status, and only the server knows whether the answers
+    // just sent put it in follow_up — an un-awaited refetch let it paint the
+    // stale in_progress round first, then flip. Guarded, because the round
+    // has already landed: a failed re-read is no reason to strand anyone on
+    // the pad, and the success screen then falls back to the plain face.
+    //
+    // Spelled invalidate-then-read rather than `await ref.refresh(...)`,
+    // which is exactly those two calls: refresh is @useResult, and awaiting
+    // its future does not count as using it.
+    try {
+      ref.invalidate(myAssignmentsProvider);
+      await ref.read(myAssignmentsProvider.future);
+    } catch (e) {
+      debugPrint('[submit] re-read after drain failed: $e');
+    }
     if (mounted) context.go('/tasks/${widget.assignmentId}/success');
   }
 

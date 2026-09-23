@@ -22,7 +22,13 @@ enum TaskTab { today, upcoming, history }
 ///
 /// A total partition on purpose: every assignment lands in exactly one tab,
 /// and an undated one shows up in Today rather than disappearing.
+///
+/// The one exception to "by day" is checked first: a follow_up round is in
+/// Today whatever its date. It never expires and its flagged answers are
+/// waiting on this person, so filing it under History by the day it was first
+/// sent would bury the one old round that still needs them.
 TaskTab tabFor(Assignment a, DateTime now) {
+  if (a.effectiveStatus == 'follow_up') return TaskTab.today;
   final d = a.scheduledDate;
   if (d == null) return TaskTab.today;
   final day = DateTime(d.year, d.month, d.day);
