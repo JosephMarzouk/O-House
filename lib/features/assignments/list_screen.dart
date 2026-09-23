@@ -97,7 +97,7 @@ class _TasksListScreenState extends ConsumerState<TasksListScreen> {
             ),
             Expanded(
               child: RefreshIndicator(
-                onRefresh: () => ref.refresh(myAssignmentsProvider.future),
+                onRefresh: () => refreshRounds(ref),
                 color: AppColors.cyan,
                 backgroundColor: AppColors.paper,
                 child: visible.isEmpty

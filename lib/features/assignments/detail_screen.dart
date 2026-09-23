@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 
+import '../../data/assignments_repo.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/localized_text.dart';
@@ -129,10 +133,56 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   /// disposed along with anything it owns.
   final Map<String, TextEditingController> _controllers = {};
 
-  /// itemId -> local file paths captured this session.
+  /// itemId -> evidence files captured on this round, named `{photoId}.jpg`
+  /// (the id is fixed at capture; see AssignmentsRepo.keepPhoto).
   final Map<String, List<String>> _newPhotos = {};
 
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _restore();
+  }
+
+  /// LS-2: what was staged here survives the app being killed or the phone
+  /// dying mid-round. The photos are already safe in the evidence folder.
+  Future<void> _restore() async {
+    final repo = ref.read(assignmentsRepoProvider);
+    if (repo == null) return;
+    try {
+      final d = await repo.draft(widget.assignmentId);
+      final photos = {
+        for (final e in d.photos.entries)
+          e.key: [for (final id in e.value) await repo.photoPath(id)],
+      };
+      if (!mounted || d.isEmpty) return;
+      setState(() {
+        _answers.addAll(d.answers);
+        _newPhotos.addAll(photos);
+      });
+    } catch (e) {
+      debugPrint('[draft] restore failed: $e');
+    }
+  }
+
+  RoundDraft get _draft => RoundDraft(
+    answers: Map.of(_answers),
+    photos: {
+      for (final e in _newPhotos.entries)
+        e.key: [for (final path in e.value) p.basenameWithoutExtension(path)],
+    },
+  );
+
+  void _persist() {
+    final repo = ref.read(assignmentsRepoProvider);
+    if (repo == null) return;
+    unawaited(
+      repo.saveDraft(widget.assignmentId, _draft).catchError((Object e) {
+        debugPrint('[draft] save failed: $e');
+      }),
+    );
+  }
 
   @override
   void dispose() {
@@ -149,31 +199,50 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       _controllers.putIfAbsent(
         item.id,
         () => TextEditingController(
-          text: item.status == 'done' ? item.answer ?? '' : '',
+          text: _answers[item.id] ??
+              (item.status == 'done' ? item.answer ?? '' : ''),
         ),
       );
 
   /// A cleared choice or an emptied field un-answers the item.
-  void _stage(AssignmentItem item, String? raw) => setState(() {
-    final answer = normalizeAnswer(item.type, raw ?? '');
-    if (answer.isEmpty) {
-      _answers.remove(item.id);
-    } else {
-      _answers[item.id] = answer;
-    }
-  });
+  void _stage(AssignmentItem item, String? raw) {
+    setState(() {
+      final answer = normalizeAnswer(item.type, raw ?? '');
+      if (answer.isEmpty) {
+        _answers.remove(item.id);
+      } else {
+        _answers[item.id] = answer;
+      }
+    });
+    _persist();
+  }
 
   Future<void> _takePhoto(AssignmentItem item) async {
     // Camera only, never the gallery — a photo from the gallery is not
-    // evidence of anything (§9). Compression lands in Phase 2.
-    final picked = await ImagePicker().pickImage(source: ImageSource.camera);
-    if (picked == null) return;
-    setState(() => _newPhotos.putIfAbsent(item.id, () => []).add(picked.path));
+    // evidence of anything (§9). The picker itself compresses (SY-8): a
+    // 1600 px long edge at JPEG quality 75, about 300 KB instead of 4 MB.
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 75,
+    );
+    final repo = ref.read(assignmentsRepoProvider);
+    if (picked == null || repo == null) return;
+    try {
+      // Out of the picker's cache, which the OS purges, into the evidence
+      // folder, under an id fixed now (LS-1, SY-3).
+      final path = await repo.photoPath(await repo.keepPhoto(picked.path));
+      setState(() => _newPhotos.putIfAbsent(item.id, () => []).add(path));
+      _persist();
+    } catch (e) {
+      if (mounted) showErrorSnack(context, 'Could not keep this photo: $e');
+    }
   }
 
   Future<void> _submit() async {
     setState(() => _submitting = true);
-    final repo = ref.read(assignmentsRepoProvider);
+    final repo = ref.read(assignmentsRepoProvider)!;
 
     // Nothing here used to be guarded, and every one of these calls writes to
     // sqflite. A throw left _submitting stuck true — so the button showed a
@@ -182,20 +251,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     // look like Submit simply did nothing, over and over, with the real
     // exception nowhere the user could see it.
     try {
-      // Photos first, so each item satisfies its requires_photo check by the
-      // time it is answered.
-      for (final entry in _newPhotos.entries) {
-        for (final path in entry.value) {
-          await repo.attachItemPhoto(widget.assignmentId, entry.key, path);
-        }
-      }
-      for (final entry in _answers.entries) {
-        await repo.markItemDone(
-          widget.assignmentId,
-          entry.key,
-          answer: entry.value,
-        );
-      }
+      await repo.queueRound(widget.assignmentId, _draft);
     } catch (e, s) {
       debugPrint('[submit] queueing failed: $e\n$s');
       if (mounted) {
@@ -204,7 +260,15 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       }
       return;
     }
+    // The outbox owns them now. Cleared so a second Submit (after backing
+    // out of the pad) cannot queue the same photos twice; the queued work
+    // shows through the overlay instead (applyLocal).
+    setState(() {
+      _answers.clear();
+      _newPhotos.clear();
+    });
     ref.invalidate(myAssignmentsProvider);
+    unawaited(ref.read(syncServiceProvider)?.drain());
 
     if (!mounted) return;
     // Committed before the signature route rather than threaded through it —
@@ -228,6 +292,16 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final done = assignment.items
         .where((i) => isItemChecked(i, _answers))
         .length;
+    // Cached with the round, so it is there offline.
+    final hasNote = assignment.taskNote?.trim().isNotEmpty ?? false;
+    // Work already queued on this round (Submit, then back out of the pad):
+    // it can go to signing again without staging anything new.
+    final queued =
+        ref
+            .watch(pendingRoundsProvider)
+            .valueOrNull
+            ?.contains(widget.assignmentId) ??
+        false;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -239,10 +313,13 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
-                itemCount: assignment.items.length,
+                itemCount: assignment.items.length + (hasNote ? 1 : 0),
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, i) {
-                  final item = assignment.items[i];
+                  if (hasNote && i == 0) {
+                    return _Instructions(note: assignment.taskNote!.trim());
+                  }
+                  final item = assignment.items[hasNote ? i - 1 : i];
                   // A done answer is already on the server and cannot be
                   // taken back; only this session's are reversible. A
                   // follow_up item stays open — re-answering it is the point.
@@ -265,6 +342,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               assignment: assignment,
               answers: _answers,
               newPhotos: _newPhotos,
+              queued: queued,
               submitting: _submitting,
               onSubmit: _submit,
             ),
@@ -343,6 +421,7 @@ class _BottomBar extends StatelessWidget {
     required this.assignment,
     required this.answers,
     required this.newPhotos,
+    required this.queued,
     required this.submitting,
     required this.onSubmit,
   });
@@ -350,6 +429,7 @@ class _BottomBar extends StatelessWidget {
   final Assignment assignment;
   final Map<String, String> answers;
   final Map<String, List<String>> newPhotos;
+  final bool queued;
   final bool submitting;
   final VoidCallback onSubmit;
 
@@ -369,7 +449,9 @@ class _BottomBar extends StatelessWidget {
     if (assignment.isReadOnly) return const SizedBox.shrink();
 
     final missing = missingPhotoCount(assignment, answers, newPhotos);
-    final canSubmit = canSubmitStaged(assignment, answers, newPhotos);
+    final canSubmit =
+        (queued || canSubmitStaged(assignment, answers, newPhotos)) &&
+        missing == 0;
 
     return _Bar(
       child: Column(
@@ -404,6 +486,33 @@ class _BottomBar extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The creator's instructions (task_note), at the top of the checklist.
+class _Instructions extends StatelessWidget {
+  const _Instructions({required this.note});
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: kRadius,
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(t.taskInstructions.toUpperCase(), style: kSectionLabel),
+          const SizedBox(height: 6),
+          Text(note, style: const TextStyle(fontSize: 14.5, height: 1.35)),
         ],
       ),
     );

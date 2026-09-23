@@ -1,14 +1,11 @@
 import '../models/assignment.dart';
 import '../models/assignment_item.dart';
 
-/// Dummy data so the Tasks screens can be built and reviewed before any rows
-/// exist in Supabase. Flip [kDemoData] to false and this whole file becomes
-/// dead — AssignmentsRepo is the only thing that reads it, and it branches in
-/// exactly three places.
+/// Dummy data for the widget tests and main_dev_preview.dart, which inject it
+/// through provider overrides. The app itself never reads it.
 ///
 /// Fixtures mirror artboard 1c of the design handoff so the screens can be
 /// compared against it side by side: one assignment per status tag.
-const kDemoData = false;
 
 DateTime _day(int offsetDays) {
   final n = DateTime.now();

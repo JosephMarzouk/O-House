@@ -1,19 +1,18 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'package:path_provider/path_provider.dart';
 import 'package:signature/signature.dart';
 
-import '../../data/fixtures.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/error_snack.dart';
+import '../../widgets/sync_banner.dart';
 import '../home/home_header.dart';
 
 /// §5: the canvas is a drawing surface, not text — it must NOT mirror in
@@ -32,11 +31,13 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
     penStrokeWidth: 3,
     penColor: Colors.black,
   );
+  final _note = TextEditingController();
   bool _submitting = false;
 
   @override
   void dispose() {
     _controller.dispose();
+    _note.dispose();
     super.dispose();
   }
 
@@ -57,75 +58,71 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
     }
   }
 
+  Future<void> _editNote() async {
+    final t = AppLocalizations.of(context)!;
+    final draft = TextEditingController(text: _note.text);
+    final saved = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(t.signatureNoteLabel),
+        content: TextField(
+          controller: draft,
+          autofocus: true,
+          maxLines: 4,
+          maxLength: 2000,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: Text(t.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, draft.text),
+            child: Text(t.commonSave),
+          ),
+        ],
+      ),
+    );
+    // Not disposed here: the dialog's TextField still reads it while the
+    // route animates closed. Nothing listens to it afterwards, so it is
+    // simply collected.
+    if (saved != null && mounted) setState(() => _note.text = saved);
+  }
+
   Future<void> _doSubmit() async {
-    String path;
-    if (kDemoData) {
-      // path_provider has no web support, and the demo repo never uploads the
-      // file anyway — writing it would only break the browser preview at the
-      // last step of the flow.
-      path = 'demo/sig_${widget.assignmentId}.png';
-    } else {
-      final bytes = await _controller.toPngBytes();
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/sig_${widget.assignmentId}.png');
-      await file.writeAsBytes(bytes!);
-      path = file.path;
+    final repo = ref.read(assignmentsRepoProvider)!;
+    final png = await _controller.toPngBytes();
+    // Written into the evidence folder under a signature id fixed now, and
+    // queued. At most one pending submit per round (SY-4): signing again
+    // after backing out does not queue a second.
+    await repo.submit(widget.assignmentId, png!, note: _note.text);
+
+    // Try to send it now, but never make anyone wait on a bad connection:
+    // after a few seconds the round is honestly "saved on this phone" and the
+    // outbox carries on by itself (reconnect, resume, backoff).
+    final sync = ref.read(syncServiceProvider);
+    try {
+      await sync?.drain().timeout(const Duration(seconds: 15));
+    } on TimeoutException {
+      // Still sending; the success screen says it is saved, not sent.
     }
 
-    await ref.read(assignmentsRepoProvider).submit(widget.assignmentId, path);
-
-    // This line is the whole reason a submit reaches the server. Every repo
-    // write only enqueues; SyncService.drain() is the only code that replays
-    // the queue, and its one other trigger is a connectivity *change* — which
-    // on a phone that is online and stays online never comes. Without this the
-    // round sits in the outbox until the next cold start.
-    //
-    // Here specifically, because this is the only moment the outbox holds a
-    // complete round in FIFO order: photos, then the ticks, then the submit.
-    // And before the invalidate below, because that refetches from the server
-    // — drain first and the refresh reads a server that has the work; refresh
-    // first and it reads one that does not, which is what made the ticks
-    // appear to revert.
-    //
-    // drain() swallows its own failures, so there is no new error path: offline
-    // it stops at the first op and the round stays queued for reconnect.
-    // ponytail: awaited, so Submit now blocks on the upload of uncompressed
-    // photos — Phase 2 compression is what makes that acceptable on 3G.
-    final sync = ref.read(syncServiceProvider);
-    await sync.drain(watch: widget.assignmentId);
-
-    // drain() never throws — it is a background replay — so its failure has to
-    // be read, not caught. Showing the success screen on top of a queue that
-    // stopped dead is the exact lie that made this bug invisible: the round
-    // reads "Submitted for review" while the server has never heard of it.
-    //
-    // ponytail: this refuses to advance on ANY drain failure, including a
-    // plain offline one where queueing is the correct outcome and success
-    // would be honest. Splitting "queued, will send" from "rejected, will
-    // never send" is the phase-4 work in sync.dart's TODO; until then, over-
-    // reporting a problem beats under-reporting one.
-    final error = sync.lastError;
-    if (error != null) {
-      if (mounted) {
-        setState(() => _submitting = false);
-        showErrorSnack(context, error);
-      }
+    // Refused? Then it is parked and the person must see why, not a success
+    // screen. The banner on Home lists it with Retry and Dismiss.
+    final parked = await repo.parkedCode(widget.assignmentId);
+    if (parked != null) {
+      if (!mounted) return;
+      showErrorSnack(context, refusalReason(AppLocalizations.of(context)!, parked));
+      context.go('/home');
       return;
     }
 
-    // Awaited, not a bare invalidate. The success screen picks its face from
-    // this round's status, and only the server knows whether the answers
-    // just sent put it in follow_up — an un-awaited refetch let it paint the
-    // stale in_progress round first, then flip. Guarded, because the round
-    // has already landed: a failed re-read is no reason to strand anyone on
-    // the pad, and the success screen then falls back to the plain face.
-    //
-    // Spelled invalidate-then-read rather than `await ref.refresh(...)`,
-    // which is exactly those two calls: refresh is @useResult, and awaiting
-    // its future does not count as using it.
+    // Sent: the drain's onSent already asked for a refresh, and the success
+    // screen picks its face from the server's verdict (submitted or
+    // follow_up), so wait for it. Offline this fails fast and the queued
+    // face shows instead.
     try {
-      ref.invalidate(myAssignmentsProvider);
-      await ref.read(myAssignmentsProvider.future);
+      await ref.read(roundsRefreshProvider.future);
     } catch (e) {
       debugPrint('[submit] re-read after drain failed: $e');
     }
@@ -157,6 +154,15 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
               title: profile?.name ?? t.signatureTitle,
               subtitle: signer,
               actions: [
+                // The optional note for the supervisor, behind an icon so the
+                // pad keeps its size. Filled once something is written.
+                HeaderIconButton(
+                  icon: _note.text.trim().isEmpty
+                      ? Icons.sticky_note_2_outlined
+                      : Icons.sticky_note_2,
+                  label: t.signatureNoteLabel,
+                  onPressed: _editNote,
+                ),
                 HeaderIconButton(
                   icon: Icons.close,
                   label: MaterialLocalizations.of(context).closeButtonLabel,

@@ -587,7 +587,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileSyncStatus.
   ///
   /// In en, this message translates to:
-  /// **'{count} photos pending upload'**
+  /// **'{count, plural, one{1 change not sent yet} other{{count} changes not sent yet}}'**
   String profileSyncStatus(int count);
 
   /// No description provided for @profileAboutSection.
@@ -625,6 +625,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Log out'**
   String get profileLogout;
+
+  /// No description provided for @syncSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending {sent} of {total}'**
+  String syncSending(int sent, int total);
+
+  /// No description provided for @syncOfflineUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline · last updated {time}'**
+  String syncOfflineUpdated(String time);
+
+  /// No description provided for @syncNeedsAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 change needs attention} other{{count} changes need attention}} · tap to review'**
+  String syncNeedsAttention(int count);
+
+  /// No description provided for @parkedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get parkedTitle;
+
+  /// No description provided for @parkedDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get parkedDismiss;
+
+  /// No description provided for @parkedDismissConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss this change? It will not be sent, and its photo or signature is deleted from this phone.'**
+  String get parkedDismissConfirm;
+
+  /// No description provided for @parkedOpAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer'**
+  String get parkedOpAnswer;
+
+  /// No description provided for @parkedOpPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get parkedOpPhoto;
+
+  /// No description provided for @parkedOpSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submission'**
+  String get parkedOpSubmit;
+
+  /// No description provided for @refusalExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The time window closed. Ask your supervisor to extend it, then tap Retry.'**
+  String get refusalExpired;
+
+  /// No description provided for @refusalClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'This round was already submitted or approved.'**
+  String get refusalClosed;
+
+  /// No description provided for @refusalNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This round or place no longer exists.'**
+  String get refusalNotFound;
+
+  /// No description provided for @refusalNotAuthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'This round is no longer assigned to you.'**
+  String get refusalNotAuthorized;
+
+  /// No description provided for @refusalMissingPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'An answered place still needs its photo.'**
+  String get refusalMissingPhoto;
+
+  /// No description provided for @refusalEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing on this round was answered.'**
+  String get refusalEmpty;
+
+  /// No description provided for @refusalMissingFile.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo or signature is no longer on this phone.'**
+  String get refusalMissingFile;
+
+  /// No description provided for @refusalOther.
+  ///
+  /// In en, this message translates to:
+  /// **'The server could not accept this change.'**
+  String get refusalOther;
+
+  /// No description provided for @signOutUnsentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 change not sent yet} other{{count} changes not sent yet}}'**
+  String signOutUnsentTitle(int count);
+
+  /// No description provided for @signOutUnsentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They stay on this phone and are sent the next time you sign in here.'**
+  String get signOutUnsentBody;
+
+  /// No description provided for @clubCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your club code'**
+  String get clubCodeTitle;
+
+  /// No description provided for @clubCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Club code'**
+  String get clubCodeHint;
+
+  /// No description provided for @clubCodeContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get clubCodeContinue;
+
+  /// No description provided for @clubCodeUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'No club with that code. Check it with your supervisor.'**
+  String get clubCodeUnknown;
+
+  /// No description provided for @clubCodeConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the server. Check your connection and try again.'**
+  String get clubCodeConnection;
+
+  /// No description provided for @profileSwitchClub.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch club'**
+  String get profileSwitchClub;
+
+  /// No description provided for @signatureNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note for your supervisor (optional)'**
+  String get signatureNoteLabel;
+
+  /// No description provided for @taskInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Instructions'**
+  String get taskInstructions;
+
+  /// No description provided for @historyStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff note: {note}'**
+  String historyStaffNote(String note);
+
+  /// No description provided for @successQueuedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this phone'**
+  String get successQueuedTitle;
+
+  /// No description provided for @successQueuedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{task} will be sent automatically as soon as you\'re online.'**
+  String successQueuedBody(String task);
 
   /// No description provided for @commonCancel.
   ///

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/providers.dart';
 import '../../models/profile.dart';
+import '../../club.dart';
 import '../../supabase.dart';
 import '../../theme.dart';
 import '../../widgets/brand_panel.dart';
@@ -36,6 +37,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // GoRouter's fixed initialLocation — nothing routes back to it, so the
     // hold is unconditional.
     final hold = Future<void>.delayed(const Duration(seconds: 2));
+
+    // No club yet (first launch, or after Switch club): its code comes first,
+    // because sign-in happens against that club's own Supabase project.
+    if (currentClub == null) {
+      await hold;
+      if (mounted) context.go('/club');
+      return;
+    }
 
     if (supabase.auth.currentSession == null) {
       await hold;

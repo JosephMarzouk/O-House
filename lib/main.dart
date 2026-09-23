@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
-import 'supabase.dart';
+import 'club.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +16,8 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  await initSupabase();
+  // The saved club, if any, and Supabase pointed at it. First launch has
+  // none: the splash sends the person to the club code screen.
+  await restoreClub();
   runApp(const ProviderScope(child: OHouseApp()));
 }

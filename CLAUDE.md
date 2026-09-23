@@ -56,11 +56,14 @@ Refactored away in `8f4202a`, do not resurrect:
 | Phase | Scope | State |
 |---|---|---|
 | 1 | Online-only reads/writes, all screens | **Done** |
-| 2 | Image compression before queuing | **Not started** — `flutter_image_compress` is in pubspec, unused |
-| 3 | Offline writes: outbox drain, optimistic local updates, cache reads | **Partial** — the outbox now actually drains (the signature screen drains before it invalidates), but reads still go straight to the server and never fall back to the cache |
+| 2 | Image compression before queuing | **Done (Step 3)** — the picker itself: 1600 px long edge, quality 75 |
+| 3 | Offline writes: outbox drain, optimistic local updates, cache reads | **Code done (plan Step 3)** — every read and write goes through the O House API (`data/api_client.dart`); cache-first providers; SyncService v2 (per-round order, backoff, parking with Retry/Dismiss, user-scoped); club code + one database per club. Not yet run on a device against a deployed API |
 | 4 | Push notifications | **Not started** — `firebase_core`/`firebase_messaging` in pubspec, zero Dart references, no `google-services.json` |
 
 ### Known issues
+
+Step 3 (plan) fixed 1, 2, 6, 7 and 8 below: kept for the history, not open.
+Still open: **4** (the app id is an open product decision) and **5**.
 
 1. **Offline reads are broken, and the cache is write-only.**
    `myAssignmentsProvider` always calls `refreshFromServer`;
@@ -113,14 +116,19 @@ main.dart → initSupabase() → ProviderScope → OHouseApp (app.dart)
 ```
 
 - **State**: Riverpod. All providers live in `lib/data/providers.dart`.
-- **The one seam**: `AssignmentsRepo`. **No screen touches Supabase directly**
-  for assignment data. (Auth and the `set_locale` RPC are the exceptions —
-  login/profile call `supabase` directly.)
-- **Writes are RPCs, never table writes.** Every mutation goes through a
-  `SECURITY DEFINER` Postgres function. `profiles` has no client UPDATE grant.
-- **Offline shape**: writes are enqueued into a SQLite `outbox` (one row =
-  one RPC call + payload); `SyncService.drain()` replays them FIFO per
-  assignment so photos and signature land *before* `submit_assignment`.
+- **Since Step 3 the app never reaches the database or Storage.** Every read
+  and write is HTTPS to the O House API (`data/api_client.dart`, `X-Club` on
+  every call). `supabase_flutter` is for sign-in only, initialized per club
+  (`club.dart`: the club code → `GET /clubs/:code` → that club's project).
+- **The one seam**: `AssignmentsRepo`. No screen touches the API directly
+  (Profile's locale and set-password's `password-changed` are the exceptions).
+- **Cache first** (LS-3): `myAssignmentsProvider` reads the per-user cache and
+  lays queued work over it (`applyLocal`); `roundsRefreshProvider` does the
+  `GET /assignments`. One SQLite file per club; every row carries its user.
+- **Offline shape**: writes are enqueued (`answer` / `photo` / `submit`, ids
+  fixed at capture, evidence in `documents/evidence/<club>/`). `SyncService`
+  sends them per round in order; a 422 `refused` parks the op (banner → Retry /
+  Dismiss), everything else retries with backoff. See `data/sync.dart`.
 
 ### Routes (`lib/router.dart`)
 

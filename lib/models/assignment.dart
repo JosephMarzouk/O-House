@@ -26,6 +26,14 @@ class Assignment {
   final String? reviewNote;
   final List<AssignmentItem> items;
 
+  /// When the window closes: the view's `deadline` (Cairo time, overnight
+  /// windows and extensions included). Null for a round with no window.
+  final DateTime? deadline;
+
+  /// The creator's instructions, and the note staff sent with the submit.
+  final String? taskNote;
+  final String? submitNote;
+
   /// The zone round this place was scheduled from (0013), via the view's
   /// LEFT JOIN — null for a one-off task or a legacy row. Display only: the
   /// card's kicker and the head of the subtitle. round_id itself is not
@@ -56,6 +64,9 @@ class Assignment {
     this.items = const [],
     this.roundTitleEn,
     this.roundTitleAr,
+    this.deadline,
+    this.taskNote,
+    this.submitNote,
   });
 
   int get doneCount => items.where((i) => i.status == 'done').length;
@@ -120,6 +131,11 @@ class Assignment {
         .toList(),
     roundTitleEn: json['round_title_en'] as String?,
     roundTitleAr: json['round_title_ar'] as String?,
+    deadline: json['deadline'] == null
+        ? null
+        : DateTime.parse(json['deadline'] as String),
+    taskNote: json['task_note'] as String?,
+    submitNote: json['submit_note'] as String?,
   );
 
   Map<String, dynamic> toCacheJson() => {
@@ -145,6 +161,9 @@ class Assignment {
     'items': items.map((i) => i.toJson()).toList(),
     'round_title_en': roundTitleEn,
     'round_title_ar': roundTitleAr,
+    'deadline': deadline?.toIso8601String(),
+    'task_note': taskNote,
+    'submit_note': submitNote,
   };
 
   Assignment copyWithItems(List<AssignmentItem> items) => Assignment(
@@ -170,5 +189,8 @@ class Assignment {
     items: items,
     roundTitleEn: roundTitleEn,
     roundTitleAr: roundTitleAr,
+    deadline: deadline,
+    taskNote: taskNote,
+    submitNote: submitNote,
   );
 }

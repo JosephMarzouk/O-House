@@ -140,6 +140,7 @@ class SubtaskTile extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               _CameraButton(
+                assignmentId: item.assignmentId,
                 photos: photos,
                 onPressed: locked ? null : onCamera,
                 label: t.itemSheetTakePhoto,
@@ -430,10 +431,12 @@ class _PhotoBadge extends StatelessWidget {
 
 class _CameraButton extends StatelessWidget {
   const _CameraButton({
+    required this.assignmentId,
     required this.photos,
     required this.onPressed,
     required this.label,
   });
+  final String assignmentId;
   final List<String> photos;
   final VoidCallback? onPressed;
   final String label;
@@ -461,7 +464,11 @@ class _CameraButton extends StatelessWidget {
         : Stack(
             clipBehavior: Clip.none,
             children: [
-              PhotoThumb(path: photos.last, size: 48),
+              PhotoThumb(
+                assignmentId: assignmentId,
+                path: photos.last,
+                size: 48,
+              ),
               if (photos.length > 1)
                 PositionedDirectional(
                   end: -4,

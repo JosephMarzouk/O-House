@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'data/providers.dart';
 import 'features/locale_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'router.dart';
@@ -13,6 +14,10 @@ class OHouseApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
+    // Keeps the outbox and its triggers (resume, reconnect, backoff) alive at
+    // app level, whatever screen is showing (SY-2). listen, not watch: a new
+    // service on sign-in must not rebuild the whole app.
+    ref.listen(syncServiceProvider, (_, _) {});
     return MaterialApp.router(
       title: 'O House',
       debugShowCheckedModeBanner: false,

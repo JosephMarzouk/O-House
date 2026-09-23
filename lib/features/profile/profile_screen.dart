@@ -1,14 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../club.dart';
 import '../../data/providers.dart';
+import '../../l10n/localized_text.dart';
 import '../../l10n/app_localizations.dart';
 import '../../supabase.dart';
 import '../../theme.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/app_nav_bar.dart';
 import '../../widgets/language_toggle.dart';
+import '../../widgets/sync_banner.dart';
 import '../home/home_header.dart';
 import '../locale_provider.dart';
 
@@ -20,7 +26,9 @@ class ProfileScreen extends ConsumerWidget {
     final t = AppLocalizations.of(context)!;
     final profile = ref.watch(currentProfileProvider).valueOrNull;
     final locale = ref.watch(localeProvider);
-    final pendingCount = ref.watch(outboxCountProvider).valueOrNull ?? 0;
+    final pendingCount = ref.watch(outboxCountProvider);
+    final parked = ref.watch(syncStatusProvider).parked;
+    final club = ref.watch(clubProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -57,11 +65,14 @@ class ProfileScreen extends ConsumerWidget {
                       selected: locale?.languageCode ?? 'en',
                       onChanged: (code) async {
                         ref.read(localeProvider.notifier).set(code);
-                        if (supabase.auth.currentUser != null) {
-                          await supabase.rpc(
-                            'set_locale',
-                            params: {'p_locale': code},
-                          );
+                        // Best effort: the phone keeps the choice either
+                        // way, and pushes are the only other reader.
+                        try {
+                          await ref
+                              .read(apiClientProvider)
+                              .patch('/me/locale', json: {'locale': code});
+                        } catch (e) {
+                          debugPrint('[profile] set locale failed: $e');
                         }
                       },
                     ),
@@ -70,6 +81,19 @@ class ProfileScreen extends ConsumerWidget {
                     _ProfileRow(
                       icon: Icons.cloud_upload_outlined,
                       label: t.profileSyncStatus(pendingCount),
+                      onTap: parked > 0
+                          ? () => showParkedSheet(context)
+                          : null,
+                    ),
+                  if (club != null)
+                    _ProfileRow(
+                      icon: Icons.apartment_outlined,
+                      label: t.profileSwitchClub,
+                      trailing: Text(
+                        pickLocalized(context, club.nameAr, club.nameEn),
+                        style: const TextStyle(fontSize: 14, color: _muted),
+                      ),
+                      onTap: () => _signOut(context, ref, switchClub: true),
                     ),
                   _SectionLabel(t.profileAboutSection),
                   _ProfileRow(
@@ -98,7 +122,7 @@ class ProfileScreen extends ConsumerWidget {
                     label: t.profileLogout,
                     iconColor: AppColors.magenta,
                     labelColor: AppColors.magentaDeep,
-                    onTap: () => supabase.auth.signOut(),
+                    onTap: () => _signOut(context, ref),
                   ),
                 ],
               ),
@@ -111,6 +135,44 @@ class ProfileScreen extends ConsumerWidget {
 }
 
 const _muted = Color(0x99201E1D); // text @ 60%
+
+/// Signing out never deletes unsent work (LS-5): it stays in this club's
+/// file, keyed to this person, and is sent the next time they sign in here.
+/// The warning makes sure nobody hands the phone over believing it was sent.
+Future<void> _signOut(
+  BuildContext context,
+  WidgetRef ref, {
+  bool switchClub = false,
+}) async {
+  final t = AppLocalizations.of(context)!;
+  final unsent = ref.read(outboxCountProvider);
+  if (unsent > 0) {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(t.signOutUnsentTitle(unsent)),
+        content: Text(t.signOutUnsentBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(t.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(switchClub ? t.profileSwitchClub : t.profileLogout),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+  }
+  await supabase.auth.signOut();
+  ref.invalidate(userIdProvider);
+  if (switchClub) {
+    await forgetClub();
+    if (context.mounted) context.go('/club');
+  }
+}
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);

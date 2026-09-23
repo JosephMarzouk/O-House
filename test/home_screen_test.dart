@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:o_house/data/local_db.dart';
 import 'package:o_house/data/providers.dart';
-import 'package:o_house/data/sync.dart';
 import 'package:o_house/features/home/home_header.dart';
 import 'package:o_house/features/home/home_screen.dart';
 import 'package:o_house/features/splash_handoff.dart';
@@ -21,14 +19,6 @@ import 'package:o_house/widgets/ink_handoff_panel.dart';
 /// covered incidentally, since a broken filter would move those too.
 ///
 /// Pumped at the design's 410x864 phone size, as login_screen_test does.
-
-/// start() opens a connectivity stream over a platform channel that does not
-/// exist in tests. Nothing here exercises sync, so stub it out.
-class _NoopSync extends SyncService {
-  _NoopSync() : super(LocalDb.instance);
-  @override
-  Future<void> start() async {}
-}
 
 Assignment _a({
   required String id,
@@ -87,7 +77,6 @@ Future<void> _pumpHome(
         ),
         // Both reach sqflite, which has no test binding.
         outboxCountProvider.overrideWith((ref) => 0),
-        syncServiceProvider.overrideWith((ref) => _NoopSync()),
       ],
       child: MaterialApp(
         locale: const Locale('en'),
@@ -303,6 +292,8 @@ void main() {
     });
   });
 
+  // The list itself is read from the cache; pulling down is what asks the
+  // server (GET /assignments) again.
   testWidgets('pulling down re-runs the assignments fetch', (tester) async {
     var builds = 0;
     tester.view
@@ -313,13 +304,13 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          myAssignmentsProvider.overrideWith((ref) {
+          myAssignmentsProvider.overrideWith((ref) => fixture),
+          roundsRefreshProvider.overrideWith((ref) {
             builds++;
-            return fixture;
+            return DateTime.now();
           }),
           currentProfileProvider.overrideWith((ref) => null),
           outboxCountProvider.overrideWith((ref) => 0),
-          syncServiceProvider.overrideWith((ref) => _NoopSync()),
         ],
         child: MaterialApp(
           locale: const Locale('en'),
@@ -335,7 +326,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(builds, 1);
+    expect(builds, 0);
 
     await tester.fling(
       find.byType(CustomScrollView),
@@ -344,6 +335,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(builds, 2);
+    expect(builds, 1);
   });
 }

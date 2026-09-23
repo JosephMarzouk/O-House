@@ -8,6 +8,8 @@ import 'features/assignments/history_detail_screen.dart';
 import 'features/assignments/list_screen.dart';
 import 'features/assignments/signature_screen.dart';
 import 'features/assignments/success_screen.dart';
+import 'club.dart';
+import 'features/auth/club_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/set_password_screen.dart';
 import 'features/auth/splash_screen.dart';
@@ -19,20 +21,24 @@ import 'widgets/app_nav_bar.dart';
 
 final router = GoRouter(
   initialLocation: '/splash',
-  refreshListenable: GoRouterRefreshStream(supabase.auth.onAuthStateChange),
+  refreshListenable: AuthRefresh(),
   redirect: (context, state) {
     final loc = state.matchedLocation;
     // Splash owns the cold-boot routing decision, and login now owns the
     // post-sign-in one — must_change_password included — itself (see
     // login_screen.dart's _submit), so a redirect here would only ever be
     // racing it. Neither gets bounced by this rule.
-    if (loc == '/splash' || loc == '/login') return null;
+    if (loc == '/splash' || loc == '/club') return null;
+    // No club, no Supabase: nothing else can even ask who is signed in.
+    if (currentClub == null) return '/club';
+    if (loc == '/login') return null;
 
     final loggedIn = supabase.auth.currentSession != null;
     return loggedIn ? null : '/login';
   },
   routes: [
     GoRoute(path: '/splash', builder: (c, s) => const SplashScreen()),
+    GoRoute(path: '/club', builder: (c, s) => const ClubScreen()),
     // No transition: /login opens with its ink panel at full height, exactly
     // the pixels the splash ends on, and drags it up itself. Any route
     // animation here would show as a seam mid-drag.
@@ -110,18 +116,28 @@ final router = GoRouter(
   ],
 );
 
-/// Bridges Supabase's auth stream to go_router's Listenable-based refresh —
-/// the standard small adapter, not worth a package for ~10 lines.
-class GoRouterRefreshStream extends ChangeNotifier {
-  GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
-    _sub = stream.listen((_) => notifyListeners());
+/// Re-runs the redirect on every sign-in/sign-out and every club change.
+/// Supabase is re-initialized per club (club.dart), so the auth stream is
+/// re-subscribed each time the club changes rather than taken once.
+class AuthRefresh extends ChangeNotifier {
+  AuthRefresh() {
+    clubChanges.addListener(_resubscribe);
+    _resubscribe();
   }
-  late final StreamSubscription<dynamic> _sub;
+  StreamSubscription<AuthState>? _sub;
+
+  void _resubscribe() {
+    _sub?.cancel();
+    _sub = currentClub == null
+        ? null
+        : supabase.auth.onAuthStateChange.listen((_) => notifyListeners());
+    notifyListeners();
+  }
 
   @override
   void dispose() {
-    _sub.cancel();
+    clubChanges.removeListener(_resubscribe);
+    _sub?.cancel();
     super.dispose();
   }
 }

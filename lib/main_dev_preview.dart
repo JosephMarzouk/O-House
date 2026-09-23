@@ -32,7 +32,7 @@ void main() {
       overrides: [
         currentProfileProvider.overrideWith((ref) async => _fakeProfile),
         myAssignmentsProvider.overrideWith((ref) async => demoAssignments()),
-        outboxCountProvider.overrideWith((ref) async => 2),
+        outboxCountProvider.overrideWith((ref) => 2),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

@@ -27,22 +27,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with SplashHandoffAnimation<HomeScreen> {
   @override
-  void initState() {
-    super.initState();
-    // Registers the connectivity listener, which fires once on subscribe
-    // (connectivity_plus emits the current state at the end of onListen), so
-    // this drains anything a previous session left queued.
-    //
-    // It is NOT safe to call repeatedly, contrary to what this comment used to
-    // claim, and a second call does not re-drain: start() discards its
-    // StreamSubscription and the platform interface caches one broadcast
-    // stream, so a later listener joins an already-listened stream and gets no
-    // current-state event — it only leaks another listener. That is why the
-    // signature screen drains explicitly rather than leaning on this.
-    ref.read(syncServiceProvider).start();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final profile = ref.watch(currentProfileProvider).valueOrNull;
@@ -99,10 +83,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         const SyncBanner(),
         Expanded(
           child: RefreshIndicator(
-            // myAssignmentsProvider already does refreshFromServer() then
-            // reads back from the cache, so re-running it *is* the refresh.
-            // Awaiting .future keeps the spinner up for the whole round trip.
-            onRefresh: () => ref.refresh(myAssignmentsProvider.future),
+            // Awaited, so the spinner stays up for the whole round trip.
+            // Offline it simply stops; the banner says since when.
+            onRefresh: () => refreshRounds(ref),
             color: AppColors.cyan,
             backgroundColor: AppColors.paper,
             // CustomScrollView rather than a ListView so SliverFillRemaining

@@ -306,7 +306,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String profileSyncStatus(int count) {
-    return '$count photos pending upload';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changes not sent yet',
+      one: '1 change not sent yet',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -328,6 +334,126 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileLogout => 'Log out';
+
+  @override
+  String syncSending(int sent, int total) {
+    return 'Sending $sent of $total';
+  }
+
+  @override
+  String syncOfflineUpdated(String time) {
+    return 'Offline · last updated $time';
+  }
+
+  @override
+  String syncNeedsAttention(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changes need attention',
+      one: '1 change needs attention',
+    );
+    return '$_temp0 · tap to review';
+  }
+
+  @override
+  String get parkedTitle => 'Needs attention';
+
+  @override
+  String get parkedDismiss => 'Dismiss';
+
+  @override
+  String get parkedDismissConfirm =>
+      'Dismiss this change? It will not be sent, and its photo or signature is deleted from this phone.';
+
+  @override
+  String get parkedOpAnswer => 'Answer';
+
+  @override
+  String get parkedOpPhoto => 'Photo';
+
+  @override
+  String get parkedOpSubmit => 'Submission';
+
+  @override
+  String get refusalExpired =>
+      'The time window closed. Ask your supervisor to extend it, then tap Retry.';
+
+  @override
+  String get refusalClosed => 'This round was already submitted or approved.';
+
+  @override
+  String get refusalNotFound => 'This round or place no longer exists.';
+
+  @override
+  String get refusalNotAuthorized => 'This round is no longer assigned to you.';
+
+  @override
+  String get refusalMissingPhoto => 'An answered place still needs its photo.';
+
+  @override
+  String get refusalEmpty => 'Nothing on this round was answered.';
+
+  @override
+  String get refusalMissingFile =>
+      'The photo or signature is no longer on this phone.';
+
+  @override
+  String get refusalOther => 'The server could not accept this change.';
+
+  @override
+  String signOutUnsentTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changes not sent yet',
+      one: '1 change not sent yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get signOutUnsentBody =>
+      'They stay on this phone and are sent the next time you sign in here.';
+
+  @override
+  String get clubCodeTitle => 'Enter your club code';
+
+  @override
+  String get clubCodeHint => 'Club code';
+
+  @override
+  String get clubCodeContinue => 'Continue';
+
+  @override
+  String get clubCodeUnknown =>
+      'No club with that code. Check it with your supervisor.';
+
+  @override
+  String get clubCodeConnection =>
+      'Could not reach the server. Check your connection and try again.';
+
+  @override
+  String get profileSwitchClub => 'Switch club';
+
+  @override
+  String get signatureNoteLabel => 'Note for your supervisor (optional)';
+
+  @override
+  String get taskInstructions => 'Instructions';
+
+  @override
+  String historyStaffNote(String note) {
+    return 'Staff note: $note';
+  }
+
+  @override
+  String get successQueuedTitle => 'Saved on this phone';
+
+  @override
+  String successQueuedBody(String task) {
+    return '$task will be sent automatically as soon as you\'re online.';
+  }
 
   @override
   String get commonCancel => 'Cancel';

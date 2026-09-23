@@ -31,6 +31,11 @@ class SuccessScreen extends ConsumerWidget {
     final t = AppLocalizations.of(context)!;
     final a = ref.watch(assignmentByIdProvider(assignmentId));
     final locale = Localizations.localeOf(context).toString();
+    // Still in the outbox: saved, not sent. Saying "submitted" here was the
+    // lie that hid unsent rounds; this face says what is true.
+    final queued =
+        ref.watch(pendingRoundsProvider).valueOrNull?.contains(assignmentId) ??
+        false;
 
     final Widget hero;
     final String title;
@@ -67,15 +72,18 @@ class SuccessScreen extends ConsumerWidget {
         size: 104,
         color: AppColors.cyan,
       );
-      title = t.successTitle;
+      title = queued ? t.successQueuedTitle : t.successTitle;
       if (a != null) {
         final name = pickLocalized(context, a.titleAr, a.titleEn);
         final site = pickLocalized(context, a.siteNameAr, a.siteNameEn);
+        final task = site.isEmpty ? name : '$name — $site';
         // submitted_at is filled in by the server, so it is still null here
         // on the hop straight from the signature pad.
         final at = DateFormat.Hm(locale)
             .format(a.submittedAt ?? DateTime.now());
-        detail = t.successDetail(site.isEmpty ? name : '$name — $site', at);
+        detail = queued
+            ? t.successQueuedBody(task)
+            : t.successDetail(task, at);
       }
       primary = (t.successBackButton, () => context.go('/tasks'));
       secondary = (

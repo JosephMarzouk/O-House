@@ -81,6 +81,19 @@ class HistoryDetailScreen extends ConsumerWidget {
                     _Label(t.historyDetailReviewer),
                     _ReviewerCard(note: a.reviewNote!),
                   ],
+                  // What the staff member wrote at submit (submit_note).
+                  if (a.submitNote?.trim().isNotEmpty ?? false)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(26, 14, 26, 0),
+                      child: Text(
+                        t.historyStaffNote(a.submitNote!.trim()),
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          height: 1.5,
+                          color: Color(0x99201E1D), // text @ 60%
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -164,7 +177,7 @@ class _ItemRow extends StatelessWidget {
           ),
           for (final path in item.photoPaths) ...[
             const SizedBox(width: 8),
-            PhotoThumb(path: path, size: 42),
+            PhotoThumb(assignmentId: item.assignmentId, path: path, size: 42),
           ],
         ],
       ),
@@ -203,6 +216,7 @@ class _Signature extends StatelessWidget {
               child: Directionality(
                 textDirection: TextDirection.ltr,
                 child: PhotoThumb(
+                  assignmentId: assignment.id,
                   path: assignment.signatureUrl!,
                   size: double.infinity,
                   fit: BoxFit.contain,

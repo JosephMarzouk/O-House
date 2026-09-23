@@ -313,7 +313,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String profileSyncStatus(int count) {
-    return '$count صور بانتظار الرفع';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تغييرات لم تُرسل بعد',
+      one: 'تغيير واحد لم يُرسل بعد',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -335,6 +341,126 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get profileLogout => 'تسجيل الخروج';
+
+  @override
+  String syncSending(int sent, int total) {
+    return 'جارٍ الإرسال $sent من $total';
+  }
+
+  @override
+  String syncOfflineUpdated(String time) {
+    return 'دون اتصال · آخر تحديث $time';
+  }
+
+  @override
+  String syncNeedsAttention(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تغييرات تحتاج انتباهك',
+      one: 'تغيير واحد يحتاج انتباهك',
+    );
+    return '$_temp0 · اضغط للمراجعة';
+  }
+
+  @override
+  String get parkedTitle => 'يحتاج انتباهك';
+
+  @override
+  String get parkedDismiss => 'تجاهل';
+
+  @override
+  String get parkedDismissConfirm =>
+      'تجاهل هذا التغيير؟ لن يتم إرساله، وستُحذف صورته أو توقيعه من هذا الهاتف.';
+
+  @override
+  String get parkedOpAnswer => 'إجابة';
+
+  @override
+  String get parkedOpPhoto => 'صورة';
+
+  @override
+  String get parkedOpSubmit => 'إرسال الجولة';
+
+  @override
+  String get refusalExpired =>
+      'انتهت الفترة الزمنية. اطلب من مشرفك تمديدها ثم اضغط إعادة المحاولة.';
+
+  @override
+  String get refusalClosed => 'تم إرسال هذه الجولة أو اعتمادها بالفعل.';
+
+  @override
+  String get refusalNotFound => 'هذه الجولة أو هذا المكان لم يعد موجودًا.';
+
+  @override
+  String get refusalNotAuthorized => 'هذه الجولة لم تعد مسندة إليك.';
+
+  @override
+  String get refusalMissingPhoto =>
+      'مكان تمت الإجابة عليه ما زال يحتاج إلى صورة.';
+
+  @override
+  String get refusalEmpty => 'لم تتم الإجابة على أي شيء في هذه الجولة.';
+
+  @override
+  String get refusalMissingFile =>
+      'الصورة أو التوقيع لم يعد موجودًا على هذا الهاتف.';
+
+  @override
+  String get refusalOther => 'تعذّر على الخادم قبول هذا التغيير.';
+
+  @override
+  String signOutUnsentTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تغييرات لم تُرسل بعد',
+      one: 'تغيير واحد لم يُرسل بعد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get signOutUnsentBody =>
+      'ستبقى على هذا الهاتف وتُرسل في المرة القادمة التي تسجّل فيها الدخول هنا.';
+
+  @override
+  String get clubCodeTitle => 'أدخل رمز النادي';
+
+  @override
+  String get clubCodeHint => 'رمز النادي';
+
+  @override
+  String get clubCodeContinue => 'متابعة';
+
+  @override
+  String get clubCodeUnknown => 'لا يوجد نادٍ بهذا الرمز. تحقّق منه مع مشرفك.';
+
+  @override
+  String get clubCodeConnection =>
+      'تعذّر الوصول إلى الخادم. تحقّق من الاتصال وحاول مرة أخرى.';
+
+  @override
+  String get profileSwitchClub => 'تغيير النادي';
+
+  @override
+  String get signatureNoteLabel => 'ملاحظة لمشرفك (اختياري)';
+
+  @override
+  String get taskInstructions => 'التعليمات';
+
+  @override
+  String historyStaffNote(String note) {
+    return 'ملاحظة الموظف: $note';
+  }
+
+  @override
+  String get successQueuedTitle => 'تم الحفظ على هذا الهاتف';
+
+  @override
+  String successQueuedBody(String task) {
+    return 'سيتم إرسال $task تلقائيًا فور اتصالك بالإنترنت.';
+  }
 
   @override
   String get commonCancel => 'إلغاء';

@@ -88,11 +88,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       }
       return;
     }
-    ref.invalidate(currentProfileProvider);
+    // Read the new user now, not when the auth stream's event arrives: the
+    // repo, cache and outbox are all keyed by it.
+    ref.invalidate(userIdProvider);
     Profile? profile;
     try {
+      // Fresh from the server, not the cache: must_change_password decides
+      // where this sign-in lands.
       profile = await ref
-          .read(currentProfileProvider.future)
+          .read(profileFetchProvider.future)
           .timeout(const Duration(seconds: 5));
     } catch (_) {
       // Session exists but we couldn't confirm whose it is — same call the

@@ -36,8 +36,8 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
       // with their new password already applied, bounced straight back to this
       // screen on every launch. complete_password_change() is SECURITY DEFINER
       // and does exactly this one write for auth.uid().
-      await supabase.rpc('complete_password_change');
-      ref.invalidate(currentProfileProvider);
+      await ref.read(apiClientProvider).post('/me/password-changed');
+      ref.invalidate(profileFetchProvider);
       if (mounted) context.go('/home');
     } catch (e) {
       // Never swallow: the flag not flipping is what makes the loop, so the

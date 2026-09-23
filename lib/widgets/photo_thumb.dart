@@ -1,32 +1,34 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
-import '../data/sync.dart';
+import '../data/providers.dart';
 import '../theme.dart';
 
-/// Renders whatever shape an evidence path happens to be in — see [mediaUrl],
-/// which owns that decision. Three reach here: a device path still queued in
-/// the outbox, a bucket-relative path once this app has uploaded it, and a
-/// full URL when the admin dashboard wrote the row.
+/// Renders one piece of evidence, whatever state it is in:
 ///
-/// The middle case is the one that used to break: `submit_assignment` stores
-/// `signature_url` as the bare bucket path, this widget assumed anything
-/// without `http` was a local file, and a submitted signature therefore always
-/// rendered as the grey placeholder.
+///  * a file on this phone: a photo or signature still in the outbox, or
+///    staged on a round not yet submitted. Shown from disk, online or not.
+///  * a stored path (or a legacy full URL): shown through the short-lived
+///    signed link `GET /assignments/:id` returns for that round. The bucket
+///    is private, so there is no public URL to build.
 ///
-/// A path that will not load is normal here, not exceptional: the file may
-/// still be queued, may have been cleared from the cache directory, or may be
-/// a demo placeholder. So it falls back to the design's grey tile rather than
-/// letting Image throw a red box into the middle of a checklist.
-class PhotoThumb extends StatelessWidget {
+/// A path that will not load is normal here, not exceptional: offline, the
+/// link has not arrived, or the object is missing. So it falls back to the
+/// design's grey tile rather than letting Image throw a red box into the
+/// middle of a checklist.
+class PhotoThumb extends ConsumerWidget {
   const PhotoThumb({
     super.key,
+    required this.assignmentId,
     required this.path,
     this.size = 56,
     this.fit = BoxFit.cover,
   });
 
+  final String assignmentId;
   final String path;
   final double size;
 
@@ -35,16 +37,7 @@ class PhotoThumb extends StatelessWidget {
   final BoxFit fit;
 
   @override
-  Widget build(BuildContext context) {
-    // Never throws into the tree: an unresolvable path is normal here, so a
-    // failure to build a URL falls back to the placeholder like any other
-    // missing image rather than taking the screen down.
-    String? url;
-    try {
-      url = mediaUrl(path);
-    } catch (_) {
-      url = null;
-    }
+  Widget build(BuildContext context, WidgetRef ref) {
     Widget placeholder(_, _, _) => const ColoredBox(
       color: AppColors.surface,
       child: Center(
@@ -56,15 +49,21 @@ class PhotoThumb extends StatelessWidget {
       ),
     );
 
+    final Widget image;
+    // existsSync, not just isAbsolute: a stored path can carry a leading
+    // slash ('/signatures/x.png'), and that one belongs to the server.
+    if (p.isAbsolute(path) && File(path).existsSync()) {
+      image = Image.file(File(path), fit: fit, errorBuilder: placeholder);
+    } else {
+      final url = ref.watch(roundMediaProvider(assignmentId)).valueOrNull?[path];
+      image = url == null
+          ? placeholder(null, null, null)
+          : Image.network(url, fit: fit, errorBuilder: placeholder);
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: url != null
-            ? Image.network(url, fit: fit, errorBuilder: placeholder)
-            : Image.file(File(path), fit: fit, errorBuilder: placeholder),
-      ),
+      child: SizedBox(width: size, height: size, child: image),
     );
   }
 }
