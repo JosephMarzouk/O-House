@@ -68,6 +68,10 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  # Each club is a flavor (lib/tenant.dart). Without a default, the IDE's Run
+  # button (no --flavor) installed a stale pre-flavor app-debug.apk from
+  # build/. Other clubs still pass --flavor <club> explicitly.
+  default-flavor: owest
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
