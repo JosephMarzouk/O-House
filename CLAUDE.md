@@ -28,7 +28,10 @@ flutter run --flavor owest --dart-define=TENANT_NAME=OWEST --dart-define=ENVIRON
 flutter build appbundle --flavor owest --dart-define=TENANT_NAME=OWEST --dart-define=ENVIRONMENT=prod
 ```
 
-Without `--flavor` the app stops at startup on purpose. `ENVIRONMENT=prod`
+`pubspec.yaml` sets `default-flavor: owest`, so the IDE's Run button and a
+bare `flutter run` build O House (without it, Flutter installed a stale
+pre-flavor `build/…/app-debug.apk`, club-code screen and all). Other clubs
+pass `--flavor <club>`. `ENVIRONMENT` defaults to `dev`; `ENVIRONMENT=prod`
 needs `--dart-define=API_URL=...` until the API is deployed.
 
 | Task | Command |
