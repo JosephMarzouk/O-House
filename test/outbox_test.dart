@@ -9,7 +9,7 @@ import 'package:o_house/data/assignments_repo.dart';
 import 'package:o_house/data/local_db.dart';
 import 'package:o_house/data/sync.dart';
 import 'package:o_house/models/assignment.dart';
-import 'package:o_house/supabase.dart';
+import 'package:o_house/data/auth_service.dart';
 
 // The outbox is where work gets lost, so it is tested against fakes rather
 // than trusted: an in-memory LocalDb (sqflite has no test binding) and an
@@ -379,9 +379,9 @@ void main() {
     expect(RoundDraft.fromJson(null).isEmpty, isTrue);
   });
 
-  test('the sign-in identity gives back the phone number', () {
-    expect(syntheticEmailToPhone(phoneToSyntheticEmail('+201001234567')), '+201001234567');
-    expect(syntheticEmailToPhone('someone@example.com'), isNull);
-    expect(syntheticEmailToPhone(null), isNull);
+  test('a typed phone is remembered in the form the API stores', () {
+    expect(normalizePhone('+201001234567'), '+201001234567');
+    expect(normalizePhone('+20 0100 123 4567'), '+201001234567');
+    expect(normalizePhone('01001234567'), '+201001234567');
   });
 }

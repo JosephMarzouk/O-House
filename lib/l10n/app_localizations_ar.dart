@@ -19,6 +19,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loginPhoneLabel => 'رقم الهاتف';
 
   @override
+  String get loginEmailLabel => 'البريد الإلكتروني';
+
+  @override
+  String get loginUseEmail => 'الدخول بالبريد الإلكتروني بدلًا من ذلك';
+
+  @override
+  String get loginUsePhone => 'الدخول برقم الهاتف بدلًا من ذلك';
+
+  @override
+  String get loginLocked => 'محاولات خاطئة كثيرة. حاول مرة أخرى بعد ١٥ دقيقة.';
+
+  @override
+  String get loginNoAccess => 'هذا الحساب لا يستخدم التطبيق. اسأل مشرفك.';
+
+  @override
   String get loginPasswordLabel => 'كلمة المرور';
 
   @override
@@ -28,7 +43,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loginForgotPassword => 'نسيت كلمة المرور؟ اسأل المشرف.';
 
   @override
-  String get loginError => 'رقم الهاتف أو كلمة المرور غير صحيحة.';
+  String get loginError => 'بيانات الدخول أو كلمة المرور غير صحيحة.';
 
   @override
   String get loginConnectionError =>
@@ -377,6 +392,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get refusalNotAuthorized => 'هذه الجولة لم تعد مسندة إليك.';
+
+  @override
+  String get refusalTaken =>
+      'بدأ زميل آخر مُسند إلى هذه الجولة العمل عليها أولًا، فأصبحت له.';
+
+  @override
+  String get itemRecordVideo => 'تسجيل فيديو';
+
+  @override
+  String untilDate(String date) {
+    return 'حتى $date';
+  }
 
   @override
   String get refusalMissingPhoto =>

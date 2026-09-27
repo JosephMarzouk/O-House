@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../data/providers.dart';
 import '../theme.dart';
+import 'evidence_video.dart';
 
 /// Renders one piece of evidence, whatever state it is in:
 ///
@@ -38,6 +39,8 @@ class PhotoThumb extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (isVideoPath(path)) return VideoTile(size: size);
+
     Widget placeholder(_, _, _) => const ColoredBox(
       color: AppColors.surface,
       child: Center(

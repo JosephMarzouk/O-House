@@ -6,13 +6,19 @@ import 'assignment_item.dart';
 /// what the UI must read, never `status`.
 class Assignment {
   final String id;
-  final String assigneeId;
+
+  /// The owner: the one assignee, or whichever of several acted first. Null
+  /// while a task given to several people is still unclaimed.
+  final String? assigneeId;
   final String assigneeName;
   final String titleEn;
   final String titleAr;
   final String? siteNameEn;
   final String? siteNameAr;
   final DateTime? scheduledDate;
+
+  /// The last day of a multi-day task; null for a one-day task.
+  final DateTime? endDate;
   final String? windowStart; // 'HH:mm:ss', as returned by postgrest for `time`
   final String? windowEnd;
   final String status; // raw column
@@ -50,6 +56,7 @@ class Assignment {
     required this.siteNameEn,
     required this.siteNameAr,
     required this.scheduledDate,
+    this.endDate,
     required this.windowStart,
     required this.windowEnd,
     required this.status,
@@ -90,11 +97,17 @@ class Assignment {
 
   bool get isTerminal => terminalStatuses.contains(effectiveStatus);
 
-  bool get isToday {
+  bool get isToday => isOnDay(DateTime.now());
+
+  /// [now]'s day falls between the first and the last day — one day, unless
+  /// the task runs over several.
+  bool isOnDay(DateTime now) {
     final d = scheduledDate;
     if (d == null) return false;
-    final now = DateTime.now();
-    return d.year == now.year && d.month == now.month && d.day == now.day;
+    final day = DateTime(now.year, now.month, now.day);
+    final end = endDate ?? d;
+    return !day.isBefore(DateTime(d.year, d.month, d.day)) &&
+        !day.isAfter(DateTime(end.year, end.month, end.day));
   }
 
   /// Reads a live `assignments_v` row (no `items` key — the repo attaches
@@ -102,7 +115,7 @@ class Assignment {
   /// through [Assignment.toCacheJson], which embeds them.
   factory Assignment.fromJson(Map<String, dynamic> json) => Assignment(
     id: json['id'] as String,
-    assigneeId: json['inspector_id'] as String,
+    assigneeId: json['inspector_id'] as String?,
     assigneeName: json['inspector_name'] as String? ?? '',
     titleEn: json['title_en'] as String? ?? '',
     titleAr: json['title_ar'] as String? ?? '',
@@ -111,6 +124,9 @@ class Assignment {
     scheduledDate: json['scheduled_date'] == null
         ? null
         : DateTime.parse(json['scheduled_date'] as String),
+    endDate: json['end_date'] == null
+        ? null
+        : DateTime.parse(json['end_date'] as String),
     windowStart: json['window_start'] as String?,
     windowEnd: json['window_end'] as String?,
     status: json['status'] as String? ?? 'pending',
@@ -147,6 +163,7 @@ class Assignment {
     'site_name_en': siteNameEn,
     'site_name_ar': siteNameAr,
     'scheduled_date': scheduledDate?.toIso8601String(),
+    'end_date': endDate?.toIso8601String(),
     'window_start': windowStart,
     'window_end': windowEnd,
     'status': status,
@@ -175,6 +192,7 @@ class Assignment {
     siteNameEn: siteNameEn,
     siteNameAr: siteNameAr,
     scheduledDate: scheduledDate,
+    endDate: endDate,
     windowStart: windowStart,
     windowEnd: windowEnd,
     status: status,

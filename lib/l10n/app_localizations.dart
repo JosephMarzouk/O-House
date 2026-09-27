@@ -116,6 +116,36 @@ abstract class AppLocalizations {
   /// **'Phone number'**
   String get loginPhoneLabel;
 
+  /// No description provided for @loginEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get loginEmailLabel;
+
+  /// No description provided for @loginUseEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with email instead'**
+  String get loginUseEmail;
+
+  /// No description provided for @loginUsePhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with phone number instead'**
+  String get loginUsePhone;
+
+  /// No description provided for @loginLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many wrong passwords. Try again in 15 minutes.'**
+  String get loginLocked;
+
+  /// No description provided for @loginNoAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'This account can\'t use the app. Ask your supervisor.'**
+  String get loginNoAccess;
+
   /// No description provided for @loginPasswordLabel.
   ///
   /// In en, this message translates to:
@@ -137,7 +167,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginError.
   ///
   /// In en, this message translates to:
-  /// **'Incorrect phone number or password.'**
+  /// **'Incorrect sign-in details or password.'**
   String get loginError;
 
   /// No description provided for @loginConnectionError.
@@ -661,6 +691,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This round is no longer assigned to you.'**
   String get refusalNotAuthorized;
+
+  /// No description provided for @refusalTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone else assigned to this round started it first, so it is theirs now.'**
+  String get refusalTaken;
+
+  /// No description provided for @itemRecordVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Record a video'**
+  String get itemRecordVideo;
+
+  /// No description provided for @untilDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Until {date}'**
+  String untilDate(String date);
 
   /// No description provided for @refusalMissingPhoto.
   ///

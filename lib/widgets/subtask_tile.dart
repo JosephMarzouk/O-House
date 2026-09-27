@@ -28,6 +28,7 @@ class SubtaskTile extends StatelessWidget {
     required this.photos,
     required this.onAnswer,
     required this.onCamera,
+    this.onVideo,
     this.controller,
   });
 
@@ -55,6 +56,9 @@ class SubtaskTile extends StatelessWidget {
   /// A choice's value, or a field's raw text; null clears the answer.
   final ValueChanged<String?> onAnswer;
   final VoidCallback? onCamera;
+
+  /// Records a short clip, from the camera only. Null hides the button.
+  final VoidCallback? onVideo;
 
   @override
   Widget build(BuildContext context) {
@@ -139,11 +143,25 @@ class SubtaskTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _CameraButton(
-                assignmentId: item.assignmentId,
-                photos: photos,
-                onPressed: locked ? null : onCamera,
-                label: t.itemSheetTakePhoto,
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _CameraButton(
+                    assignmentId: item.assignmentId,
+                    photos: photos,
+                    onPressed: locked ? null : onCamera,
+                    label: t.itemSheetTakePhoto,
+                  ),
+                  // Its own button rather than a choice behind the camera:
+                  // a photo, the common case, stays one tap.
+                  if (onVideo != null) ...[
+                    const SizedBox(height: 8),
+                    _VideoButton(
+                      onPressed: locked ? null : onVideo,
+                      label: t.itemRecordVideo,
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -427,6 +445,43 @@ class _PhotoBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+class _VideoButton extends StatelessWidget {
+  const _VideoButton({required this.onPressed, required this.label});
+  final VoidCallback? onPressed;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: label,
+    child: Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: kRadius,
+        child: Opacity(
+          opacity: onPressed == null ? 0.4 : 1,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: kRadius,
+              border: Border.all(color: const Color(0x52201E1D)), // text @ 32%
+            ),
+            child: const SizedBox(
+              width: 48,
+              height: 48,
+              child: Icon(
+                Icons.videocam_outlined,
+                size: 22,
+                color: Color(0x99201E1D), // text @ 60%
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _CameraButton extends StatelessWidget {

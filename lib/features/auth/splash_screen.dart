@@ -3,16 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/auth_service.dart';
 import '../../data/providers.dart';
 import '../../models/profile.dart';
-import '../../supabase.dart';
 import '../../theme.dart';
 import '../../widgets/brand_panel.dart';
 import '../locale_provider.dart';
 
-/// Restores the session (supabase_flutter does this from local storage during
-/// initialize), loads the profile, applies the saved locale, then routes by
-/// must_change_password (§6, screen 1).
+/// The session is already restored (main() loads it from secure storage);
+/// this loads the profile, applies the saved locale, then routes (§6,
+/// screen 1).
 ///
 /// Signed out, this hands off to `/login`, which opens with its ink panel at
 /// full height — the same pixels this screen ends on — and drags it up into
@@ -37,7 +37,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // hold is unconditional.
     final hold = Future<void>.delayed(const Duration(seconds: 2));
 
-    if (supabase.auth.currentSession == null) {
+    if (!authService.signedIn) {
       await hold;
       if (mounted) context.go('/login');
       return;

@@ -6,10 +6,10 @@ import 'package:o_house/features/auth/login_screen.dart';
 import 'package:o_house/features/splash_handoff.dart';
 import 'package:o_house/l10n/app_localizations.dart';
 
-/// The three things on this screen that break silently: the empty-field guard
-/// (its whole job is to not reach the network), the password reveal, and the
-/// phone row's direction under Arabic. Everything past the guard needs a live
-/// Supabase client, so it stays a manual check (see the plan's verification).
+/// The things on this screen that break silently: the empty-field guard
+/// (its whole job is to not reach the network), the password reveal, the
+/// phone row's direction under Arabic, and the switch to an email sign-in.
+/// A real sign-in needs the API, so it stays a manual check.
 ///
 /// Pumped at the design's 410x864 phone size — the default 800x600 test
 /// surface is shorter than the form, so controls fall outside the scroll
@@ -50,8 +50,8 @@ void main() {
   ) async {
     await _pumpLogin(tester, const Locale('en'));
 
-    // Reaching Supabase here would throw (it is never initialized in tests),
-    // so a clean pump is itself the proof that nothing was sent.
+    // The guard answers before any request: the message is its own, not the
+    // connection error a request in a test would end in.
     await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pumpAndSettle();
 
@@ -94,6 +94,22 @@ void main() {
     );
   });
 
+  testWidgets('an email sign-in drops the +20 row and the 10-digit cap', (
+    tester,
+  ) async {
+    await _pumpLogin(tester, const Locale('en'));
+    expect(find.text('+20'), findsOneWidget);
+
+    await tester.tap(find.text('Sign in with email instead'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('+20'), findsNothing);
+    final field = tester.widget<TextField>(find.byType(TextField).first);
+    expect(field.maxLength, isNull);
+    expect(field.keyboardType, TextInputType.emailAddress);
+    expect(find.text('Sign in with phone number instead'), findsOneWidget);
+  });
+
   testWidgets(
     'the Sign in button survives a keyboard tall enough to crush the old layout',
     (tester) async {
@@ -124,12 +140,10 @@ void main() {
     (tester) async {
       await _pumpLogin(tester, const Locale('en'));
 
-      // Past the empty-field guard, so this reaches the sign-in call — and
-      // Supabase isn't initialized in tests, so it throws something that is
-      // never an AuthException. That's exactly the "no signal" case the red
-      // border must NOT fire for; only a genuine credential rejection does
-      // (see _submit's `on AuthException` branch, which is what sets
-      // _invalidCredentials — untestable here without a fake Supabase client).
+      // Past the empty-field guard, so this reaches the sign-in call — and a
+      // test has no API, so it ends as no answer at all. That's exactly the
+      // "no signal" case the red border must NOT fire for; only the API
+      // rejecting the password (401) does.
       await tester.enterText(find.byType(TextField).first, '1004427318');
       await tester.enterText(find.byType(TextField).at(1), 'whatever12345');
       await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));

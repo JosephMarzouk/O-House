@@ -240,6 +240,25 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     }
   }
 
+  /// A short clip as evidence. Camera only, like photos — never the gallery.
+  /// image_picker cannot compress video, so the length is what keeps it
+  /// under the upload limit (50 MB, API and bucket).
+  Future<void> _recordVideo(AssignmentItem item) async {
+    final picked = await ImagePicker().pickVideo(
+      source: ImageSource.camera,
+      maxDuration: const Duration(seconds: 30),
+    );
+    final repo = ref.read(assignmentsRepoProvider);
+    if (picked == null || repo == null) return;
+    try {
+      final path = await repo.photoPath(await repo.keepPhoto(picked.path, ext: 'mp4'));
+      setState(() => _newPhotos.putIfAbsent(item.id, () => []).add(path));
+      _persist();
+    } catch (e) {
+      if (mounted) showErrorSnack(context, 'Could not keep this video: $e');
+    }
+  }
+
   Future<void> _submit() async {
     setState(() => _submitting = true);
     final repo = ref.read(assignmentsRepoProvider)!;
@@ -334,6 +353,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                     controller: typed ? _controllerFor(item) : null,
                     onAnswer: (raw) => _stage(item, raw),
                     onCamera: () => _takePhoto(item),
+                    onVideo: () => _recordVideo(item),
                   );
                 },
               ),

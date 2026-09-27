@@ -11,11 +11,13 @@ import '../../models/assignment.dart';
 import '../../models/assignment_item.dart';
 import '../../theme.dart';
 import '../../widgets/app_header.dart';
+import '../../widgets/evidence_video.dart';
 import '../../widgets/photo_thumb.dart';
 import '../../widgets/status_chip.dart';
 
 /// §6, screen 10 — artboard 1i. What was submitted, exactly as it was sent:
-/// no checkboxes, no camera, no submit bar, nothing tappable in the body.
+/// no checkboxes, no camera, no submit bar, nothing tappable in the body but
+/// a video clip, which plays.
 ///
 /// The read-only signal is the tick itself — a bare check glyph rather than a
 /// filled checkbox, so there is nothing on screen that looks like it toggles.
@@ -177,7 +179,25 @@ class _ItemRow extends StatelessWidget {
           ),
           for (final path in item.photoPaths) ...[
             const SizedBox(width: 8),
-            PhotoThumb(assignmentId: item.assignmentId, path: path, size: 42),
+            if (isVideoPath(path))
+              // A clip plays full screen; a photo is its own thumbnail.
+              Consumer(
+                builder: (context, ref, _) => InkWell(
+                  onTap: () => openEvidenceVideo(
+                    context,
+                    ref,
+                    assignmentId: item.assignmentId,
+                    path: path,
+                  ),
+                  child: PhotoThumb(
+                    assignmentId: item.assignmentId,
+                    path: path,
+                    size: 44,
+                  ),
+                ),
+              )
+            else
+              PhotoThumb(assignmentId: item.assignmentId, path: path, size: 42),
           ],
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:o_house/features/assignments/detail_screen.dart';
 import 'package:o_house/features/assignments/list_screen.dart';
 import 'package:o_house/models/assignment.dart';
 import 'package:o_house/models/assignment_item.dart';
+import 'package:o_house/widgets/evidence_video.dart';
 
 /// The two rules on these screens that can be wrong without looking wrong.
 ///
@@ -44,6 +45,7 @@ AssignmentItem _item(
 
 Assignment _a({
   DateTime? scheduledDate,
+  DateTime? endDate,
   String status = 'pending',
   String titleEn = 'Morning round',
   String titleAr = 'الجولة الصباحية',
@@ -59,6 +61,7 @@ Assignment _a({
   siteNameEn: siteNameEn,
   siteNameAr: siteNameAr,
   scheduledDate: scheduledDate,
+  endDate: endDate,
   windowStart: '07:00:00',
   windowEnd: '11:00:00',
   status: status,
@@ -98,6 +101,42 @@ void main() {
       // outstanding ones — it answers "what did my day look like".
       final submitted = _a(scheduledDate: DateTime(2026, 9, 3));
       expect(tabFor(submitted, now), TaskTab.today);
+    });
+
+    test('a multi-day task is in Today on each of its days', () {
+      // 1–5 Sep, seen on the 3rd: neither History (it started) nor Upcoming.
+      final spans = _a(
+        scheduledDate: DateTime(2026, 9, 1),
+        endDate: DateTime(2026, 9, 5),
+      );
+      expect(tabFor(spans, now), TaskTab.today);
+      expect(spans.isOnDay(now), isTrue);
+      expect(spans.isOnDay(DateTime(2026, 9, 5, 23)), isTrue);
+      expect(spans.isOnDay(DateTime(2026, 9, 6)), isFalse);
+      expect(spans.isOnDay(DateTime(2026, 8, 31)), isFalse);
+      // Ended yesterday → History; starts tomorrow → Upcoming.
+      expect(
+        tabFor(
+          _a(scheduledDate: DateTime(2026, 8, 30), endDate: DateTime(2026, 9, 2)),
+          now,
+        ),
+        TaskTab.history,
+      );
+      expect(
+        tabFor(
+          _a(scheduledDate: DateTime(2026, 9, 4), endDate: DateTime(2026, 9, 6)),
+          now,
+        ),
+        TaskTab.upcoming,
+      );
+    });
+
+    test('a clip is told apart from a photo by its extension', () {
+      expect(isVideoPath('/data/evidence/abc.mp4'), isTrue);
+      expect(isVideoPath('photos/a/i-p.MP4'), isTrue);
+      expect(isVideoPath('https://x.supabase.co/sign/photos/a/i-p.mp4?token=t'), isTrue);
+      expect(isVideoPath('photos/a/i-p.jpg'), isFalse);
+      expect(isVideoPath('signatures/a-s.png'), isFalse);
     });
 
     test('an assignment with no date is never dropped', () {

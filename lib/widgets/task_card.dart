@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
 import '../l10n/localized_text.dart';
 import '../models/assignment.dart';
 import '../theme.dart';
@@ -107,6 +109,30 @@ class TaskCard extends StatelessWidget {
                         const SizedBox(width: 5),
                         Text(window, style: meta),
                       ],
+                    ],
+                  ),
+                ],
+                // A multi-day task: the window is each day's, so say when
+                // the task itself ends.
+                if (a.endDate != null) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.event_outlined,
+                        size: 17,
+                        color: Color(0x99201E1D),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        AppLocalizations.of(context)!.untilDate(
+                          DateFormat(
+                            'EEE d MMM',
+                            Localizations.localeOf(context).toString(),
+                          ).format(a.endDate!),
+                        ),
+                        style: meta,
+                      ),
                     ],
                   ),
                 ],

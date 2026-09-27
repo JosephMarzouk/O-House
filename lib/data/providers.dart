@@ -7,24 +7,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/assignment.dart';
 import '../models/profile.dart';
-import '../supabase.dart';
 import '../tenant.dart';
 import 'api_client.dart';
+import 'auth_service.dart';
 import 'assignments_repo.dart';
 import 'local_db.dart';
 import 'sync.dart';
 
-/// Emits on every sign-in/sign-out so the router and everything user-scoped
-/// can react.
-final authStateProvider = StreamProvider<AuthState>(
-  (ref) => supabase.auth.onAuthStateChange,
-);
+/// Notifies on every sign-in/sign-out so the router and everything
+/// user-scoped can react.
+final authStateProvider = ChangeNotifierProvider<AuthService>((ref) => authService);
 
 /// The signed-in user, or null. Everything cached or queued is keyed by it.
-final userIdProvider = Provider<String?>((ref) {
-  ref.watch(authStateProvider);
-  return supabase.auth.currentUser?.id;
-});
+final userIdProvider = Provider<String?>((ref) => ref.watch(authStateProvider).userId);
 
 final localDbProvider = Provider((ref) => LocalDb.instance);
 
@@ -32,9 +27,8 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(
     baseUrl: apiBaseUrl,
     club: tenant.clubSlug,
-    token: () => supabase.auth.currentSession?.accessToken,
-    refreshSession: () async =>
-        (await supabase.auth.refreshSession()).session != null,
+    token: () => authService.accessToken,
+    refreshSession: authService.refresh,
   );
 });
 
@@ -165,11 +159,11 @@ final currentProfileProvider = FutureProvider<Profile?>((ref) async {
   return ref.watch(profileFetchProvider.future);
 });
 
-/// The API never returns phone (admin-only); the sign-in identity has it.
+/// The API never returns phone (admin-only); the sign-in remembers it.
 Profile _withPhone(Profile p) => Profile(
   id: p.id,
   name: p.name,
-  phone: syntheticEmailToPhone(supabase.auth.currentUser?.email),
+  phone: authService.phone,
   role: p.role,
   locale: p.locale,
   active: p.active,

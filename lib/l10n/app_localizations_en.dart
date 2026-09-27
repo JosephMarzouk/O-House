@@ -19,6 +19,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginPhoneLabel => 'Phone number';
 
   @override
+  String get loginEmailLabel => 'Email';
+
+  @override
+  String get loginUseEmail => 'Sign in with email instead';
+
+  @override
+  String get loginUsePhone => 'Sign in with phone number instead';
+
+  @override
+  String get loginLocked =>
+      'Too many wrong passwords. Try again in 15 minutes.';
+
+  @override
+  String get loginNoAccess =>
+      'This account can\'t use the app. Ask your supervisor.';
+
+  @override
   String get loginPasswordLabel => 'Password';
 
   @override
@@ -28,7 +45,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginForgotPassword => 'Forgotten password? Ask your supervisor.';
 
   @override
-  String get loginError => 'Incorrect phone number or password.';
+  String get loginError => 'Incorrect sign-in details or password.';
 
   @override
   String get loginConnectionError =>
@@ -371,6 +388,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refusalNotAuthorized => 'This round is no longer assigned to you.';
+
+  @override
+  String get refusalTaken =>
+      'Someone else assigned to this round started it first, so it is theirs now.';
+
+  @override
+  String get itemRecordVideo => 'Record a video';
+
+  @override
+  String untilDate(String date) {
+    return 'Until $date';
+  }
 
   @override
   String get refusalMissingPhoto => 'An answered place still needs its photo.';

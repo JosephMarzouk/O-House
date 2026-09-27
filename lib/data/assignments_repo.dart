@@ -173,16 +173,22 @@ class AssignmentsRepo {
 
   /// Copies a camera capture into the evidence folder under a new photo id,
   /// fixed here at capture so every retry of its upload writes the same
-  /// object (SY-3). Compression already happened in the picker.
-  Future<String> keepPhoto(String capturedPath) async {
+  /// object (SY-3). Compression already happened in the picker. A video clip
+  /// keeps its own extension, `mp4`; that extension is the only thing that
+  /// marks it as video on this side (the API reads the file's bytes).
+  Future<String> keepPhoto(String capturedPath, {String ext = 'jpg'}) async {
     final id = _uuid.v4();
-    await File(capturedPath).copy(p.join((await evidence()).path, '$id.jpg'));
+    await File(capturedPath).copy(p.join((await evidence()).path, '$id.$ext'));
     return id;
   }
 
-  /// A staged photo's file, for display before it is sent.
-  Future<String> photoPath(String photoId) async =>
-      p.join((await evidence()).path, '$photoId.jpg');
+  /// A staged photo's or clip's file, for display before it is sent. Drafts
+  /// and queued ops hold the id alone, so the extension is found on disk.
+  Future<String> photoPath(String photoId) async {
+    final dir = (await evidence()).path;
+    final video = p.join(dir, '$photoId.mp4');
+    return File(video).existsSync() ? video : p.join(dir, '$photoId.jpg');
+  }
 
   // ---- writes: enqueue only --------------------------------------------------
 
@@ -198,7 +204,11 @@ class AssignmentsRepo {
           userId: userId,
           assignmentId: assignmentId,
           op: 'photo',
-          payload: {'itemId': itemId, 'photoId': photoId, 'file': '$photoId.jpg'},
+          payload: {
+            'itemId': itemId,
+            'photoId': photoId,
+            'file': p.basename(await photoPath(photoId)),
+          },
         );
       }
       final answer = d.answers[itemId];

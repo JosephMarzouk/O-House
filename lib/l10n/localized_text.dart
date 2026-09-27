@@ -34,7 +34,11 @@ String assignmentSubtitle(BuildContext context, Assignment a) {
     pickLocalized(context, a.roundTitleAr, a.roundTitleEn),
     pickLocalized(context, a.siteNameAr, a.siteNameEn),
     if (a.scheduledDate != null)
-      DateFormat('EEE d MMM', locale).format(a.scheduledDate!),
+      a.endDate == null
+          ? DateFormat('EEE d MMM', locale).format(a.scheduledDate!)
+          // A multi-day task: "Wed 23 Sep – Fri 25 Sep".
+          : '${DateFormat('EEE d MMM', locale).format(a.scheduledDate!)}'
+                ' – ${DateFormat('EEE d MMM', locale).format(a.endDate!)}',
     ?formatWindow(a.windowStart, a.windowEnd),
   ].where((s) => s.isNotEmpty).join(' · ');
 }

@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/auth_service.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/localized_text.dart';
-import '../../supabase.dart';
 import '../../tenant.dart';
 import '../../theme.dart';
 import '../../widgets/app_header.dart';
@@ -163,8 +163,7 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     );
     if (ok != true) return;
   }
-  await supabase.auth.signOut();
-  ref.invalidate(userIdProvider);
+  await authService.signOut();
 }
 
 class _SectionLabel extends StatelessWidget {

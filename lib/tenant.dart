@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-/// Every club has its own app — its own package name, name, icon, colours,
-/// logo and Supabase project — built from this one codebase. The same tenant
+/// Every club has its own app — its own package name, name, icon, colours
+/// and logo, backed by its own Supabase project behind the API — built from
+/// this one codebase. The same tenant
 /// method as the members' app: an Android flavor per club for the native
 /// identity, and a [TenantConfig] entry here for everything Dart needs.
 ///
@@ -13,8 +14,9 @@ import 'package:flutter/services.dart';
 /// conventions and must match; nothing ever silently defaults to a club.
 enum Tenant { owest }
 
-/// Only public values. The Supabase secret key and the gateway key live in the
-/// O House API alone (its CLUBS registry), never in an app.
+/// Only public values. The app never talks to Supabase: sign-in and every
+/// read and write go through the O House API, which holds each club's
+/// Supabase URL and keys (its CLUBS registry). Nothing of Supabase ships here.
 class TenantConfig {
   const TenantConfig({
     required this.clubSlug,
@@ -22,8 +24,6 @@ class TenantConfig {
     required this.appNameAr,
     required this.clubNameEn,
     required this.clubNameAr,
-    required this.supabaseUrl,
-    required this.publishableKey,
     required this.ink,
     required this.accent,
     required this.accentDark,
@@ -37,8 +37,6 @@ class TenantConfig {
   final String appNameAr;
   final String clubNameEn;
   final String clubNameAr;
-  final String supabaseUrl;
-  final String publishableKey;
 
   /// Brand colours: the header ink and the accent family. Magenta (alarms)
   /// and the neutrals are shared by every club (theme.dart).
@@ -62,8 +60,6 @@ const tenantConfigs = {
     appNameAr: 'او هاوس',
     clubNameEn: 'O West Sports Club',
     clubNameAr: 'نادي أو ويست الرياضي',
-    supabaseUrl: 'https://ptonujazlljpkgpfrkpw.supabase.co',
-    publishableKey: 'sb_publishable_E70Ct7lHtLhCUl6v4WBvpg_7MBIH66P',
     ink: Color(0xFF0E213F),
     accent: Color(0xFF0088B0),
     accentDark: Color(0xFF006786),

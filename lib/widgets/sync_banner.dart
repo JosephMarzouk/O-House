@@ -69,6 +69,7 @@ String refusalReason(AppLocalizations t, String code) => switch (code) {
   'ASSIGNMENT_CLOSED' => t.refusalClosed,
   'ASSIGNMENT_NOT_FOUND' || 'ITEM_NOT_FOUND' => t.refusalNotFound,
   'NOT_AUTHORIZED' => t.refusalNotAuthorized,
+  'ASSIGNMENT_TAKEN' => t.refusalTaken,
   'MISSING_PHOTO' => t.refusalMissingPhoto,
   'EMPTY_SUBMISSION' => t.refusalEmpty,
   'MISSING_FILE' => t.refusalMissingFile,

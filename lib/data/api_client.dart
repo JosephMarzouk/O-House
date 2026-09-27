@@ -74,6 +74,10 @@ class ApiClient {
 
   static const _timeout = Duration(seconds: 60);
 
+  /// An upload can be a video clip of up to 50 MB; on a weak connection that
+  /// takes minutes, and a timeout would only make it start over.
+  static const _uploadTimeout = Duration(minutes: 5);
+
   Future<Object?> get(String path) =>
       _send(() async => http.Request('GET', _uri(path)));
 
@@ -93,7 +97,7 @@ class ApiClient {
     final r = http.MultipartRequest('POST', _uri(path))..fields.addAll(fields);
     r.files.add(await http.MultipartFile.fromPath('file', file.path));
     return r;
-  }, key: key);
+  }, key: key, timeout: _uploadTimeout);
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
 
@@ -108,6 +112,7 @@ class ApiClient {
   Future<Object?> _send(
     Future<http.BaseRequest> Function() build, {
     String? key,
+    Duration timeout = _timeout,
   }) async {
     for (var attempt = 0; ; attempt++) {
       final req = await build();
@@ -119,9 +124,9 @@ class ApiClient {
       int status;
       String body;
       try {
-        final res = await _http.send(req).timeout(_timeout);
+        final res = await _http.send(req).timeout(timeout);
         status = res.statusCode;
-        body = await res.stream.bytesToString().timeout(_timeout);
+        body = await res.stream.bytesToString().timeout(timeout);
       } on Exception catch (e) {
         // SocketException, TimeoutException, ClientException, a dropped
         // body: no answer. The op may or may not have landed, which is why

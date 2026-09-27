@@ -31,10 +31,14 @@ TaskTab tabFor(Assignment a, DateTime now) {
   if (a.effectiveStatus == 'follow_up') return TaskTab.today;
   final d = a.scheduledDate;
   if (d == null) return TaskTab.today;
-  final day = DateTime(d.year, d.month, d.day);
+  // A multi-day task is Today on every one of its days, from the first
+  // through the last.
+  final e = a.endDate ?? d;
+  final first = DateTime(d.year, d.month, d.day);
+  final last = DateTime(e.year, e.month, e.day);
   final today = DateTime(now.year, now.month, now.day);
-  if (day.isAfter(today)) return TaskTab.upcoming;
-  if (day.isBefore(today)) return TaskTab.history;
+  if (first.isAfter(today)) return TaskTab.upcoming;
+  if (last.isBefore(today)) return TaskTab.history;
   return TaskTab.today;
 }
 

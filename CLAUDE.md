@@ -119,14 +119,15 @@ Still open: **4** (the app id is an open product decision) and **5**.
    network while debug keeps working. Declare it explicitly.
 8. **iOS has no `NSCameraUsageDescription`** in `ios/Runner/Info.plist` while
    `detail_screen.dart` calls `ImagePicker(source: camera)`. The OS kills the
-   app on the first photo. Ship blocker on iOS.
+   app on the first photo. Ship blocker on iOS. Video recording also needs
+   `NSMicrophoneUsageDescription`.
 
 ---
 
 ## 3. Architecture
 
 ```
-main.dart → initSupabase() → ProviderScope → OHouseApp (app.dart)
+main.dart → authService.load() → ProviderScope → OHouseApp (app.dart)
                                                   ↓
                                        MaterialApp.router + buildTheme()
                                                   ↓
@@ -136,8 +137,19 @@ main.dart → initSupabase() → ProviderScope → OHouseApp (app.dart)
 - **State**: Riverpod. All providers live in `lib/data/providers.dart`.
 - **Since Step 3 the app never reaches the database or Storage.** Every read
   and write is HTTPS to the O House API (`data/api_client.dart`, `X-Club` on
-  every call). `supabase_flutter` is for sign-in only, initialized with this
-  build's club (`tenant.dart`).
+  every call).
+- **Sign-in is the API's too (since 27 Sep); the app has no Supabase at all.**
+  `data/auth_service.dart` (`authService`, a `ChangeNotifier`) calls
+  `POST /auth/login` / `refresh` / `logout` and keeps the two tokens in
+  `flutter_secure_storage`. Parallel refreshes share one call; a network
+  failure never signs anyone out (the refresh token lasts 30 days, the outbox
+  waits). The router listens to it (`refreshListenable`).
+- **Several assignees.** A round can be assigned to several people; it shows up
+  for all of them until the first one acts (answer, photo or submit) and claims
+  it. After that the others' refresh drops it, and an offline write from them
+  is parked with "Already taken by …" (`ASSIGNMENT_TAKEN`). A round can also
+  run over several days (`endDate`): it stays in Today until its end date.
+- **Evidence is photos or camera video** (30 s max, MP4), never the gallery.
 - **The one seam**: `AssignmentsRepo`. No screen touches the API directly
   (Profile's locale is the exception).
 - **No password screen.** Staff never change their password in the app
@@ -195,11 +207,10 @@ does not cut — it *shrinks* into the next screen's header.
 
 | File | Purpose |
 |---|---|
-| `lib/main.dart` | Boot: portrait lock, `initSupabase()` with the tenant's project, `ProviderScope` |
-| `lib/tenant.dart` | **Clubs.** `enum Tenant`, `TenantConfig` (API slug, names, Supabase URL + publishable key, brand colours, logo), tenant from `appFlavor` checked against `TENANT_NAME`, `apiBaseUrl` from `ENVIRONMENT` |
+| `lib/main.dart` | Boot: portrait lock, `authService.load()` (tokens from secure storage), `ProviderScope` |
+| `lib/tenant.dart` | **Clubs.** `enum Tenant`, `TenantConfig` (API slug, names, brand colours, logo; no Supabase URL or key), tenant from `appFlavor` checked against `TENANT_NAME`, `apiBaseUrl` from `ENVIRONMENT` |
 | `lib/app.dart` | `MaterialApp.router`, theme, locale, l10n delegates |
-| `lib/router.dart` | All routes + auth redirect + `GoRouterRefreshStream` |
-| `lib/supabase.dart` | Client init, re-exports `supabase_flutter`, `phoneToSyntheticEmail()` |
+| `lib/router.dart` | All routes + auth redirect (`refreshListenable: authService`) |
 | `lib/theme.dart` | `AppColors`, radii, shadows, `buildTheme()` |
 | `lib/main_dev_preview.dart` | Throwaway screen-preview entrypoint |
 
@@ -208,6 +219,7 @@ does not cut — it *shrinks* into the next screen's header.
 | File | Purpose |
 |---|---|
 | `lib/data/providers.dart` | Every Riverpod provider |
+| `lib/data/auth_service.dart` | `AuthService`: sign-in (phone or email), shared refresh, sign-out, tokens in secure storage; `normalizePhone` |
 | `lib/data/assignments_repo.dart` | **The seam.** Reads/refresh/writes + demo-mode branch. Refresh fetches the last 7 days plus anything in `follow_up`, items in chunks of 50 rounds |
 | `lib/data/api_client.dart` | The only way to the data: `X-Club`, bearer, `Idempotency-Key`, one 401 refresh, the refusal contract (`ApiRefused` / `ApiUnavailable`) |
 | `lib/data/local_db.dart` | sqflite v2: `rounds`, `profiles`, `outbox`, `drafts`, `settings`, all keyed by user |
@@ -222,7 +234,7 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 
 | File | Purpose |
 |---|---|
-| `lib/models/assignment.dart` | Mirrors `assignments_v`. `doneCount`, `canSubmit`, `isReadOnly`, `isTerminal`, `isToday`, `roundTitleEn/Ar` |
+| `lib/models/assignment.dart` | Mirrors `assignments_v`. `doneCount`, `canSubmit`, `isReadOnly`, `isTerminal`, `isToday`, `isOnDay` (start to `endDate`), `roundTitleEn/Ar`; `assigneeId` (the owner) is null until someone claims it |
 | `lib/models/assignment_item.dart` | Mirrors `assignment_items`. `isSatisfied`, `isFollowUp`, `answer`, `correct`, `flaggedAnswer/At` |
 | `lib/models/profile.dart` | Mirrors `profiles` |
 
@@ -231,7 +243,7 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 | File | Purpose |
 |---|---|
 | `features/auth/splash_screen.dart` | Restores session, loads profile, applies locale, routes |
-| `features/auth/login_screen.dart` | Phone + password. Ink header, language toggle, RTL-safe phone row |
+| `features/auth/login_screen.dart` | Phone (or, via the switch, email) + password. Ink header, language toggle, RTL-safe phone row, locked / no-access messages |
 | `features/splash_handoff.dart` | The hand-off mixin + shared flags/durations |
 | `features/locale_provider.dart` | `localeProvider`, persisted to the `settings` table |
 | `features/home/home_screen.dart` | Stat tiles, today's round summary, Next up, pull-to-refresh |
@@ -255,12 +267,14 @@ done/total arithmetic; `fillFor(status)`) · `subtask_tile.dart` (the answer
 control per item type — Yes/No or Pass/Fail pair, number field forced LTR,
 text field — and the follow-up note; the tile body no longer toggles) ·
 `photo_thumb.dart` (a queued file from disk, a stored path through the signed
-link `GET /assignments/:id` returns) · `sync_banner.dart` (offline / sending /
-needs attention, and the Retry / Dismiss sheet).
+link `GET /assignments/:id` returns; a clip shows as a play tile) ·
+`evidence_video.dart` (`isVideoPath`, `VideoTile`, full-screen player with
+`video_player`) · `sync_banner.dart` (offline / sending / needs attention, and
+the Retry / Dismiss sheet).
 
 ### Localization (`lib/l10n/`)
 
-91 keys in `app_en.arb` / `app_ar.arb`, both complete (`untranslated.txt` is
+116 keys in `app_en.arb` / `app_ar.arb`, both complete (`untranslated.txt` is
 `{}`). `app_localizations*.dart` are **generated** — edit the `.arb` files and
 run `flutter gen-l10n`. `localized_text.dart` is hand-written:
 `pickLocalized()` (EN/AR column pair with fallback), `formatWindow()`,
@@ -290,7 +304,8 @@ Migrations live in two repos now: this one up to 0006, `o-house-admin` from
 ### Vocabulary trap
 
 The table is `submissions`, not `assignments`, and `inspector_id` means "the
-person assigned". Both names were kept so the live admin dashboard's queries
+owner" (the assignee who claimed it; NULL until then — the full list is
+`assignee_ids`). Both names were kept so the live admin dashboard's queries
 don't 404. `submissions.answers` is **deprecated** (kept for 4 legacy rows) —
 live checklist state is in `assignment_items`.
 
@@ -345,21 +360,20 @@ call, not executable by clients.
 - Rollout order matters: an app older than this one sends no answer, so any
   item with a rule would flag. Set correct answers only once staff update.
 
-### Auth quirk
+### Sign-in
 
-The project's Phone provider is **not enabled** (no SMS provider). Staff sign
-in with a phone number that maps to a disguised email —
-`phoneToSyntheticEmail()` in `lib/supabase.dart` → `20XXXXXXXXX@ohouse.internal`
-(`.internal` is IETF-reserved). The UI never says "email". If real phone auth
-is ever switched on, only that function and its one call site change.
+Since 27 Sep the API owns sign-in (`user_logins`, `refresh_tokens`); Supabase
+Auth is no longer used. A login is a phone number (10 digits → `+20…`) or an
+email. The old `20XXXXXXXXX@ohouse.internal` accounts were copied over as
+phone logins with their password hashes, so nobody had to reset a password.
 
 ### Storage
 
 One bucket, `checklist-media` (going private at plan Step 4). Since Step 3 the
 app never touches Storage: it sends the file to the API, which stores it at
-`photos/{assignment_id}/{item_id}-{photoId}.jpg` or
-`signatures/{assignment_id}-{signatureId}.png`, from ids fixed at capture, so a
-replay writes the same object.
+`photos/{assignment_id}/{item_id}-{photoId}.jpg` (`.mp4` for a video, ≤ 50 MB)
+or `signatures/{assignment_id}-{signatureId}.png`, from ids fixed at capture,
+so a replay writes the same object.
 
 ---
 

@@ -1,8 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'data/auth_service.dart';
 import 'features/assignments/detail_screen.dart';
 import 'features/assignments/history_detail_screen.dart';
 import 'features/assignments/list_screen.dart';
@@ -12,13 +11,12 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/splash_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/profile/profile_screen.dart';
-import 'supabase.dart';
 import 'theme.dart';
 import 'widgets/app_nav_bar.dart';
 
 final router = GoRouter(
   initialLocation: '/splash',
-  refreshListenable: GoRouterRefreshStream(supabase.auth.onAuthStateChange),
+  refreshListenable: authService,
   redirect: (context, state) {
     final loc = state.matchedLocation;
     // Splash owns the cold-boot routing decision, and login now owns the
@@ -27,8 +25,7 @@ final router = GoRouter(
     // racing it. Neither gets bounced by this rule.
     if (loc == '/splash' || loc == '/login') return null;
 
-    final loggedIn = supabase.auth.currentSession != null;
-    return loggedIn ? null : '/login';
+    return authService.signedIn ? null : '/login';
   },
   routes: [
     GoRoute(path: '/splash', builder: (c, s) => const SplashScreen()),
@@ -104,19 +101,3 @@ final router = GoRouter(
     ),
   ],
 );
-
-/// Bridges Supabase's auth stream to go_router's Listenable-based refresh —
-/// the standard small adapter, not worth a package for ~10 lines.
-class GoRouterRefreshStream extends ChangeNotifier {
-  GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
-    _sub = stream.listen((_) => notifyListeners());
-  }
-  late final StreamSubscription<dynamic> _sub;
-
-  @override
-  void dispose() {
-    _sub.cancel();
-    super.dispose();
-  }
-}

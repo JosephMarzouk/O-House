@@ -27,8 +27,8 @@ void main() {
     for (final t in Tenant.values) {
       final c = tenantConfigs[t]!;
       expect(c.clubSlug, isNotEmpty);
-      expect(c.supabaseUrl, startsWith('https://'));
-      expect(c.publishableKey, startsWith('sb_publishable_'));
+      expect(c.appNameEn, isNotEmpty);
+      expect(c.appNameAr, isNotEmpty);
       expect(c.logo, 'assets/tenants/${t.name}/logo.png');
     }
   });

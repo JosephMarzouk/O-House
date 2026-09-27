@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
-import 'supabase.dart';
+import 'data/auth_service.dart';
 import 'tenant.dart';
 
 Future<void> main() async {
@@ -17,9 +17,10 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  // This build's club (its flavor): its own Supabase project. Reading
-  // `tenant` here is also what fails a build with a missing or wrong flavor at
-  // startup rather than somewhere later.
-  await initSupabase(tenant.supabaseUrl, tenant.publishableKey);
+  // This build's club (its flavor). Reading `tenant` here is what fails a
+  // build with a missing or wrong flavor at startup rather than somewhere
+  // later — and the saved sign-in is per club, so it is read after.
+  debugPrint('Club: ${tenant.clubSlug}');
+  await authService.load();
   runApp(const ProviderScope(child: OHouseApp()));
 }

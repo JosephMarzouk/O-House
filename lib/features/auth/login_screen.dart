@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/auth_service.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/profile.dart';
-import '../../supabase.dart';
 import '../../tenant.dart';
 import '../../theme.dart';
 import '../../widgets/brand_panel.dart';
@@ -40,6 +40,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   bool _obscure = true;
   String? _error;
 
+  /// Staff sign in with their phone number; an account made with an email
+  /// signs in with that instead. One field, switched by the link under it,
+  /// so the phone case keeps its +20 row and number keyboard.
+  bool _useEmail = false;
+
   /// Reddens both field borders specifically for a rejected phone/password
   /// pair — not for the empty-field guard or a dropped connection, since
   /// those aren't "your credentials are wrong."
@@ -55,8 +60,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _submit(AppLocalizations t) async {
-    final phone = _phone.text.replaceAll(RegExp(r'\s'), '');
-    if (phone.isEmpty || _password.text.isEmpty) {
+    final typed = _useEmail
+        ? _phone.text.trim()
+        : _phone.text.replaceAll(RegExp(r'\s'), '');
+    if (typed.isEmpty || _password.text.isEmpty) {
       setState(() => _error = t.loginMissingFields);
       return;
     }
@@ -66,32 +73,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       _invalidCredentials = false;
     });
 
-    try {
-      await supabase.auth.signInWithPassword(
-        email: phoneToSyntheticEmail('$_dialCode$phone'),
-        password: _password.text,
-      );
-    } on AuthException {
+    // The API tells a phone from an email (an '@'), and never says whether
+    // the account exists — only whether this worked.
+    final failure = await authService.signIn(
+      _useEmail ? typed : '$_dialCode$typed',
+      _password.text,
+    );
+    if (failure != null) {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = t.loginError;
-          _invalidCredentials = true;
-        });
-      }
-      return;
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _error = t.loginConnectionError;
+          _error = switch (failure) {
+            SignInFailure.invalid => t.loginError,
+            SignInFailure.locked => t.loginLocked,
+            SignInFailure.noAccess => t.loginNoAccess,
+            SignInFailure.offline => t.loginConnectionError,
+          };
+          _invalidCredentials = failure == SignInFailure.invalid;
         });
       }
       return;
     }
-    // Read the new user now, not when the auth stream's event arrives: the
-    // repo, cache and outbox are all keyed by it.
-    ref.invalidate(userIdProvider);
     Profile? profile;
     try {
       // Fresh from the server, not the cache: its locale is applied before
@@ -186,15 +188,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 ),
                 const SizedBox(height: 34),
 
-                Text(t.loginPhoneLabel.toUpperCase(), style: kSectionLabel),
+                Text(
+                  (_useEmail ? t.loginEmailLabel : t.loginPhoneLabel)
+                      .toUpperCase(),
+                  style: kSectionLabel,
+                ),
                 const SizedBox(height: 9),
                 Directionality(
                   textDirection: TextDirection.ltr,
                   child: TextField(
-                    maxLength: 10,
+                    // Keyed by mode, so switching gets the right keyboard.
+                    key: ValueKey(_useEmail),
+                    maxLength: _useEmail ? null : 10,
                     controller: _phone,
                     focusNode: _phoneFocus,
-                    keyboardType: TextInputType.phone,
+                    keyboardType: _useEmail
+                        ? TextInputType.emailAddress
+                        : TextInputType.phone,
+                    autocorrect: false,
                     textInputAction: TextInputAction.next,
                     onSubmitted: (_) => _passwordFocus.requestFocus(),
                     onChanged: (_) => _clearCredentialsError(),
@@ -210,26 +221,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         minHeight: kControlHeight,
                         minWidth: 0,
                       ),
-                      prefixIcon: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        margin: const EdgeInsets.only(right: 4),
-                        color: const Color(0x0D201E1D), // ink @ 5%
-                        child: const Center(
-                          widthFactor: 1,
-                          child: Text(
-                            _dialCode,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0x99201E1D), // ink @ 60%
+                      prefixIcon: _useEmail
+                          ? null
+                          : Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                              ),
+                              margin: const EdgeInsets.only(right: 4),
+                              color: const Color(0x0D201E1D), // ink @ 5%
+                              child: const Center(
+                                widthFactor: 1,
+                                child: Text(
+                                  _dialCode,
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0x99201E1D), // ink @ 60%
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: TextButton(
+                    onPressed: () => setState(() {
+                      _useEmail = !_useEmail;
+                      _phone.clear();
+                      _error = null;
+                      _invalidCredentials = false;
+                    }),
+                    child: Text(_useEmail ? t.loginUsePhone : t.loginUseEmail),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
                 Text(t.loginPasswordLabel.toUpperCase(), style: kSectionLabel),
                 const SizedBox(height: 9),
