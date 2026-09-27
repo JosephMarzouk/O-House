@@ -21,8 +21,11 @@ build names one. Dev talks to the API on this computer over USB, so run
 `adb reverse tcp:4000 tcp:4000` once per phone connection (emulator too).
 
 ```bash
-flutter run --flavor owest --dart-define=TENANT_NAME=OWEST --dart-define=ENVIRONMENT=dev
+flutter run
 ```
+
+That is O House in dev (the default flavor and `ENVIRONMENT`); in full,
+`flutter run --flavor owest --dart-define=TENANT_NAME=OWEST --dart-define=ENVIRONMENT=dev`.
 
 ```bash
 flutter build appbundle --flavor owest --dart-define=TENANT_NAME=OWEST --dart-define=ENVIRONMENT=prod
@@ -55,11 +58,10 @@ fake data: `?screen=home|tasks|profile`, `?lang=ar`.
 
 ## 2. Current state — READ THIS FIRST
 
-**Branch `rounds-follow-up-tracker`.** Commit `8f4202a` checkpoints the whole
-Home, Tasks, Task detail, Signature, Success, History and Profile build (and
-the shared `widgets/` extraction and its tests) on top of `1bdfff3` ("Finishing
-- Splash & Login"); `main` still stops at `1bdfff3`. The answers / follow-up /
-zone-round work (migration 0013) sits uncommitted on top of `8f4202a`.
+**`main` is the current build** (27 Sep: `rounds-follow-up-tracker`, which
+carried every screen, the answers / follow-up / zone-round work, Step 3, the
+tenant method, About / Policies and the default flavor, was fast-forwarded
+into it). Work on `main` or branch from it.
 
 Refactored away in `8f4202a`, do not resurrect:
 `lib/features/assignments/item_sheet.dart` → folded into `subtask_tile.dart`;
