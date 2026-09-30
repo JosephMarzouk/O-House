@@ -6,12 +6,13 @@ import '../data/local_db.dart';
 import '../data/providers.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/localized_text.dart';
+import '../tenant.dart';
 import '../theme.dart';
 
 /// SY-5: offline (n waiting, last updated), sending (n of m), needs
-/// attention. Hidden when everything is sent. "Needs attention" wins over
-/// the rest, because it is the one state a person has to act on; a tap opens
-/// the parked list.
+/// attention, can't reach the server. Hidden when everything is sent and the
+/// last fetch worked. "Needs attention" wins over the rest, because it is the
+/// one state a person has to act on; a tap opens the parked list.
 class SyncBanner extends ConsumerWidget {
   const SyncBanner({super.key});
 
@@ -19,6 +20,7 @@ class SyncBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context)!;
     final s = ref.watch(syncStatusProvider);
+    final failed = ref.watch(refreshFailedProvider);
 
     final String text;
     var alarm = false;
@@ -27,6 +29,21 @@ class SyncBanner extends ConsumerWidget {
       alarm = true;
     } else if (s.sending && s.total > 0) {
       text = t.syncSending(s.sent, s.total);
+    } else if (failed) {
+      // The last fetch failed, whatever the outbox holds: with nothing to
+      // send, a phone that could not reach the API once looked online for a
+      // day while showing old tasks. A dev build names the API it tried, so
+      // a missing `adb reverse` is plain to see.
+      final at = ref.watch(refreshedAtProvider).valueOrNull;
+      text = [
+        t.syncServerUnreachable,
+        if (at != null)
+          t.syncLastUpdated(
+            DateFormat.Hm(Localizations.localeOf(context).toString()).format(at),
+          ),
+        if (s.waiting > 0) t.homeOfflineBanner(s.waiting),
+        if (environment == 'dev') Uri.parse(apiBaseUrl).authority,
+      ].join(' · ');
     } else if (s.offline) {
       final at = ref.watch(refreshedAtProvider).valueOrNull;
       text = [

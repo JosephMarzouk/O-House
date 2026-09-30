@@ -776,6 +776,72 @@ abstract class AppLocalizations {
   /// **'{task} will be sent automatically as soon as you\'re online.'**
   String successQueuedBody(String task);
 
+  /// No description provided for @zoneChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking your location…'**
+  String get zoneChecking;
+
+  /// No description provided for @zoneOutside.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re {metres} m from the club. Checklists can only be filled inside the club.'**
+  String zoneOutside(int metres);
+
+  /// No description provided for @zoneMocked.
+  ///
+  /// In en, this message translates to:
+  /// **'A fake-location app is on. Turn it off to fill checklists.'**
+  String get zoneMocked;
+
+  /// No description provided for @zonePermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklists can only be filled inside the club. Allow this app to use your precise location.'**
+  String get zonePermission;
+
+  /// No description provided for @zoneServiceOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is off. Turn it on to fill checklists inside the club.'**
+  String get zoneServiceOff;
+
+  /// No description provided for @zoneUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t find your location. Try again, near a window or outdoors if you can.'**
+  String get zoneUnavailable;
+
+  /// No description provided for @zoneOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get zoneOpenSettings;
+
+  /// No description provided for @zoneTurnOnLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on location'**
+  String get zoneTurnOnLocation;
+
+  /// No description provided for @zoneUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to the internet once to load the club\'s settings.'**
+  String get zoneUnknown;
+
+  /// No description provided for @syncServerUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the server — showing saved tasks'**
+  String get syncServerUnreachable;
+
+  /// No description provided for @syncLastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated {time}'**
+  String syncLastUpdated(String time);
+
   /// No description provided for @commonCancel.
   ///
   /// In en, this message translates to:

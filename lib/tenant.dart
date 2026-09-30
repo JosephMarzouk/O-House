@@ -95,17 +95,20 @@ final Tenant currentTenant =
 
 TenantConfig get tenant => tenantConfigs[currentTenant]!;
 
+/// `dev` or `prod` (the ENVIRONMENT dart-define).
+const environment = String.fromEnvironment('ENVIRONMENT', defaultValue: 'dev');
+
 /// ENVIRONMENT=dev → the API on this computer, reached over USB: run
 /// `adb reverse tcp:4000 tcp:4000` once per connection (a phone or the
-/// emulator alike). prod → the deployed API. API_URL overrides either.
+/// emulator alike; tool/run_dev.ps1 does it). prod → the deployed API.
+/// API_URL overrides either.
 String get apiBaseUrl {
   const override = String.fromEnvironment('API_URL');
   if (override.isNotEmpty) return override;
-  const env = String.fromEnvironment('ENVIRONMENT', defaultValue: 'dev');
-  return switch (env) {
+  return switch (environment) {
     'dev' => 'http://127.0.0.1:4000',
     // TODO(deploy): the Railway API's URL once Step 1 is deployed.
     'prod' => throw StateError('No prod API URL yet: pass --dart-define=API_URL=...'),
-    _ => throw StateError('ENVIRONMENT must be dev or prod, not "$env".'),
+    _ => throw StateError('ENVIRONMENT must be dev or prod, not "$environment".'),
   };
 }

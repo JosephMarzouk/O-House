@@ -454,6 +454,48 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get zoneChecking => 'جارٍ التحقق من موقعك…';
+
+  @override
+  String zoneOutside(int metres) {
+    return 'أنت على بُعد $metres متر من النادي. لا يمكن تعبئة قوائم التحقق إلا داخل النادي.';
+  }
+
+  @override
+  String get zoneMocked =>
+      'يوجد تطبيق يزيّف الموقع قيد التشغيل. أوقفه لتتمكن من تعبئة قوائم التحقق.';
+
+  @override
+  String get zonePermission =>
+      'لا يمكن تعبئة قوائم التحقق إلا داخل النادي. اسمح لهذا التطبيق باستخدام موقعك الدقيق.';
+
+  @override
+  String get zoneServiceOff =>
+      'خدمة الموقع متوقفة. شغّلها لتعبئة قوائم التحقق داخل النادي.';
+
+  @override
+  String get zoneUnavailable =>
+      'تعذّر تحديد موقعك. حاول مرة أخرى، ويُفضَّل بالقرب من نافذة أو في مكان مفتوح.';
+
+  @override
+  String get zoneOpenSettings => 'فتح الإعدادات';
+
+  @override
+  String get zoneTurnOnLocation => 'تشغيل الموقع';
+
+  @override
+  String get zoneUnknown => 'اتصل بالإنترنت مرة واحدة لتحميل إعدادات النادي.';
+
+  @override
+  String get syncServerUnreachable =>
+      'تعذّر الوصول إلى الخادم — تُعرض المهام المحفوظة';
+
+  @override
+  String syncLastUpdated(String time) {
+    return 'آخر تحديث $time';
+  }
+
+  @override
   String get commonCancel => 'إلغاء';
 
   @override

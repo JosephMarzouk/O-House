@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -13,11 +14,13 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/localized_text.dart';
 import '../../models/assignment.dart';
 import '../../models/assignment_item.dart';
+import '../../models/club_zone.dart';
 import '../../theme.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/error_snack.dart';
 import '../../widgets/subtask_tile.dart';
 import '../../widgets/task_progress_bar.dart';
+import 'club_zone.dart';
 
 /// The wire form of a typed answer — what mark_item_done() receives as
 /// p_answer. Pure, unit-tested.
@@ -139,6 +142,12 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
   bool _submitting = false;
 
+  /// The last look at where the phone is (club_zone.dart); null until the
+  /// first one lands. Only used while a zone is cached and the round can
+  /// still be filled; see _zoneGate.
+  ZoneCheck? _zoneCheck;
+  bool _zoneChecking = false;
+
   @override
   void initState() {
     super.initState();
@@ -259,8 +268,89 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     }
   }
 
+  Future<void> _runZoneCheck(ClubZone zone) async {
+    if (!mounted) return;
+    setState(() => _zoneChecking = true);
+    final check = await checkClubZone(zone);
+    if (!mounted) return;
+    setState(() {
+      _zoneCheck = check;
+      _zoneChecking = false;
+    });
+  }
+
+  /// The unknown gate's Retry: GET /me again. clubZoneProvider re-reads when
+  /// it lands; a failure says so rather than leave the button looking dead.
+  Future<void> _reloadZone() async {
+    ref.invalidate(profileFetchProvider);
+    try {
+      await ref.read(profileFetchProvider.future);
+    } catch (_) {
+      if (mounted) {
+        showErrorSnack(
+          context,
+          AppLocalizations.of(context)!.syncServerUnreachable,
+        );
+      }
+    }
+  }
+
+  /// What stands in for the checklist until the phone is known to be inside
+  /// the club, or null to show the checklist. A club with no zone has no
+  /// gate. A zone not known yet blocks, fail closed: otherwise a phone that
+  /// never reached GET /me would skip the check for good.
+  Widget? _zoneGate(AsyncValue<ClubZoneState> zoneAsync) {
+    // Still reading the cache: a spinner rather than a flash of the checklist.
+    if (zoneAsync.isLoading && !zoneAsync.hasValue) {
+      return const _ZoneGate.checking();
+    }
+    final ClubZone zone;
+    switch (zoneAsync.valueOrNull) {
+      case NoZone():
+        return null;
+      case HasZone(zone: final z):
+        zone = z;
+      case ZoneUnknown() || null: // null: the cache could not be read
+        return _ZoneGate(
+          check: (state: ZoneState.unknown, metres: 0),
+          onRetry: _reloadZone,
+        );
+    }
+    if (_zoneCheck == null && !_zoneChecking) {
+      _zoneChecking = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _runZoneCheck(zone));
+    }
+    final check = _zoneCheck;
+    if (_zoneChecking || check == null) return const _ZoneGate.checking();
+    if (check.state == ZoneState.inside) return null;
+    return _ZoneGate(check: check, onRetry: () => _runZoneCheck(zone));
+  }
+
   Future<void> _submit() async {
     setState(() => _submitting = true);
+
+    // Again at Submit: the round was opened inside, but the phone may have
+    // left since. Outside, nothing is queued and the gate says why; the
+    // staged answers stay, so Retry back inside picks up where it was.
+    switch (ref.read(clubZoneProvider).valueOrNull) {
+      case NoZone():
+        break;
+      case HasZone(:final zone):
+        final check = await checkClubZone(zone);
+        if (!mounted) return;
+        if (check.state != ZoneState.inside) {
+          setState(() {
+            _zoneCheck = check;
+            _submitting = false;
+          });
+          return;
+        }
+      case ZoneUnknown() || null:
+        // The gate stops this before Submit shows; fail closed regardless.
+        setState(() => _submitting = false);
+        return;
+    }
+
     final repo = ref.read(assignmentsRepoProvider)!;
 
     // Nothing here used to be guarded, and every one of these calls writes to
@@ -308,6 +398,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     }
 
     final readOnly = assignment.isReadOnly;
+    // A round that can no longer be filled is only read: no zone check.
+    final gate = readOnly ? null : _zoneGate(ref.watch(clubZoneProvider));
     final done = assignment.items
         .where((i) => isItemChecked(i, _answers))
         .length;
@@ -321,6 +413,21 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
             .valueOrNull
             ?.contains(widget.assignmentId) ??
         false;
+
+    if (gate != null) {
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
+          backgroundColor: AppColors.paper,
+          body: Column(
+            children: [
+              _Header(assignment: assignment, done: done),
+              Expanded(child: gate),
+            ],
+          ),
+        ),
+      );
+    }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -366,6 +473,84 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               submitting: _submitting,
               onSubmit: _submit,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Stands in for the checklist outside the club's zone: why, and the thing
+/// that fixes it. Retry is always there, since the fix (walking in, a
+/// settings switch) happens outside this screen.
+class _ZoneGate extends StatelessWidget {
+  const _ZoneGate({required ZoneCheck this.check, required this.onRetry});
+  const _ZoneGate.checking() : check = null, onRetry = null;
+
+  final ZoneCheck? check;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final c = check;
+    if (c == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(t.zoneChecking),
+          ],
+        ),
+      );
+    }
+    final message = switch (c.state) {
+      ZoneState.outside => t.zoneOutside(c.metres),
+      ZoneState.mocked => t.zoneMocked,
+      ZoneState.denied || ZoneState.deniedForever => t.zonePermission,
+      ZoneState.serviceOff => t.zoneServiceOff,
+      ZoneState.unavailable || ZoneState.inside => t.zoneUnavailable,
+      ZoneState.unknown => t.zoneUnknown,
+    };
+    final (String, Future<bool> Function())? fix = switch (c.state) {
+      ZoneState.denied || ZoneState.deniedForever => (
+        t.zoneOpenSettings,
+        Geolocator.openAppSettings,
+      ),
+      ZoneState.serviceOff => (
+        t.zoneTurnOnLocation,
+        Geolocator.openLocationSettings,
+      ),
+      _ => null,
+    };
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              c.state == ZoneState.unknown
+                  ? Icons.cloud_off_outlined
+                  : Icons.location_off_outlined,
+              size: 40,
+              color: AppColors.cyanDark,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            if (fix != null) ...[
+              FilledButton(onPressed: fix.$2, child: Text(fix.$1)),
+              const SizedBox(height: 12),
+              OutlinedButton(onPressed: onRetry, child: Text(t.commonRetry)),
+            ] else
+              FilledButton(onPressed: onRetry, child: Text(t.commonRetry)),
           ],
         ),
       ),

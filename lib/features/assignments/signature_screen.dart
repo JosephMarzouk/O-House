@@ -137,7 +137,7 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
     // Who is signing and when, in the header rather than stacked above the pad
     // — it is the same identity line every other screen carries.
     final signer = [
-      ?roleLabel(profile),
+      ?roleLabel(context, profile),
       DateFormat(
         'd MMM y, HH:mm',
         Localizations.localeOf(context).toString(),

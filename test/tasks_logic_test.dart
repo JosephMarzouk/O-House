@@ -46,6 +46,7 @@ AssignmentItem _item(
 Assignment _a({
   DateTime? scheduledDate,
   DateTime? endDate,
+  DateTime? deadline,
   String status = 'pending',
   String titleEn = 'Morning round',
   String titleAr = 'الجولة الصباحية',
@@ -74,6 +75,7 @@ Assignment _a({
   signatureUrl: null,
   reviewNote: null,
   items: items,
+  deadline: deadline,
 );
 
 void main() {
@@ -137,6 +139,39 @@ void main() {
       expect(isVideoPath('https://x.supabase.co/sign/photos/a/i-p.mp4?token=t'), isTrue);
       expect(isVideoPath('photos/a/i-p.jpg'), isFalse);
       expect(isVideoPath('signatures/a-s.png'), isFalse);
+    });
+
+    test('an overnight window still open after midnight stays in Today', () {
+      // 22:00 on the 2nd → 01:00 on the 3rd, seen at 00:30 on the 3rd: by
+      // day it is yesterday's, but it can still be filled.
+      final night = DateTime(2026, 9, 3, 0, 30);
+      final overnight = _a(
+        scheduledDate: DateTime(2026, 9, 2),
+        deadline: DateTime(2026, 9, 3, 1),
+      );
+      expect(tabFor(overnight, night), TaskTab.today);
+      expect(overnight.isTodayAt(night), isTrue);
+      // Once it closes it is History, and a closed one never stays behind.
+      expect(tabFor(overnight, DateTime(2026, 9, 3, 1, 5)), TaskTab.history);
+      expect(
+        tabFor(
+          _a(
+            scheduledDate: DateTime(2026, 9, 2),
+            deadline: DateTime(2026, 9, 3, 1),
+            status: 'submitted',
+          ),
+          night,
+        ),
+        TaskTab.history,
+      );
+      // A future deadline does not pull an upcoming round forward.
+      expect(
+        tabFor(
+          _a(scheduledDate: DateTime(2026, 9, 4), deadline: DateTime(2026, 9, 4, 11)),
+          night,
+        ),
+        TaskTab.upcoming,
+      );
     });
 
     test('an assignment with no date is never dropped', () {

@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/assignment.dart';
+import '../models/club_zone.dart';
 import '../models/profile.dart';
 import '../tenant.dart';
 import 'api_client.dart';
@@ -60,10 +61,30 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
     onSent: () async => ref.invalidate(roundsRefreshProvider),
   );
 
+  // Resume and reconnect also refetch the rounds and /me, not only drain.
+  // Without it a phone that came back online showed what it had until someone
+  // pulled to refresh, and a zone set on the portal never arrived. Creation
+  // counts as a refresh: sign-in and app start fetch both anyway.
+  var refreshed = DateTime.now();
+  void wake() {
+    unawaited(sync.drain());
+    final now = DateTime.now();
+    if (!shouldRefresh(
+      refreshed,
+      now,
+      failed: ref.read(refreshFailedProvider),
+    )) {
+      return;
+    }
+    refreshed = now;
+    ref.invalidate(roundsRefreshProvider);
+    ref.invalidate(profileFetchProvider);
+  }
+
   final net = Connectivity().onConnectivityChanged.listen((r) {
-    if (!r.contains(ConnectivityResult.none)) sync.drain();
+    if (!r.contains(ConnectivityResult.none)) wake();
   });
-  final life = AppLifecycleListener(onResume: sync.drain);
+  final life = AppLifecycleListener(onResume: wake);
   ref.onDispose(() {
     net.cancel();
     life.dispose();
@@ -72,6 +93,12 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
   unawaited(sync.drain());
   return sync;
 });
+
+/// Resume and reconnect refetch at most every 30 s, so switching between apps
+/// does not refetch each time. After a failed fetch they always try: coming
+/// back online is exactly when it should. Pure, unit-tested.
+bool shouldRefresh(DateTime last, DateTime now, {bool failed = false}) =>
+    failed || now.difference(last) >= const Duration(seconds: 30);
 
 /// The banner's state (SY-5), live.
 final syncStatusProvider = Provider<SyncStatus>((ref) {
@@ -116,17 +143,49 @@ final profileFetchProvider = FutureProvider<Profile?>((ref) async {
   final repo = ref.watch(assignmentsRepoProvider);
   if (repo == null) return null;
   final res = await repo.api.get('/me') as Map<String, dynamic>;
-  final json = res['profile'] as Map<String, dynamic>;
+  // `access` (the role's name, in both languages) is saved inside the profile
+  // row, so the header shows a custom role's name offline. Absent from an API
+  // that predates custom roles: then roleLabel falls back to the role key.
+  final json = {
+    ...res['profile'] as Map<String, dynamic>,
+    if (res['access'] != null) 'access': res['access'],
+  };
   await repo.db.saveProfile(repo.userId, json);
   // The club's About / Policies text rides on /me; cached with the profile
   // so Profile shows it offline. Club-wide, so one settings row, not per user.
   if (res['pages'] != null) {
     await repo.db.setSetting(_clubPagesKey, jsonEncode(res['pages']));
   }
+  // The club's zone, the same way. Absent means no zone (never set, or
+  // support cleared a wrong pin), so the cached one goes too.
+  final location = res['location'];
+  if (location != null) {
+    await repo.db.setSetting(_clubLocationKey, jsonEncode(location));
+  } else {
+    await repo.db.deleteSetting(_clubLocationKey);
+  }
+  // Marks the answer as known, zone or none, so "no zone cached" can be told
+  // apart from "never heard from the server" (ClubZoneState).
+  await repo.db.setSetting(_clubSyncedKey, DateTime.now().toIso8601String());
   return _withPhone(Profile.fromJson(json));
 });
 
 const _clubPagesKey = 'club_pages';
+const _clubLocationKey = 'club_location';
+const _clubSyncedKey = 'club_location_synced';
+
+/// The club's zone (club_zone.dart), from the cache, refreshed with the
+/// profile: unknown until the first GET /me lands, then the zone or none.
+/// Signed out there is nothing to fill, so no gate (tests run signed out).
+final clubZoneProvider = FutureProvider<ClubZoneState>((ref) async {
+  ref.watch(profileFetchProvider);
+  final repo = ref.watch(assignmentsRepoProvider);
+  if (repo == null) return const NoZone();
+  return clubZoneState(
+    await repo.db.getSetting(_clubLocationKey),
+    await repo.db.getSetting(_clubSyncedKey),
+  );
+});
 
 /// The club's pages written by an admin in the portal, by key (`about`,
 /// `policies`): `{body_en, body_ar}`. From the cache, refreshed with the
@@ -165,6 +224,8 @@ Profile _withPhone(Profile p) => Profile(
   name: p.name,
   phone: authService.phone,
   role: p.role,
+  roleNameEn: p.roleNameEn,
+  roleNameAr: p.roleNameAr,
   locale: p.locale,
   active: p.active,
   mustChangePassword: p.mustChangePassword,
@@ -198,9 +259,20 @@ final refreshedAtProvider = FutureProvider<DateTime?>((ref) async {
   return ref.watch(assignmentsRepoProvider)?.refreshedAt();
 });
 
+/// The last GET /assignments or GET /me failed: the banner's "can't reach the
+/// server", whatever the outbox holds. The time it shows is the last success
+/// (refreshedAtProvider).
+final refreshFailedProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(roundsRefreshProvider).hasError ||
+      ref.watch(profileFetchProvider).hasError,
+);
+
 /// Pull to refresh. Offline it just stops spinning; the banner says why.
+/// /me too, so a zone or page set on the portal later reaches the phone.
 Future<void> refreshRounds(WidgetRef ref) async {
   ref.invalidate(roundsRefreshProvider);
+  ref.invalidate(profileFetchProvider);
   try {
     await ref.read(roundsRefreshProvider.future);
   } catch (_) {}

@@ -19,9 +19,12 @@ flutter pub get
 Each club is its own app (a flavor, see "Clubs" below), so every run and
 build names one. Dev talks to the API on this computer over USB, so run
 `adb reverse tcp:4000 tcp:4000` once per phone connection (emulator too).
+`tool/run_dev.ps1` does both, so the reverse can't be forgotten (30 Sep: a
+phone without it sat offline for a day and nothing said so; the sync banner
+now does, and in dev it names `127.0.0.1:4000`).
 
 ```bash
-flutter run
+flutter run                      # or: powershell -ExecutionPolicy Bypass -File tool\run_dev.ps1
 ```
 
 That is O House in dev (the default flavor and `ENVIRONMENT`); in full,
@@ -77,6 +80,9 @@ Refactored away in `8f4202a`, do not resurrect:
 | 2 | Image compression before queuing | **Done (Step 3)** — the picker itself: 1600 px long edge, quality 75 |
 | 3 | Offline writes: outbox drain, optimistic local updates, cache reads | **Code done (plan Step 3)** — every read and write goes through the O House API (`data/api_client.dart`); cache-first providers; SyncService v2 (per-round order, backoff, parking with Retry/Dismiss, user-scoped); one app per club (tenant flavors). Verified on a real phone against the local API: reads, and an offline submit (Wi-Fi off) that sent itself on reconnect, signature in storage, `completed_at` = signing time |
 | 4 | Push notifications | **Not started** — `firebase_core`/`firebase_messaging` in pubspec, zero Dart references, no `google-services.json` |
+| — | Club zone (29–30 Sep) | **Done, checked on a real phone** — a checklist that can still be filled opens and submits only inside the club's zone (`club_location`, a point and a radius set once on the portal; it rides on `GET /me` as `location`). The check is in the app only (`geolocator`). Home asks for location as soon as the club has a zone; a refusal, location off, approximate-only, a mocked position or "N m from the club" replace the checklist with a message and Retry / Open settings. **Fails closed:** until `/me` has succeeded once on this phone (`club_location_synced`), checklists stay shut ("Connect to the internet once…"). No zone set = no gate |
+| — | Sync you can see (30 Sep) | Resume and reconnect refetch `/assignments` and `/me` (30 s throttle; at once after a failure); pull to refresh fetches `/me` too. A failed fetch shows "Can't reach the server — showing saved tasks · Last updated HH:mm" whatever the outbox holds. An overnight window (22:00 → 01:00) stays in Today until its deadline |
+| — | Role names (29 Sep) | The header shows the role's own name from `/me`'s `access.role` (custom roles included), in the reader's language, cached with the profile. The app still gates nothing by role |
 
 ### Known issues
 
@@ -228,7 +234,8 @@ does not cut — it *shrinks* into the next screen's header.
 
 Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 `outboxCountProvider`, `authStateProvider`, `currentProfileProvider`,
-`myAssignmentsProvider`, `assignmentByIdProvider(id)`, `clubPagesProvider`.
+`myAssignmentsProvider`, `assignmentByIdProvider(id)`, `clubPagesProvider`,
+`clubZoneProvider` (unknown / none / the zone), `refreshFailedProvider`.
 
 ### Models
 
@@ -236,7 +243,8 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 |---|---|
 | `lib/models/assignment.dart` | Mirrors `assignments_v`. `doneCount`, `canSubmit`, `isReadOnly`, `isTerminal`, `isToday`, `isOnDay` (start to `endDate`), `roundTitleEn/Ar`; `assigneeId` (the owner) is null until someone claims it |
 | `lib/models/assignment_item.dart` | Mirrors `assignment_items`. `isSatisfied`, `isFollowUp`, `answer`, `correct`, `flaggedAnswer/At` |
-| `lib/models/profile.dart` | Mirrors `profiles` |
+| `lib/models/profile.dart` | Mirrors `profiles`, plus the role's name in both languages from `/me`'s `access` |
+| `lib/models/club_zone.dart` | `ClubZone` (lat, lng, radius) and `ClubZoneState`: `ZoneUnknown` (never synced: blocks), `NoZone`, `HasZone`; pure `clubZoneState()` |
 
 ### Features
 
@@ -250,6 +258,7 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 | `features/home/home_header.dart` | Animated logo/text overlay + shared `HeaderText` |
 | `features/assignments/list_screen.dart` | Three tabs (`tabFor` — `follow_up` is always Today), search (`matchesQuery`) |
 | `features/assignments/detail_screen.dart` | The checklist. `normalizeAnswer`, `isItemChecked`, `itemPhotos`, `missingPhotoCount`, `canSubmitStaged` (staged answers, not ticks; the follow-up resubmit gate) |
+| `features/assignments/club_zone.dart` | The zone check: pure `insideClub`, `checkClubZone` (permission, service, one fresh fix; never throws; no last-known fallback), `ensureLocationPermission` (Home's up-front prompt). The gate itself is `_zoneGate` in `detail_screen.dart`, re-checked in `_submit` |
 | `features/assignments/signature_screen.dart` | Signature pad, forced LTR. Drains, then re-reads the round *before* Success |
 | `features/assignments/success_screen.dart` | Confirmation, names the submitted round. A second face for `follow_up` ("Sent — needs follow-up") |
 | `features/assignments/history_detail_screen.dart` | Read-only view of a submitted round, with each item's answer |
@@ -399,7 +408,7 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 
 ---
 
-## 7. Tests (`test/`, 113 tests, all passing)
+## 7. Tests (`test/`, 131 tests, all passing)
 
 | File | Covers |
 |---|---|
@@ -407,6 +416,8 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 | `outbox_test.dart` | The refusal contract as the phone reads it (`classifyResponse`), the 401 refresh-and-retry, and SyncService against fakes: per-round order, a 503 stops one round, no response stops all, parking + Retry, evidence deleted only after a 2xx, MISSING_FILE, user scoping, the rerun flag, refresh after a send; `backoff`, `applyLocal`, `isoWithOffset`, `RoundDraft`, `syntheticEmailToPhone` |
 | `submit_sync_test.dart` | The signature flow: queue then drain, success built on the re-read, a refused round reports why and goes Home instead of claiming success, the supervisor note travels with the submit, an empty pad does nothing |
 | `club_pages_test.dart` | Profile's About / Policies: the admin's text in the reader's language, the other language when one is empty, the built-in line when nothing is written |
+| `club_zone_test.dart` | `insideClub` (inside, outside, mocked, no zone), the `/me` shape, and `clubZoneState`: never synced blocks, synced with no zone has no gate, a cached zone is the zone |
+| `role_label_test.dart` | The header's role name: en/ar pick, fallback to the role key when `/me` has no `access` |
 | `tenant_test.dart` | `resolveTenant` fails fast (missing, unknown, mismatched `TENANT_NAME`), every tenant config is complete, the API client sends the tenant's club, OWEST's brand colours |
 | `app_header_test.dart` | Header height/logo consistency across every screen in both locales; submission flow; signature button and pad sizing |
 | `home_screen_test.dart` | Stat counts, today-filter, Next up ordering, ink hand-off cases, pull-to-refresh |

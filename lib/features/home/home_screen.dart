@@ -6,11 +6,13 @@ import 'package:go_router/go_router.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/assignment.dart';
+import '../../models/club_zone.dart';
 import '../../theme.dart';
 import '../../widgets/app_nav_bar.dart';
 import '../../widgets/ink_handoff_panel.dart';
 import '../../widgets/sync_banner.dart';
 import '../../widgets/task_card.dart';
+import '../assignments/club_zone.dart';
 import '../splash_handoff.dart';
 import 'home_header.dart';
 
@@ -24,8 +26,25 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
+/// Once per app process: a refusal is not asked again on every visit.
+bool _askedForLocation = false;
+
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with SplashHandoffAnimation<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // The location prompt comes here, as soon as the club turns out to have
+    // a zone: sign-in and app start both land on Home, and a question asked
+    // up front beats one sprung halfway into a round. A club with no zone is
+    // never asked. A refusal is the checklist gate's to explain.
+    ref.listenManual(clubZoneProvider, (_, next) {
+      if (_askedForLocation || next.valueOrNull is! HasZone) return;
+      _askedForLocation = true;
+      ensureLocationPermission().ignore();
+    }, fireImmediately: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
@@ -71,12 +90,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           (a, b) => (a.windowStart ?? '').compareTo(b.windowStart ?? ''),
         );
 
-    // window_start/window_end are zero-padded 'HH:mm:ss', so a plain string
-    // sort is chronological — no parsing needed for the combined span.
+    // window_start is zero-padded 'HH:mm:ss', so a plain string sort is
+    // chronological. The end is not: an overnight window's ('00:44',
+    // tomorrow) sorts first as a string, so the span ends at the window that
+    // closes last by its deadline.
     final starts = todayOpen.map((a) => a.windowStart).nonNulls.toList()
       ..sort();
-    final ends = todayOpen.map((a) => a.windowEnd).nonNulls.toList()..sort();
-    final hasSpan = starts.isNotEmpty && ends.isNotEmpty;
+    final closing =
+        todayOpen
+            .where((a) => a.windowEnd != null && a.deadline != null)
+            .toList()
+          ..sort((a, b) => a.deadline!.compareTo(b.deadline!));
+    final hasSpan = starts.isNotEmpty && closing.isNotEmpty;
 
     return Column(
       children: [
@@ -162,7 +187,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             t.homeRoundSummary(
                               todayOpen.length,
                               starts.first.substring(0, 5),
-                              ends.last.substring(0, 5),
+                              closing.last.windowEnd!.substring(0, 5),
                             ),
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 13, color: _muted),

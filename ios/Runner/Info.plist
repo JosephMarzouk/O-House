@@ -10,6 +10,10 @@
 	<string>O House</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Photos are the evidence for the places you check.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Video evidence records sound with the picture.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Checklists can only be filled inside the club, so the app checks where you are when you open or submit one.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

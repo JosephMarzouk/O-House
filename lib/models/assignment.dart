@@ -97,7 +97,26 @@ class Assignment {
 
   bool get isTerminal => terminalStatuses.contains(effectiveStatus);
 
-  bool get isToday => isOnDay(DateTime.now());
+  bool get isToday => isTodayAt(DateTime.now());
+
+  /// Today's work at [now]: on one of its days, or from an earlier day and
+  /// still open. The second is an overnight window (22:00 → 01:00) after
+  /// midnight: by day it is yesterday's, yet it can still be filled, so it
+  /// must not drop into History until its [deadline] passes.
+  bool isTodayAt(DateTime now) {
+    if (isOnDay(now)) return true;
+    final d = scheduledDate;
+    final close = deadline;
+    return d != null &&
+        close != null &&
+        !isTerminal &&
+        close.isAfter(now) &&
+        !DateTime(
+          d.year,
+          d.month,
+          d.day,
+        ).isAfter(DateTime(now.year, now.month, now.day));
+  }
 
   /// [now]'s day falls between the first and the last day — one day, unless
   /// the task runs over several.

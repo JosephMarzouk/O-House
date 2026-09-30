@@ -27,19 +27,19 @@ enum TaskTab { today, upcoming, history }
 /// Today whatever its date. It never expires and its flagged answers are
 /// waiting on this person, so filing it under History by the day it was first
 /// sent would bury the one old round that still needs them.
+///
+/// The other: an overnight window still open after midnight stays in Today
+/// (Assignment.isTodayAt), since it can still be filled.
 TaskTab tabFor(Assignment a, DateTime now) {
   if (a.effectiveStatus == 'follow_up') return TaskTab.today;
   final d = a.scheduledDate;
   if (d == null) return TaskTab.today;
   // A multi-day task is Today on every one of its days, from the first
   // through the last.
-  final e = a.endDate ?? d;
+  if (a.isTodayAt(now)) return TaskTab.today;
   final first = DateTime(d.year, d.month, d.day);
-  final last = DateTime(e.year, e.month, e.day);
   final today = DateTime(now.year, now.month, now.day);
-  if (first.isAfter(today)) return TaskTab.upcoming;
-  if (last.isBefore(today)) return TaskTab.history;
-  return TaskTab.today;
+  return first.isAfter(today) ? TaskTab.upcoming : TaskTab.history;
 }
 
 /// Title *and* site, in both languages — searching "pool" should find the

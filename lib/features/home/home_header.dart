@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../l10n/localized_text.dart';
 import '../../models/profile.dart';
 import '../../theme.dart';
 import '../../widgets/brand_logo.dart';
@@ -190,13 +191,13 @@ class HeaderText extends StatelessWidget {
           style: Theme.of(context).textTheme.headlineSmall
               ?.copyWith(color: AppColors.paper),
         ),
-        if (roleLabel(profile) != null) ...[
+        if (roleLabel(context, profile) != null) ...[
           const SizedBox(height: 5),
           // No department field on Profile (design shows
           // "Housekeeping · Aquatics") — role is the closest available
           // stand-in until that data exists.
           Text(
-            roleLabel(profile)!,
+            roleLabel(context, profile)!,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -211,10 +212,12 @@ class HeaderText extends StatelessWidget {
   }
 }
 
-/// Title-cased role ('cleaner' -> 'Cleaner'), or null while the profile
-/// hasn't loaded yet.
-String? roleLabel(Profile? profile) {
+/// The role's own name in the reader's language ("Head of Sports"), else the
+/// key title-cased ('cleaner' -> 'Cleaner') when /me sent no names (an API
+/// that predates custom roles). Null while the profile hasn't loaded yet.
+String? roleLabel(BuildContext context, Profile? profile) {
   final role = profile?.role;
-  if (role == null || role.isEmpty) return null;
-  return role[0].toUpperCase() + role.substring(1);
+  if (profile == null || role == null || role.isEmpty) return null;
+  final name = pickLocalized(context, profile.roleNameAr, profile.roleNameEn);
+  return name.isNotEmpty ? name : role[0].toUpperCase() + role.substring(1);
 }

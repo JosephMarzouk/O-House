@@ -28,6 +28,7 @@ Assignment _a({
   String? end,
   String title = 'Task',
   String? site,
+  DateTime? deadline,
 }) => Assignment(
   id: id,
   assigneeId: 'u1',
@@ -48,6 +49,18 @@ Assignment _a({
   lateSync: false,
   signatureUrl: null,
   reviewNote: null,
+  // What the view sends for a same-day window: its end on its day.
+  deadline:
+      deadline ??
+      (end == null
+          ? null
+          : DateTime(
+              date.year,
+              date.month,
+              date.day,
+              int.parse(end.substring(0, 2)),
+              int.parse(end.substring(3, 5)),
+            )),
 );
 
 Future<void> _pumpHome(
@@ -184,6 +197,27 @@ void main() {
     // windows may reach the span: 07:00 (earliest start) to 15:00 (latest
     // end), NOT 00:30 – 23:45.
     expect(find.text('3 assignments · 07:00 – 15:00'), findsOneWidget);
+  });
+
+  testWidgets('an overnight window ends the span by its deadline', (
+    tester,
+  ) async {
+    final tomorrow = today.add(const Duration(days: 1));
+    await _pumpHome(tester, [
+      _a(id: '1', status: 'pending', date: today, start: '07:00:00', end: '15:00:00'),
+      // 10:44 → 00:44 tomorrow. As a string '00:44' sorts first and the
+      // span used to end at 15:00.
+      _a(
+        id: '2',
+        status: 'pending',
+        date: today,
+        start: '10:44:00',
+        end: '00:44:00',
+        deadline: DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 0, 44),
+      ),
+    ]);
+
+    expect(find.text('2 assignments · 07:00 – 00:44'), findsOneWidget);
   });
 
   testWidgets('Next up names the earliest outstanding task today', (
@@ -328,7 +362,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(builds, 0);
+    // The banner watches the fetch's outcome, which builds it once on mount.
+    final before = builds;
 
     await tester.fling(
       find.byType(CustomScrollView),
@@ -337,6 +372,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(builds, 1);
+    expect(builds, before + 1);
   });
 }

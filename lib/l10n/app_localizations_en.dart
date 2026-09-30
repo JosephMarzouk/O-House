@@ -449,6 +449,49 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get zoneChecking => 'Checking your location…';
+
+  @override
+  String zoneOutside(int metres) {
+    return 'You\'re $metres m from the club. Checklists can only be filled inside the club.';
+  }
+
+  @override
+  String get zoneMocked =>
+      'A fake-location app is on. Turn it off to fill checklists.';
+
+  @override
+  String get zonePermission =>
+      'Checklists can only be filled inside the club. Allow this app to use your precise location.';
+
+  @override
+  String get zoneServiceOff =>
+      'Location is off. Turn it on to fill checklists inside the club.';
+
+  @override
+  String get zoneUnavailable =>
+      'Couldn\'t find your location. Try again, near a window or outdoors if you can.';
+
+  @override
+  String get zoneOpenSettings => 'Open settings';
+
+  @override
+  String get zoneTurnOnLocation => 'Turn on location';
+
+  @override
+  String get zoneUnknown =>
+      'Connect to the internet once to load the club\'s settings.';
+
+  @override
+  String get syncServerUnreachable =>
+      'Can\'t reach the server — showing saved tasks';
+
+  @override
+  String syncLastUpdated(String time) {
+    return 'Last updated $time';
+  }
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override

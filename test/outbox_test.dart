@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:o_house/data/api_client.dart';
 import 'package:o_house/data/assignments_repo.dart';
 import 'package:o_house/data/local_db.dart';
+import 'package:o_house/data/providers.dart' show shouldRefresh;
 import 'package:o_house/data/sync.dart';
 import 'package:o_house/models/assignment.dart';
 import 'package:o_house/data/auth_service.dart';
@@ -311,6 +312,14 @@ void main() {
     expect(backoff(2), const Duration(seconds: 10));
     expect(backoff(4), const Duration(seconds: 40));
     expect(backoff(20), const Duration(minutes: 5));
+  });
+
+  test('shouldRefresh: resume/reconnect refetch every 30 s, at once after a failure', () {
+    final last = DateTime(2026, 9, 30, 13, 7);
+    expect(shouldRefresh(last, last.add(const Duration(seconds: 29))), isFalse);
+    expect(shouldRefresh(last, last.add(const Duration(seconds: 30))), isTrue);
+    // The last fetch failed: coming back online must not wait out the 30 s.
+    expect(shouldRefresh(last, last.add(const Duration(seconds: 1)), failed: true), isTrue);
   });
 
   group('applyLocal: queued work shows before it is sent', () {
