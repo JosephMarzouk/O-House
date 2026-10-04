@@ -84,19 +84,27 @@ flutter:
   # from l10n/app_en.arb and l10n/app_ar.arb via `flutter gen-l10n`.
   generate: true
 
+  # Every club's logo ships in every build (three small PNGs); tenant.dart
+  # picks the one this flavor shows.
   assets:
     - assets/tenants/owest/
+    - assets/tenants/ryze/
+    - assets/tenants/kode/
 
-  # Source Serif 4 is the Broadsheet design system's voice, but it ships no
-  # Arabic glyphs — Noto Naskh is its serif Arabic companion, wired up as
-  # fontFamilyFallback in app.dart so ar/en share one TextTheme.
+  # Montserrat is the clubs' brand face (the members' app uses the same files).
+  # It ships no Arabic glyphs, so Noto Naskh is wired up as fontFamilyFallback
+  # in theme.dart and ar/en share one TextTheme.
   fonts:
-    - family: Source Serif 4
+    - family: Montserrat
       fonts:
-        - asset: assets/fonts/SourceSerif4-Regular.ttf
+        - asset: assets/fonts/Montserrat-Regular.ttf
           weight: 400
-        - asset: assets/fonts/SourceSerif4-Semibold.ttf
+        - asset: assets/fonts/Montserrat-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Montserrat-SemiBold.ttf
           weight: 600
+        - asset: assets/fonts/Montserrat-Bold.ttf
+          weight: 700
     - family: Noto Naskh Arabic
       fonts:
         - asset: assets/fonts/NotoNaskhArabic-Regular.ttf

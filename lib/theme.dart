@@ -23,6 +23,10 @@ abstract final class AppColors {
   /// accent-100 — the offline banner's ground.
   static final cyanTint = tenant.accentTint;
 
+  /// Text and icons on a [cyan] fill. White for most clubs; a club whose
+  /// accent is too light for white (RYZE's orange) gets its ink instead.
+  static final onCyan = tenant.onAccent;
+
   /// accent-2-700 — rejected, overdue and follow-up only.
   static const magenta = Color(0xFFAA0B56);
 
@@ -94,7 +98,7 @@ ThemeData buildTheme() {
   final scheme = ColorScheme.fromSeed(
     seedColor: AppColors.cyan,
     primary: AppColors.cyan,
-    onPrimary: AppColors.paper,
+    onPrimary: AppColors.onCyan,
     secondary: AppColors.magenta,
     error: AppColors.magenta,
     surface: AppColors.paper,
@@ -105,9 +109,10 @@ ThemeData buildTheme() {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: AppColors.paper,
-    // Source Serif 4 covers Latin; Arabic falls through to Noto Naskh, so one
-    // TextTheme serves both locales without a per-locale branch.
-    fontFamily: 'Source Serif 4',
+    // Montserrat (the clubs' brand face) covers Latin; Arabic falls through to
+    // Noto Naskh, so one TextTheme serves both locales without a per-locale
+    // branch.
+    fontFamily: 'Montserrat',
     fontFamilyFallback: const ['Noto Naskh Arabic'],
     dividerColor: AppColors.divider,
     textTheme: const TextTheme(
@@ -167,10 +172,16 @@ ThemeData buildTheme() {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.cyan,
-        foregroundColor: AppColors.paper,
+        foregroundColor: AppColors.onCyan,
         minimumSize: const Size.fromHeight(kControlHeight),
         shape: const RoundedRectangleBorder(borderRadius: kRadiusControl),
       ),
+    ),
+    // Text-only buttons are link text on paper, so they take cyanDark: base
+    // cyan is too light to read there for some clubs (RYZE's orange, 1.9:1).
+    // Without this they fall back to colorScheme.primary, which is cyan.
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: AppColors.cyanDark),
     ),
     // Without this an OutlinedButton falls back to Material's ~40px stadium,
     // so any pair of one filled and one outlined button — Clear and Submit on

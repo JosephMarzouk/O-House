@@ -12,7 +12,7 @@ import 'package:flutter/services.dart';
 /// The tenant comes from the flavor itself (Flutter's [appFlavor]), so the
 /// two can never disagree. TENANT_NAME is accepted for the members' app's CI
 /// conventions and must match; nothing ever silently defaults to a club.
-enum Tenant { owest }
+enum Tenant { owest, ryze, kode }
 
 /// Only public values. The app never talks to Supabase: sign-in and every
 /// read and write go through the O House API, which holds each club's
@@ -28,6 +28,7 @@ class TenantConfig {
     required this.accent,
     required this.accentDark,
     required this.accentTint,
+    required this.onAccent,
     required this.logo,
   });
 
@@ -40,10 +41,22 @@ class TenantConfig {
 
   /// Brand colours: the header ink and the accent family. Magenta (alarms)
   /// and the neutrals are shared by every club (theme.dart).
+  ///
+  /// Taken from the members' app palettes (br-clubs-mobile-app colors.dart)
+  /// by one rule, so a new club is a lookup, not a design job:
+  ///   ink        = primary 500
+  ///   accent     = secondary 500
+  ///   accentDark = the lightest secondary shade from 600 that reaches 4.5:1
+  ///                on paper (it carries text)
+  ///   accentTint = secondary 50
+  ///   onAccent   = text on an accent fill: white unless that is under 3:1
+  ///                (RYZE's orange is 2.1:1 with white), then ink.
+  /// tenant_test.dart checks the contrasts for every club.
   final Color ink;
   final Color accent;
   final Color accentDark;
   final Color accentTint;
+  final Color onAccent;
 
   /// Under `assets/tenants/<tenant>/`.
   final String logo;
@@ -60,11 +73,39 @@ const tenantConfigs = {
     appNameAr: 'او هاوس',
     clubNameEn: 'O West Sports Club',
     clubNameAr: 'نادي أو ويست الرياضي',
-    ink: Color(0xFF0E213F),
-    accent: Color(0xFF0088B0),
-    accentDark: Color(0xFF006786),
-    accentTint: Color(0xFFE9F8FF),
-    logo: 'assets/tenants/owest/logo.png',
+    ink: Color(0xFF1D2749),
+    accent: Color(0xFF229BA8),
+    accentDark: Color(0xFF17717E),
+    accentTint: Color(0xFFE5F4F5),
+    onAccent: Color(0xFFFFFFFF),
+    logo: 'assets/tenants/owest/owest.png',
+  ),
+  // TODO(club names): the clubs' official EN/AR names are still to confirm.
+  Tenant.ryze: TenantConfig(
+    clubSlug: 'ryze',
+    appNameEn: 'RYZE House',
+    appNameAr: 'رايز هاوس',
+    clubNameEn: 'RYZE',
+    clubNameAr: 'رايز',
+    ink: Color(0xFF032F39),
+    accent: Color(0xFFF69F12),
+    accentDark: Color(0xFF87680A),
+    accentTint: Color(0xFFF9F6ED),
+    onAccent: Color(0xFF032F39),
+    logo: 'assets/tenants/ryze/ryze.png',
+  ),
+  Tenant.kode: TenantConfig(
+    clubSlug: 'kode',
+    appNameEn: 'KODE House',
+    appNameAr: 'كود هاوس',
+    clubNameEn: 'KODE',
+    clubNameAr: 'كود',
+    ink: Color(0xFF234EA2),
+    accent: Color(0xFFF26522),
+    accentDark: Color(0xFFB34C1A),
+    accentTint: Color(0xFFFDEBE1),
+    onAccent: Color(0xFFFFFFFF),
+    logo: 'assets/tenants/kode/kode.png',
   ),
 };
 

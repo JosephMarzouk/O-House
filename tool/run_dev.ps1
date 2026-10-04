@@ -4,8 +4,11 @@
 # phone silently offline for a day, so this does it every time.
 #
 #   .\tool\run_dev.ps1              # then any extra `flutter run` args, e.g. -d <id>
+#   .\tool\run_dev.ps1 -Flavor ryze # another club's app (owest, ryze, kode)
 #
 # Several devices attached: set $env:ANDROID_SERIAL to pick one for adb.
+
+param([string]$Flavor = 'owest')
 
 $adb = (Get-Command adb -ErrorAction SilentlyContinue).Source
 if (-not $adb) {
@@ -22,7 +25,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Push-Location (Split-Path $PSScriptRoot)
 try {
-    flutter run --flavor owest @args
+    flutter run --flavor $Flavor @args
 } finally {
     Pop-Location
 }

@@ -396,9 +396,18 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
   reserved for the alarm states — rejected, overdue, follow-up — and nothing
   else may use it. A "No" or "Fail" answer is *not* an alarm; picked, it is
   cyan like any other choice.
-- Fonts: Source Serif 4 (Latin) with Noto Naskh Arabic as
-  `fontFamilyFallback` — one `TextTheme` serves both locales, no per-locale
-  branch. Button text lives on `TextTheme.labelLarge`, **not**
+- **The brand roles are per club** (`lib/tenant.dart`, 30 Sep), from the
+  members' app palettes by one rule: `ink` = primary 500, `cyan` = secondary
+  500, `cyanDark` = the lightest secondary shade from 600 at 4.5:1 on paper,
+  `cyanTint` = secondary 50, `onCyan` = white unless that is under 3:1 on cyan
+  (RYZE's orange is 2.1:1), then ink. "cyan" is the role name; for RYZE and
+  KODE it is orange. Text on a cyan fill uses `onCyan`, never `paper`; text on
+  paper uses `cyanDark`, never `cyan` (the nav label, `TextButton`s through
+  `textButtonTheme`). `tenant_test.dart` checks these contrasts for every club.
+- Fonts: Montserrat (the clubs' brand face, the same files as the members'
+  app) with Noto Naskh Arabic as `fontFamilyFallback`. One `TextTheme` serves
+  both locales, with no per-locale branch. The portal uses Cairo for Arabic;
+  bundling Cairo here too is open. Button text lives on `TextTheme.labelLarge`, **not**
   `filledButtonTheme.textStyle` (ButtonStyle replaces rather than merges, and
   Arabic renders as tofu).
 - Radii: `kRadius` 2px (cards, flat by spec), `kRadiusControl` 16px
@@ -408,7 +417,7 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 
 ---
 
-## 7. Tests (`test/`, 131 tests, all passing)
+## 7. Tests (`test/`, 132 tests, all passing)
 
 | File | Covers |
 |---|---|
@@ -418,7 +427,7 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 | `club_pages_test.dart` | Profile's About / Policies: the admin's text in the reader's language, the other language when one is empty, the built-in line when nothing is written |
 | `club_zone_test.dart` | `insideClub` (inside, outside, mocked, no zone), the `/me` shape, and `clubZoneState`: never synced blocks, synced with no zone has no gate, a cached zone is the zone |
 | `role_label_test.dart` | The header's role name: en/ar pick, fallback to the role key when `/me` has no `access` |
-| `tenant_test.dart` | `resolveTenant` fails fast (missing, unknown, mismatched `TENANT_NAME`), every tenant config is complete, the API client sends the tenant's club, OWEST's brand colours |
+| `tenant_test.dart` | `resolveTenant` fails fast (missing, unknown, mismatched `TENANT_NAME`), every tenant config is complete and its logo file exists, every tenant's brand contrasts (cyanDark on paper ≥ 4.5, paper on ink ≥ 4.5, onAccent on accent ≥ 3), the API client sends the tenant's club, OWEST's palette colours |
 | `app_header_test.dart` | Header height/logo consistency across every screen in both locales; submission flow; signature button and pad sizing |
 | `home_screen_test.dart` | Stat counts, today-filter, Next up ordering, ink hand-off cases, pull-to-refresh |
 | `tasks_screens_test.dart` | Both dense screens pumped at real phone width in EN *and* AR — a widget test fails on RenderFlex overflow, which is the cheap way to keep Arabic honest. Also a `follow_up` round built in-test (the fixtures stay untouched): the flag note, Yes/No and number inputs (Arabic digits), the resubmit gate, LTR number field under RTL, and the success screen's follow-up face |
@@ -461,16 +470,33 @@ Layout, camera and live network paths are verified manually by design.
 
 ## 10. Clubs (one app per club, same code)
 
-The tenant method of the members' app, Android only:
+The tenant method of the members' app, Android only. Three clubs (30 Sep):
+
+| Flavor | API slug | App name | applicationId (temporary) | Icon |
+|---|---|---|---|---|
+| `owest` | `ohouse` | O House | `com.example.o_house` | the members' app O West icon |
+| `ryze` | `ryze` | RYZE House | `com.example.o_house.ryze` | the members' app RYZE icon |
+| `kode` | `kode` | KODE House | `com.example.o_house.kode` | the K mark (`kode.png`) on KODE blue |
+
+Distinct temporary ids so all three install side by side on one test phone;
+all become `com.blueribbon.<newapp>.<club>` at the app ID decision. RYZE and
+KODE have no Supabase project yet, so their apps can sign in only against a
+local API whose `CLUBS` has a dev-only entry for them. The club names
+("RYZE" / "KODE") are placeholders, `TODO(club names)` in `tenant.dart`.
 
 - **Native identity:** a flavor per club in `android/app/build.gradle.kts`
   (`applicationId`, `app_name`), icons in `android/app/src/<tenant>/res/`,
   from Step 5 `google-services.json` there too, release signing from a
   gitignored `android/<tenant>.properties` (debug keys without it).
 - **Dart:** `lib/tenant.dart`. Only public values: the Supabase secret key
-  lives in the API alone. Brand colours (`AppColors.ink/cyan/cyanDark/cyanTint`)
-  come from the tenant; magenta and the neutrals are shared.
-- **Assets:** `assets/tenants/<tenant>/logo.png`.
+  lives in the API alone. Brand colours (`AppColors.ink/cyan/cyanDark/cyanTint/onCyan`)
+  come from the tenant (see §6 for the rule); magenta and the neutrals are shared.
+- **Assets:** `assets/tenants/<tenant>/<tenant>.png`, light artwork on a
+  transparent ground (it only ever sits on the ink header). Every club's logo
+  ships in every build.
+- **Running another club:** `tool\run_dev.ps1 -Flavor ryze` (dev), or
+  `--flavor kode --dart-define=TENANT_NAME=KODE`. A build for the Railway test
+  API adds `--dart-define=ENVIRONMENT=prod --dart-define=API_URL=https://o-house-api-production.up.railway.app`.
 - **Tests** run as OWEST (`test/flutter_test_config.dart`) and override
   `userIdProvider` to signed-out, since there is no Supabase in tests.
 - **Adding a club:** enum value + `TenantConfig` + `assets/tenants/<t>/`;

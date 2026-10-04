@@ -45,6 +45,19 @@ android {
             applicationId = "com.example.o_house"
             resValue("string", "app_name", "O House")
         }
+        // Icons: the members' app's per-club launcher icons (src/<flavor>/res).
+        // TODO(app id): com.blueribbon.<newapp>.<club>, as for owest. Distinct
+        // ids for now so all three install side by side on one test phone.
+        create("ryze") {
+            dimension = "tenant"
+            applicationId = "com.example.o_house.ryze"
+            resValue("string", "app_name", "RYZE House")
+        }
+        create("kode") {
+            dimension = "tenant"
+            applicationId = "com.example.o_house.kode"
+            resValue("string", "app_name", "KODE House")
+        }
     }
 
     // Release signing per club, from a gitignored android/<flavor>.properties

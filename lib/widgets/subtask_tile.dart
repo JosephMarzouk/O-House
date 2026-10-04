@@ -276,7 +276,7 @@ class _ChoicePair extends StatelessWidget {
                     fontSize: 15,
                     height: 1.2,
                     fontWeight: picked ? FontWeight.w600 : FontWeight.w400,
-                    color: picked ? AppColors.paper : AppColors.text,
+                    color: picked ? AppColors.onCyan : AppColors.text,
                   ),
                 ),
               ),
@@ -400,7 +400,7 @@ class _Check extends StatelessWidget {
             // one thing on this screen that cannot be taken back.
             locked ? Icons.lock : Icons.check,
             size: locked ? 15 : 19,
-            color: AppColors.paper,
+            color: AppColors.onCyan,
           )
         : null,
   );
@@ -539,11 +539,11 @@ class _CameraButton extends StatelessWidget {
                     ),
                     child: Text(
                       '${photos.length}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         height: 1.3,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.paper,
+                        color: AppColors.onCyan,
                       ),
                     ),
                   ),

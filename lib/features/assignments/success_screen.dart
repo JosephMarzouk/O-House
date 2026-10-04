@@ -142,7 +142,7 @@ class SuccessScreen extends ConsumerWidget {
                   TextButton(
                     onPressed: secondary.$2,
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.cyan,
+                      foregroundColor: AppColors.cyanDark,
                       minimumSize: const Size.fromHeight(52),
                     ),
                     child: Text(secondary.$1),

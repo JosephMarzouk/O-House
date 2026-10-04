@@ -8,8 +8,8 @@ void main() {
       expect(buildTheme().colorScheme.primary, AppColors.cyan);
     });
 
-    test('sets Source Serif 4 as the typeface', () {
-      expect(buildTheme().textTheme.bodyMedium?.fontFamily, 'Source Serif 4');
+    test('sets Montserrat as the typeface', () {
+      expect(buildTheme().textTheme.bodyMedium?.fontFamily, 'Montserrat');
     });
 
     test('uses the sharp 2px corner radius on cards', () {

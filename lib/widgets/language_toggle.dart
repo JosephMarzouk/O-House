@@ -62,7 +62,7 @@ class LanguageToggle extends StatelessWidget {
             style: TextStyle(
               fontSize: compact ? 12.5 : 14,
               fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-              color: active ? AppColors.paper : AppColors.text,
+              color: active ? AppColors.onCyan : AppColors.text,
             ),
           ),
         ),

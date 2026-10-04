@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,7 +32,29 @@ void main() {
       expect(c.clubSlug, isNotEmpty);
       expect(c.appNameEn, isNotEmpty);
       expect(c.appNameAr, isNotEmpty);
-      expect(c.logo, 'assets/tenants/${t.name}/logo.png');
+      expect(c.logo, 'assets/tenants/${t.name}/${t.name}.png');
+      // A renamed logo once broke the build silently: the path must exist.
+      expect(File(c.logo).existsSync(), isTrue, reason: '${t.name} logo');
+    }
+  });
+
+  test('every tenant\'s brand colours stay readable', () {
+    double contrast(Color a, Color b) {
+      final x = a.computeLuminance(), y = b.computeLuminance();
+      return (max(x, y) + 0.05) / (min(x, y) + 0.05);
+    }
+
+    for (final t in Tenant.values) {
+      final c = tenantConfigs[t]!;
+      // Link and label text on the page ground (WCAG AA body text).
+      expect(contrast(c.accentDark, AppColors.paper), greaterThanOrEqualTo(4.5),
+          reason: '${t.name} accentDark on paper');
+      // Header text on the ink block.
+      expect(contrast(AppColors.paper, c.ink), greaterThanOrEqualTo(4.5),
+          reason: '${t.name} paper on ink');
+      // Button labels and chips on an accent fill (large/bold text, UI).
+      expect(contrast(c.onAccent, c.accent), greaterThanOrEqualTo(3),
+          reason: '${t.name} onAccent on accent');
     }
   });
 
@@ -39,8 +64,8 @@ void main() {
     expect(container.read(apiClientProvider).club, 'ohouse');
   });
 
-  test("O West's brand colours are the Broadsheet ones the app shipped with", () {
-    expect(AppColors.ink, const Color(0xFF0E213F));
-    expect(AppColors.cyan, const Color(0xFF0088B0));
+  test("O West's brand colours are its members'-app palette", () {
+    expect(AppColors.ink, const Color(0xFF1D2749)); // primary 500
+    expect(AppColors.cyan, const Color(0xFF229BA8)); // secondary 500
   });
 }

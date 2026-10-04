@@ -46,7 +46,7 @@ class StatusChip extends StatelessWidget {
       'approved' => (
         t.statusApproved,
         AppColors.cyan,
-        AppColors.paper,
+        AppColors.onCyan,
         Icons.check_circle,
         false,
       ),

@@ -145,7 +145,9 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     // Colour and weight carry the selected state on their own — no separate
     // filled/outlined icon pair to keep in sync.
-    final color = selected ? AppColors.cyan : const Color(0x80201E1D);
+    // cyanDark, not cyan: the label is text on paper, and some clubs' accent
+    // (RYZE's orange, 1.9:1) is too light to read there.
+    final color = selected ? AppColors.cyanDark : const Color(0x80201E1D);
 
     return Expanded(
       child: InkWell(

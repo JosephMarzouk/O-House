@@ -311,12 +311,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 FilledButton(
                   onPressed: _loading ? null : () => _submit(t),
                   child: _loading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.paper,
+                            color: AppColors.onCyan,
                           ),
                         )
                       : Text(t.loginButton),
