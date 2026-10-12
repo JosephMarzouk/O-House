@@ -499,4 +499,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonSave => 'Save';
+
+  @override
+  String get pushPermissionTitle => 'Notifications';
+
+  @override
+  String get pushPermissionReason =>
+      'Get a notification when a round is given to you, is about to close, or is sent back.';
+
+  @override
+  String get pushPermissionContinue => 'Continue';
+
+  @override
+  String get pushOpen => 'Open';
 }

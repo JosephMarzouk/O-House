@@ -87,6 +87,12 @@ class ApiClient {
   Future<Object?> patch(String path, {Object? json}) =>
       _send(() async => _json('PATCH', path, json));
 
+  Future<Object?> put(String path, {Object? json}) =>
+      _send(() async => _json('PUT', path, json));
+
+  Future<Object?> delete(String path) =>
+      _send(() async => http.Request('DELETE', _uri(path)));
+
   /// Multipart: one [file] field plus text [fields].
   Future<Object?> upload(
     String path, {

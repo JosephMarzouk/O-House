@@ -8,6 +8,7 @@ import '../../data/auth_service.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/localized_text.dart';
+import '../../push/push_service.dart';
 import '../../tenant.dart';
 import '../../theme.dart';
 import '../../widgets/app_header.dart';
@@ -163,6 +164,8 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     );
     if (ok != true) return;
   }
+  // While the session still exists: this phone stops getting the person's pushes.
+  await unregisterPush(ref.read(apiClientProvider));
   await authService.signOut();
 }
 

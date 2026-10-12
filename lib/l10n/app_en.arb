@@ -172,5 +172,9 @@
 
   "commonCancel": "Cancel",
   "commonRetry": "Retry",
-  "commonSave": "Save"
+  "commonSave": "Save",
+  "pushPermissionTitle": "Notifications",
+  "pushPermissionReason": "Get a notification when a round is given to you, is about to close, or is sent back.",
+  "pushPermissionContinue": "Continue",
+  "pushOpen": "Open"
 }

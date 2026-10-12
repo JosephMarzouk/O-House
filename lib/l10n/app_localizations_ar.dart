@@ -503,4 +503,17 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get commonSave => 'حفظ';
+
+  @override
+  String get pushPermissionTitle => 'الإشعارات';
+
+  @override
+  String get pushPermissionReason =>
+      'تصلك إشعارات عندما تُسند إليك جولة، أو يقترب موعد إغلاقها، أو تُعاد إليك للتعديل.';
+
+  @override
+  String get pushPermissionContinue => 'متابعة';
+
+  @override
+  String get pushOpen => 'فتح';
 }

@@ -4,6 +4,15 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
+}
+
+// Each club is its own Firebase project: src/<flavor>/google-services.json.
+// A club without one yet (RYZE, KODE: no project) still builds, with a
+// warning, and the app starts with push off (lib/push/push_service.dart).
+googleServices {
+    missingGoogleServicesStrategy =
+        com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy.WARN
 }
 
 android {

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/auth_service.dart';
 import '../../data/providers.dart';
 import '../../models/profile.dart';
+import '../../push/push_service.dart';
 import '../../theme.dart';
 import '../../widgets/brand_panel.dart';
 import '../locale_provider.dart';
@@ -58,12 +59,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     if (profile == null) {
       context.go('/home');
+      openPendingPushRoute();
       return;
     }
 
     ref.read(localeProvider.notifier).set(profile.locale);
     // Always Home: passwords are set by an admin in the portal, never here.
+    // A tapped push that launched the app opens over it (its round, Tasks).
     context.go('/home');
+    openPendingPushRoute();
   }
 
   @override

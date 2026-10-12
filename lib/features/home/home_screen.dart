@@ -7,6 +7,7 @@ import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/assignment.dart';
 import '../../models/club_zone.dart';
+import '../../push/push_service.dart';
 import '../../theme.dart';
 import '../../widgets/app_nav_bar.dart';
 import '../../widgets/ink_handoff_panel.dart';
@@ -43,6 +44,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _askedForLocation = true;
       ensureLocationPermission().ignore();
     }, fireImmediately: true);
+    // Notifications (PN-2) are asked here for the same reason, once the ink
+    // hand-off has finished, so the dialog never lands mid-animation.
+    if (pushAvailable) {
+      Future<void>.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) askPushPermission(context);
+      });
+    }
   }
 
   @override

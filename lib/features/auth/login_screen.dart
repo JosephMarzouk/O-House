@@ -7,6 +7,7 @@ import '../../data/auth_service.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/profile.dart';
+import '../../push/push_service.dart';
 import '../../tenant.dart';
 import '../../theme.dart';
 import '../../widgets/brand_panel.dart';
@@ -119,6 +120,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     // must_change_password is not read here.
     loginHandoffFromHeight = inkHeaderHeight(context, _headerContentHeight);
     context.go('/home');
+    // A tapped push that launched the app while signed out opens once in.
+    openPendingPushRoute();
   }
 
   @override

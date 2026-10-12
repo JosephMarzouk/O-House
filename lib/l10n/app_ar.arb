@@ -160,5 +160,9 @@
 
   "commonCancel": "إلغاء",
   "commonRetry": "إعادة المحاولة",
-  "commonSave": "حفظ"
+  "commonSave": "حفظ",
+  "pushPermissionTitle": "الإشعارات",
+  "pushPermissionReason": "تصلك إشعارات عندما تُسند إليك جولة، أو يقترب موعد إغلاقها، أو تُعاد إليك للتعديل.",
+  "pushPermissionContinue": "متابعة",
+  "pushOpen": "فتح"
 }

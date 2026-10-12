@@ -79,7 +79,7 @@ Refactored away in `8f4202a`, do not resurrect:
 | 1 | Online-only reads/writes, all screens | **Done** |
 | 2 | Image compression before queuing | **Done (Step 3)** — the picker itself: 1600 px long edge, quality 75 |
 | 3 | Offline writes: outbox drain, optimistic local updates, cache reads | **Code done (plan Step 3)** — every read and write goes through the O House API (`data/api_client.dart`); cache-first providers; SyncService v2 (per-round order, backoff, parking with Retry/Dismiss, user-scoped); one app per club (tenant flavors). Verified on a real phone against the local API: reads, and an offline submit (Wi-Fi off) that sent itself on reconnect, signature in storage, `completed_at` = signing time |
-| 4 | Push notifications | **Not started** — `firebase_core`/`firebase_messaging` in pubspec, zero Dart references, no `google-services.json` |
+| 4 | Push notifications | **Done for Android (12 Oct), checked on a real phone** — `lib/push/push_service.dart`. Firebase from the flavor's `android/app/src/<flavor>/google-services.json` (only `owest` has one: project `o-house-4fce4`; RYZE and KODE build with push off). The token goes to `PUT /me/devices` while signed in and is removed at sign-out (`DELETE`, then `deleteToken`). Home asks for permission once, with a one-line reason, only while Android hasn't decided. A push in the foreground shows a banner (Open) and refreshes the rounds; a tap opens `data.open`: the round, Tasks, or Home. `MainActivity` makes the `rounds` channel. The server writes the text (EN/AR). E10 (upload refused) not built yet |
 | — | Club zone (29–30 Sep) | **Done, checked on a real phone** — a checklist that can still be filled opens and submits only inside the club's zone (`club_location`, a point and a radius set once on the portal; it rides on `GET /me` as `location`). The check is in the app only (`geolocator`). Home asks for location as soon as the club has a zone; a refusal, location off, approximate-only, a mocked position or "N m from the club" replace the checklist with a message and Retry / Open settings. **Fails closed:** until `/me` has succeeded once on this phone (`club_location_synced`), checklists stay shut ("Connect to the internet once…"). No zone set = no gate |
 | — | Sync you can see (30 Sep) | Resume and reconnect refetch `/assignments` and `/me` (30 s throttle; at once after a failure); pull to refresh fetches `/me` too. A failed fetch shows "Can't reach the server — showing saved tasks · Last updated HH:mm" whatever the outbox holds. An overnight window (22:00 → 01:00) stays in Today until its deadline |
 | — | Role names (29 Sep) | The header shows the role's own name from `/me`'s `access.role` (custom roles included), in the reader's language, cached with the profile. The app still gates nothing by role |
@@ -161,6 +161,14 @@ main.dart → authService.load() → ProviderScope → OHouseApp (app.dart)
 - **No password screen.** Staff never change their password in the app
   (business rule): only an admin sets it, in the portal. Sign-in always lands
   on Home; `profiles.must_change_password` is not read.
+- **Push** (`lib/push/push_service.dart`): `initPush()` in `main.dart` starts
+  Firebase (off when the flavor has no `google-services.json`, in tests and on
+  web: `pushAvailable`) and keeps a tap that launched the app in
+  `pendingPushRoute`, which Splash and Login open over Home after their own
+  checks. `pushServiceProvider` (kept alive in `app.dart`) holds the token and
+  the foreground handlers while someone is signed in; `unregisterPush` runs in
+  Profile's sign-out before the session goes. The banner uses the
+  `scaffoldMessengerKey` on `MaterialApp.router`.
 - **About / Policies** come from `club_pages` (an admin writes them in the
   portal), on `GET /me` as `pages`, cached in `settings` (`clubPagesProvider`)
   so they show offline; empty → the built-in ARB line.
@@ -214,6 +222,7 @@ does not cut — it *shrinks* into the next screen's header.
 | File | Purpose |
 |---|---|
 | `lib/main.dart` | Boot: portrait lock, `authService.load()` (tokens from secure storage), `ProviderScope` |
+| `lib/push/push_service.dart` | Push: `initPush`, `pushServiceProvider` (token, foreground banner, taps), `routeFor`, `askPushPermission` (Home), `unregisterPush` (sign-out) |
 | `lib/tenant.dart` | **Clubs.** `enum Tenant`, `TenantConfig` (API slug, names, brand colours, logo; no Supabase URL or key), tenant from `appFlavor` checked against `TENANT_NAME`, `apiBaseUrl` from `ENVIRONMENT` |
 | `lib/app.dart` | `MaterialApp.router`, theme, locale, l10n delegates |
 | `lib/router.dart` | All routes + auth redirect (`refreshListenable: authService`) |
@@ -417,7 +426,7 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 
 ---
 
-## 7. Tests (`test/`, 132 tests, all passing)
+## 7. Tests (`test/`, 135 tests, all passing)
 
 | File | Covers |
 |---|---|
@@ -425,6 +434,7 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 | `outbox_test.dart` | The refusal contract as the phone reads it (`classifyResponse`), the 401 refresh-and-retry, and SyncService against fakes: per-round order, a 503 stops one round, no response stops all, parking + Retry, evidence deleted only after a 2xx, MISSING_FILE, user scoping, the rerun flag, refresh after a send; `backoff`, `applyLocal`, `isoWithOffset`, `RoundDraft`, `syntheticEmailToPhone` |
 | `submit_sync_test.dart` | The signature flow: queue then drain, success built on the re-read, a refused round reports why and goes Home instead of claiming success, the supervisor note travels with the submit, an empty pad does nothing |
 | `club_pages_test.dart` | Profile's About / Policies: the admin's text in the reader's language, the other language when one is empty, the built-in line when nothing is written |
+| `push_test.dart` | `routeFor`: where a tapped push opens (a round, Tasks, Home, nothing for malformed data); the device token goes up with PUT and comes back with an encoded DELETE |
 | `club_zone_test.dart` | `insideClub` (inside, outside, mocked, no zone), the `/me` shape, and `clubZoneState`: never synced blocks, synced with no zone has no gate, a cached zone is the zone |
 | `role_label_test.dart` | The header's role name: en/ar pick, fallback to the role key when `/me` has no `access` |
 | `tenant_test.dart` | `resolveTenant` fails fast (missing, unknown, mismatched `TENANT_NAME`), every tenant config is complete and its logo file exists, every tenant's brand contrasts (cyanDark on paper ≥ 4.5, paper on ink ≥ 4.5, onAccent on accent ≥ 3), the API client sends the tenant's club, OWEST's palette colours |

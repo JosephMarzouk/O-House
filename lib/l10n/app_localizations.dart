@@ -859,6 +859,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get commonSave;
+
+  /// No description provided for @pushPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get pushPermissionTitle;
+
+  /// No description provided for @pushPermissionReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Get a notification when a round is given to you, is about to close, or is sent back.'**
+  String get pushPermissionReason;
+
+  /// No description provided for @pushPermissionContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get pushPermissionContinue;
+
+  /// No description provided for @pushOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get pushOpen;
 }
 
 class _AppLocalizationsDelegate
