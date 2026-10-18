@@ -181,26 +181,35 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
                     const SizedBox(height: 10),
                     // Capped rather than free-growing: the pad used to take
                     // every leftover pixel, which on a tall phone made a
-                    // signature box deeper than the screen it sits on.
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 420),
-                      child: Directionality(
-                        // A drawing surface, not text — it must not mirror.
-                        textDirection: TextDirection.ltr,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            border: Border.all(color: AppColors.divider),
-                            borderRadius: kRadius,
-                          ),
-                          child: Signature(
-                            controller: _controller,
-                            backgroundColor: AppColors.surface,
+                    // signature box deeper than the screen it sits on. And
+                    // it shrinks below the cap: a fixed 420 pushed Submit off
+                    // a 360x640 screen (B20); the buttons always fit now.
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 420),
+                          child: SizedBox.expand(
+                            child: Directionality(
+                              // A drawing surface, not text — it must not mirror.
+                              textDirection: TextDirection.ltr,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  border: Border.all(color: AppColors.divider),
+                                  borderRadius: kRadius,
+                                ),
+                                child: Signature(
+                                  controller: _controller,
+                                  backgroundColor: AppColors.surface,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
@@ -226,7 +235,8 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 26),
+                    // Above the system navigation bar (3-button or gesture).
+                    SizedBox(height: 26 + MediaQuery.viewPaddingOf(context).bottom),
                   ],
                 ),
               ),

@@ -43,10 +43,11 @@ Future<void> _pump(
   WidgetTester tester,
   Widget home, {
   String locale = 'en',
+  Size size = const Size(410, 864),
 }) async {
   tester.view
     ..devicePixelRatio = 1.0
-    ..physicalSize = const Size(410, 864);
+    ..physicalSize = size;
   addTearDown(tester.view.reset);
 
   await tester.pumpWidget(
@@ -272,5 +273,18 @@ void main() {
         lessThanOrEqualTo(420),
       );
     });
+
+    // B20 / FIELD-05: a fixed 420 pad pushed Submit off a 360x640 phone, and
+    // the 3-button navigation bar covered what was left.
+    for (final locale in ['en', 'ar']) {
+      testWidgets('on a 360x640 phone with a nav bar, Submit is fully on screen ($locale)', (tester) async {
+        tester.view.viewPadding = const FakeViewPadding(bottom: 48);
+        await _pump(tester, const SignatureScreen(assignmentId: 'demo-1'), locale: locale, size: const Size(360, 640));
+        expect(tester.takeException(), isNull); // no overflow
+        final submit = tester.getRect(find.byType(FilledButton));
+        expect(submit.bottom, lessThanOrEqualTo(640 - 48));
+        expect(tester.getSize(find.byType(Signature)).height, greaterThan(100), reason: 'still room to sign');
+      });
+    }
   });
 }
