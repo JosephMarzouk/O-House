@@ -68,4 +68,24 @@ void main() {
     expect(AppColors.ink, const Color(0xFF1D2749)); // primary 500
     expect(AppColors.cyan, const Color(0xFF229BA8)); // secondary 500
   });
+
+  group('F-08 / MOB-04: which API a build talks to', () {
+    test('a release build with no defines uses the deployed API over https', () {
+      expect(resolveApiUrl(environment: 'prod', override: '', release: true), prodApiUrl);
+      expect(prodApiUrl, startsWith('https://'));
+    });
+
+    test('a debug build defaults to this computer', () {
+      expect(resolveApiUrl(environment: 'dev', override: '', release: false), 'http://127.0.0.1:4000');
+    });
+
+    test('a release build refuses plain http, from either source', () {
+      expect(() => resolveApiUrl(environment: 'dev', override: '', release: true), throwsStateError);
+      expect(() => resolveApiUrl(environment: 'prod', override: 'http://10.0.0.2:4000', release: true), throwsStateError);
+    });
+
+    test('API_URL overrides the environment', () {
+      expect(resolveApiUrl(environment: 'prod', override: 'https://api.example.test', release: true), 'https://api.example.test');
+    });
+  });
 }

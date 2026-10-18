@@ -136,20 +136,40 @@ final Tenant currentTenant =
 
 TenantConfig get tenant => tenantConfigs[currentTenant]!;
 
-/// `dev` or `prod` (the ENVIRONMENT dart-define).
-const environment = String.fromEnvironment('ENVIRONMENT', defaultValue: 'dev');
+/// `dev` or `prod` (the ENVIRONMENT dart-define). A release build defaults to
+/// prod, so a store or pilot APK built without defines can never point at
+/// this computer (F-08); debug builds still default to dev.
+const environment = String.fromEnvironment('ENVIRONMENT', defaultValue: kReleaseMode ? 'prod' : 'dev');
+
+/// The deployed API. One API serves every club (X-Club picks the club;
+/// PLAN.md "Multi-club"), so this is one URL, not one per tenant.
+/// ponytail: the Railway test project's address, used for the 2-week pilot
+/// (from 20 Oct 2026); change it here when production gets its own domain.
+const prodApiUrl = 'https://o-house-api-production.up.railway.app';
 
 /// ENVIRONMENT=dev → the API on this computer, reached over USB: run
 /// `adb reverse tcp:4000 tcp:4000` once per connection (a phone or the
 /// emulator alike; tool/run_dev.ps1 does it). prod → the deployed API.
 /// API_URL overrides either.
-String get apiBaseUrl {
-  const override = String.fromEnvironment('API_URL');
-  if (override.isNotEmpty) return override;
-  return switch (environment) {
-    'dev' => 'http://127.0.0.1:4000',
-    // TODO(deploy): the Railway API's URL once Step 1 is deployed.
-    'prod' => throw StateError('No prod API URL yet: pass --dart-define=API_URL=...'),
-    _ => throw StateError('ENVIRONMENT must be dev or prod, not "$environment".'),
-  };
+String get apiBaseUrl => resolveApiUrl(
+      environment: environment,
+      override: const String.fromEnvironment('API_URL'),
+      release: kReleaseMode,
+    );
+
+/// Pure, so the rules are tested without a release build. A release build
+/// talks HTTPS only: staff passwords and tokens never go out in clear.
+@visibleForTesting
+String resolveApiUrl({required String environment, required String override, required bool release}) {
+  final url = override.isNotEmpty
+      ? override
+      : switch (environment) {
+          'dev' => 'http://127.0.0.1:4000',
+          'prod' => prodApiUrl,
+          _ => throw StateError('ENVIRONMENT must be dev or prod, not "$environment".'),
+        };
+  if (release && !url.startsWith('https://')) {
+    throw StateError('A release build must use an https API, not "$url".');
+  }
+  return url;
 }
