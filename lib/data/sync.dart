@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -52,6 +53,51 @@ Duration backoff(int failures) {
   if (failures <= 0) return Duration.zero;
   final s = 5 * (1 << (failures - 1).clamp(0, 6));
   return Duration(seconds: s > 300 ? 300 : s);
+}
+
+/// Answered failures after which a change stops retrying and waits for the
+/// person instead (SYNC-Q1: never retry forever). At the 5-minute backoff cap
+/// that is about two hours of a server that keeps refusing.
+const maxAttempts = 24;
+
+/// SYNC-Q1 / F-12: whether a failed send should park now, and with what.
+/// null = keep retrying with backoff.
+///  * 400 / 403 / 404 / 409 park at once: the server has answered, and asking
+///    again won't change its mind (a deactivated account's 403 included).
+///  * Any other answer (503, 429, an unexpected 5xx) counts toward
+///    [maxAttempts]; the 24th in a row parks as STILL_FAILING.
+///  * No response, or an expired session (401), doesn't count: that is the
+///    phone being offline or signed out, not the change failing, and staff
+///    working two hours in a basement must not come back to "needs attention".
+/// Parked work is never deleted without the person's Dismiss.
+@visibleForTesting
+({String code, String message})? parkFor(ApiUnavailable e, int attemptsBefore) {
+  final s = e.status;
+  if (s == null || s == 401) return null;
+  if (const {400, 403, 404, 409}.contains(s)) {
+    final body = _jsonObject(e.detail);
+    return (
+      code: body?['code'] is String ? body!['code'] as String : 'HTTP_$s',
+      message: body?['message'] is String ? body!['message'] as String : 'The server refused this change ($s)',
+    );
+  }
+  if (attemptsBefore + 1 >= maxAttempts) {
+    return (code: 'STILL_FAILING', message: 'The server kept refusing this change ($s, $maxAttempts tries)');
+  }
+  return null;
+}
+
+/// Whether a failure is one of the answered ones [parkFor] counts.
+bool _counts(ApiUnavailable e) => e.status != null && e.status != 401;
+
+Map<String, dynamic>? _jsonObject(Object? detail) {
+  if (detail is! String) return null;
+  try {
+    final j = jsonDecode(detail);
+    return j is Map<String, dynamic> ? j : null;
+  } on FormatException {
+    return null;
+  }
 }
 
 /// Raised for evidence the OS or the user deleted before it was sent. The
@@ -169,14 +215,23 @@ class SyncService {
         waiting--;
         unawaited(_reportMissing(op, code, message));
       } on ApiUnavailable catch (e) {
-        await db.bumpAttempts(op.id);
-        retryable = true;
-        debugPrint('[outbox] ${op.op} ${op.id} will retry: $e');
-        if (e.stopsAll) {
-          offline = e.status == null;
-          break;
+        final park = parkFor(e, op.attempts);
+        if (park != null) {
+          await db.park(op.id, park.code, park.message);
+          stopped.add(op.assignmentId);
+          parked++;
+          waiting--;
+          debugPrint('[outbox] parked ${op.op} ${op.id}: ${park.code}');
+        } else {
+          if (_counts(e)) await db.bumpAttempts(op.id);
+          retryable = true;
+          debugPrint('[outbox] ${op.op} ${op.id} will retry: $e');
+          if (e.stopsAll) {
+            offline = e.status == null;
+            break;
+          }
+          stopped.add(op.assignmentId);
         }
-        stopped.add(op.assignmentId);
       }
       status.value = SyncStatus(
         waiting: waiting,

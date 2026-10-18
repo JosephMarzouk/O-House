@@ -415,6 +415,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refusalOther => 'The server could not accept this change.';
 
   @override
+  String get refusalStillFailing =>
+      'The server kept failing to accept this change. Tap Retry later, or tell your supervisor.';
+
+  @override
+  String get refusalNoAccess =>
+      'Your account no longer has access. Ask your supervisor.';
+
+  @override
   String signOutUnsentTitle(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

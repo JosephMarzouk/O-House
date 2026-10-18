@@ -90,6 +90,8 @@ String refusalReason(AppLocalizations t, String code) => switch (code) {
   'MISSING_PHOTO' => t.refusalMissingPhoto,
   'EMPTY_SUBMISSION' => t.refusalEmpty,
   'MISSING_FILE' => t.refusalMissingFile,
+  'STILL_FAILING' => t.refusalStillFailing,
+  'NO_ACCESS' => t.refusalNoAccess,
   _ => t.refusalOther,
 };
 

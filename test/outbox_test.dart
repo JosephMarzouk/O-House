@@ -43,7 +43,7 @@ class _MemDb implements LocalDb {
     ),
   );
 
-  OutboxOp _copy(OutboxOp o, {String? code, String? message, bool clear = false}) =>
+  OutboxOp _copy(OutboxOp o, {String? code, String? message, bool clear = false, int? attempts}) =>
       OutboxOp(
         seq: o.seq,
         id: o.id,
@@ -51,7 +51,7 @@ class _MemDb implements LocalDb {
         assignmentId: o.assignmentId,
         op: o.op,
         payload: o.payload,
-        attempts: o.attempts,
+        attempts: attempts ?? o.attempts,
         parkedCode: clear ? null : code ?? o.parkedCode,
         parkedMessage: clear ? null : message ?? o.parkedMessage,
       );
@@ -64,7 +64,10 @@ class _MemDb implements LocalDb {
   Future<void> dequeue(String id) async => rows.removeWhere((o) => o.id == id);
 
   @override
-  Future<void> bumpAttempts(String id) async {}
+  Future<void> bumpAttempts(String id) async {
+    final i = rows.indexWhere((o) => o.id == id);
+    rows[i] = _copy(rows[i], attempts: rows[i].attempts + 1);
+  }
 
   @override
   Future<void> park(String id, String code, String message) async {
@@ -247,6 +250,66 @@ void main() {
       await s2.retry('1');
       expect(ok.calls, ['/assignments/A/items/i1/answer', '/assignments/A/items/i2/answer']);
       expect(db.rows, isEmpty);
+    });
+
+    test('F-12 / SYNC-04: a 400/403/404/409 parks at once with the server\'s code', () async {
+      for (final (status, body, code) in [
+        (409, '{"code":"LOGIN_TAKEN","message":"x"}', 'LOGIN_TAKEN'),
+        (403, '{"code":"NO_ACCESS","message":"This account has no access"}', 'NO_ACCESS'),
+        (404, '{"code":"NOT_FOUND"}', 'NOT_FOUND'),
+        (400, 'not json', 'HTTP_400'),
+      ]) {
+        final db = _MemDb()
+          ..add('1', 'A', 'answer', payload: {'itemId': 'i1'})
+          ..add('2', 'B', 'answer', payload: {'itemId': 'i2'});
+        final api = _FakeApi((path) {
+          if (path.contains('i1')) throw ApiUnavailable(status, body);
+        });
+        final s = sync(db, api);
+        await s.drain();
+        expect(db.rows.map((o) => (o.id, o.parkedCode)), [('1', code)], reason: '$status');
+        expect(api.calls, hasLength(2)); // B was sent: a park stops only its round
+        await s.drain();
+        expect(api.calls, hasLength(2), reason: 'a parked op is not retried');
+        s.dispose();
+      }
+    });
+
+    test('F-12 / SYNC-04: repeated server failures park as STILL_FAILING on the 24th', () async {
+      final db = _MemDb()..add('1', 'A', 'answer', payload: {'itemId': 'i1'});
+      final api = _FakeApi((_) => throw ApiUnavailable(503));
+      final s = sync(db, api);
+      for (var i = 1; i < maxAttempts; i++) {
+        await s.drain();
+      }
+      expect(db.rows.single.parkedCode, isNull, reason: '23 failures still retry');
+      expect(db.rows.single.attempts, maxAttempts - 1);
+      await s.drain();
+      expect(db.rows.single.parkedCode, 'STILL_FAILING');
+      expect(db.rows, hasLength(1), reason: 'parked, never deleted');
+      s.dispose();
+    });
+
+    test('F-12: being offline or signed out never counts toward the cap', () async {
+      final db = _MemDb()..add('1', 'A', 'answer', payload: {'itemId': 'i1'});
+      for (final status in [null, 401]) {
+        final s = sync(db, _FakeApi((_) => throw ApiUnavailable(status)));
+        for (var i = 0; i < maxAttempts + 5; i++) {
+          await s.drain();
+        }
+        s.dispose();
+      }
+      expect(db.rows.single.parkedCode, isNull);
+      expect(db.rows.single.attempts, 0);
+    });
+
+    test('parkFor: the rule on its own', () {
+      expect(parkFor(ApiUnavailable(503), 0), isNull);
+      expect(parkFor(ApiUnavailable(503), maxAttempts - 1)?.code, 'STILL_FAILING');
+      expect(parkFor(ApiUnavailable(429), maxAttempts - 1)?.code, 'STILL_FAILING');
+      expect(parkFor(ApiUnavailable(null), 999), isNull);
+      expect(parkFor(ApiUnavailable(401), 999), isNull);
+      expect(parkFor(ApiUnavailable(409, '{"code":"X","message":"m"}'), 0), (code: 'X', message: 'm'));
     });
 
     test('evidence is deleted only after a 2xx', () async {

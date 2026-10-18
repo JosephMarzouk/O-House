@@ -146,6 +146,8 @@
   "refusalEmpty": "Nothing on this round was answered.",
   "refusalMissingFile": "The photo or signature is no longer on this phone.",
   "refusalOther": "The server could not accept this change.",
+  "refusalStillFailing": "The server kept failing to accept this change. Tap Retry later, or tell your supervisor.",
+  "refusalNoAccess": "Your account no longer has access. Ask your supervisor.",
   "signOutUnsentTitle": "{count, plural, one{1 change not sent yet} other{{count} changes not sent yet}}",
   "@signOutUnsentTitle": { "placeholders": { "count": { "type": "int" } } },
   "signOutUnsentBody": "They stay on this phone and are sent the next time you sign in here.",

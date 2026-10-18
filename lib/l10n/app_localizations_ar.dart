@@ -420,6 +420,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get refusalOther => 'تعذّر على الخادم قبول هذا التغيير.';
 
   @override
+  String get refusalStillFailing =>
+      'تعذّر على الخادم قبول هذا التغيير بعد محاولات كثيرة. اضغط إعادة المحاولة لاحقاً أو أبلغ مشرفك.';
+
+  @override
+  String get refusalNoAccess => 'لم يعد لحسابك صلاحية الدخول. تواصل مع مشرفك.';
+
+  @override
   String signOutUnsentTitle(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

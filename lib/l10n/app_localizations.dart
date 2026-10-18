@@ -734,6 +734,18 @@ abstract class AppLocalizations {
   /// **'The server could not accept this change.'**
   String get refusalOther;
 
+  /// No description provided for @refusalStillFailing.
+  ///
+  /// In en, this message translates to:
+  /// **'The server kept failing to accept this change. Tap Retry later, or tell your supervisor.'**
+  String get refusalStillFailing;
+
+  /// No description provided for @refusalNoAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account no longer has access. Ask your supervisor.'**
+  String get refusalNoAccess;
+
   /// No description provided for @signOutUnsentTitle.
   ///
   /// In en, this message translates to:
