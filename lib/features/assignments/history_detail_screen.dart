@@ -13,6 +13,7 @@ import '../../theme.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/evidence_video.dart';
 import '../../widgets/photo_thumb.dart';
+import '../../widgets/round_gone.dart';
 import '../../widgets/status_chip.dart';
 
 /// §6, screen 10 — artboard 1i. What was submitted, exactly as it was sent:
@@ -30,12 +31,7 @@ class HistoryDetailScreen extends ConsumerWidget {
     final t = AppLocalizations.of(context)!;
     final assignment = ref.watch(assignmentByIdProvider(assignmentId));
 
-    if (assignment == null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
+    if (assignment == null) return const RoundGone();
 
     final a = assignment;
     final locale = Localizations.localeOf(context).toString();

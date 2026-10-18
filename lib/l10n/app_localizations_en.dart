@@ -415,6 +415,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refusalOther => 'The server could not accept this change.';
 
   @override
+  String get roundGoneTitle => 'This checklist is no longer assigned to you';
+
+  @override
+  String get roundGoneBody =>
+      'Someone else may have started it, or it was moved or removed. Anything you did on it stays on this phone and shows under Needs attention.';
+
+  @override
+  String get roundGoneBack => 'Back to tasks';
+
+  @override
   String get updateTitle => 'Update the app';
 
   @override

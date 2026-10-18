@@ -19,6 +19,7 @@ import '../../models/club_zone.dart';
 import '../../theme.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/error_snack.dart';
+import '../../widgets/round_gone.dart';
 import '../../widgets/subtask_tile.dart';
 import '../../widgets/task_progress_bar.dart';
 import 'club_zone.dart';
@@ -497,12 +498,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   Widget build(BuildContext context) {
     final assignment = ref.watch(assignmentByIdProvider(widget.assignmentId));
 
-    if (assignment == null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
+    if (assignment == null) return const RoundGone();
 
     final readOnly = assignment.isReadOnly;
     // A round that can no longer be filled is only read: no zone check.

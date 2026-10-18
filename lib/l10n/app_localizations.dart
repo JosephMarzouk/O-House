@@ -734,6 +734,24 @@ abstract class AppLocalizations {
   /// **'The server could not accept this change.'**
   String get refusalOther;
 
+  /// No description provided for @roundGoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This checklist is no longer assigned to you'**
+  String get roundGoneTitle;
+
+  /// No description provided for @roundGoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone else may have started it, or it was moved or removed. Anything you did on it stays on this phone and shows under Needs attention.'**
+  String get roundGoneBody;
+
+  /// No description provided for @roundGoneBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to tasks'**
+  String get roundGoneBack;
+
   /// No description provided for @updateTitle.
   ///
   /// In en, this message translates to:

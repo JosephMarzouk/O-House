@@ -420,6 +420,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get refusalOther => 'تعذّر على الخادم قبول هذا التغيير.';
 
   @override
+  String get roundGoneTitle => 'هذه القائمة لم تعد مسندة إليك';
+
+  @override
+  String get roundGoneBody =>
+      'ربما بدأها شخص آخر، أو نُقلت أو حُذفت. أي عمل قمت به عليها يبقى على هذا الهاتف ويظهر تحت «يحتاج إلى انتباه».';
+
+  @override
+  String get roundGoneBack => 'العودة إلى المهام';
+
+  @override
   String get updateTitle => 'حدّث التطبيق';
 
   @override
