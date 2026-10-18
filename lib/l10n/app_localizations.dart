@@ -734,6 +734,36 @@ abstract class AppLocalizations {
   /// **'The server could not accept this change.'**
   String get refusalOther;
 
+  /// No description provided for @updateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update the app'**
+  String get updateTitle;
+
+  /// No description provided for @updateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This version of the app is no longer supported. Install the new version to keep working. Anything not sent yet stays on this phone and is sent after the update.'**
+  String get updateBody;
+
+  /// No description provided for @updateDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the update'**
+  String get updateDownload;
+
+  /// No description provided for @updateAskSupervisor.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask your supervisor for the new version.'**
+  String get updateAskSupervisor;
+
+  /// No description provided for @profileAppVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'App version {name} ({code})'**
+  String profileAppVersion(String name, int code);
+
   /// No description provided for @cameraAccessTitle.
   ///
   /// In en, this message translates to:

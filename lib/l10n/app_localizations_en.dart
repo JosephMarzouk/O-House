@@ -415,6 +415,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refusalOther => 'The server could not accept this change.';
 
   @override
+  String get updateTitle => 'Update the app';
+
+  @override
+  String get updateBody =>
+      'This version of the app is no longer supported. Install the new version to keep working. Anything not sent yet stays on this phone and is sent after the update.';
+
+  @override
+  String get updateDownload => 'Download the update';
+
+  @override
+  String get updateAskSupervisor => 'Ask your supervisor for the new version.';
+
+  @override
+  String profileAppVersion(String name, int code) {
+    return 'App version $name ($code)';
+  }
+
+  @override
   String get cameraAccessTitle => 'Camera access needed';
 
   @override

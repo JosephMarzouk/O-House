@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'app_release.dart';
 import 'data/auth_service.dart';
 import 'features/assignments/detail_screen.dart';
 import 'features/assignments/history_detail_screen.dart';
@@ -11,14 +12,18 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/splash_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/profile/profile_screen.dart';
+import 'features/update_screen.dart';
 import 'theme.dart';
 import 'widgets/app_nav_bar.dart';
 
 final router = GoRouter(
   initialLocation: '/splash',
-  refreshListenable: authService,
+  refreshListenable: Listenable.merge([authService, upgradeRequired]),
   redirect: (context, state) {
     final loc = state.matchedLocation;
+    // An outdated build (F-11) sees only the Update page, wherever it is.
+    if (upgradeRequired.value != null) return loc == '/update' ? null : '/update';
+    if (loc == '/update') return '/splash';
     // Splash owns the cold-boot routing decision, and login now owns the
     // post-sign-in one itself (see
     // login_screen.dart's _submit), so a redirect here would only ever be
@@ -29,6 +34,7 @@ final router = GoRouter(
   },
   routes: [
     GoRoute(path: '/splash', builder: (c, s) => const SplashScreen()),
+    GoRoute(path: '/update', builder: (c, s) => const UpdateScreen()),
     // No transition: /login opens with its ink panel at full height, exactly
     // the pixels the splash ends on, and drags it up itself. Any route
     // animation here would show as a seam mid-drag.

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import '../app_release.dart';
 import '../tenant.dart';
 
 /// Why a sign-in did not work, as the screen tells it.
@@ -71,6 +72,9 @@ class AuthService extends ChangeNotifier {
         return SignInFailure.locked;
       case 403:
         return SignInFailure.noAccess;
+      case 426: // this build is too old: the router shows the Update page
+        noteUpgrade(res.body);
+        return SignInFailure.offline;
       default:
         return SignInFailure.offline;
     }
@@ -94,6 +98,7 @@ class AuthService extends ChangeNotifier {
       await _clear();
       return false;
     }
+    if (res.statusCode == 426) noteUpgrade(res.body); // still signed in; the Update page shows
     throw http.ClientException('refresh answered ${res.statusCode}');
   }
 
@@ -109,7 +114,7 @@ class AuthService extends ChangeNotifier {
   Future<http.Response> _post(String path, Map<String, Object?> body) => _http
       .post(
         Uri.parse('$apiBaseUrl$path'),
-        headers: {'content-type': 'application/json', 'x-club': tenant.clubSlug},
+        headers: {'content-type': 'application/json', 'x-club': tenant.clubSlug, ...appVersionHeaders},
         body: jsonEncode(body),
       )
       .timeout(const Duration(seconds: 20));

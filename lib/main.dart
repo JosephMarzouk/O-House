@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'app_release.dart';
 import 'data/auth_service.dart';
 import 'push/push_service.dart';
 import 'tenant.dart';
@@ -26,6 +27,9 @@ Future<void> main() async {
   // Without one (a club with no project yet) push stays off and nothing else
   // changes. Also catches a tap that launched the app (pendingPushRoute).
   await initPush();
+  // This build's number, sent on every API call so an outdated app is told
+  // to update (F-11). Before the first call: sign-in included.
+  await loadAppBuild();
   await authService.load();
   runApp(const ProviderScope(child: OHouseApp()));
 }

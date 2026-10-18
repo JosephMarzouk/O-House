@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../app_release.dart';
+
 /// The API said no, for good: a known business refusal (422 `refused`), such
 /// as ASSIGNMENT_EXPIRED. The outbox PARKS the op, keeping its evidence, and
 /// shows it with Retry / Dismiss. Never deleted without a person seeing it.
@@ -23,8 +25,9 @@ class ApiUnavailable implements Exception {
   final int? status;
   final Object? detail;
 
-  /// Nothing will get through right now: no network, or no valid session.
-  bool get stopsAll => status == null || status == 401 || status == 429;
+  /// Nothing will get through right now: no network, no valid session, or
+  /// this app build is too old (426).
+  bool get stopsAll => status == null || status == 401 || status == 426 || status == 429;
   @override
   String toString() => 'ApiUnavailable(${status ?? 'no response'}: $detail)';
 }
@@ -123,6 +126,7 @@ class ApiClient {
     for (var attempt = 0; ; attempt++) {
       final req = await build();
       req.headers['x-club'] = club;
+      req.headers.addAll(appVersionHeaders);
       final t = token();
       if (t != null) req.headers['authorization'] = 'Bearer $t';
       if (key != null) req.headers['idempotency-key'] = key;
@@ -151,6 +155,12 @@ class ApiClient {
           throw ApiUnavailable(401, e);
         }
         if (refreshed) continue;
+      }
+      // This build is too old (F-11): the Update page takes over, and the
+      // queue waits for the new app.
+      if (status == 426) {
+        noteUpgrade(body);
+        throw ApiUnavailable(426, body);
       }
       return classifyResponse(status, body);
     }

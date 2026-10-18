@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app_release.dart';
+
 import '../../data/auth_service.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -126,6 +128,16 @@ class ProfileScreen extends ConsumerWidget {
                     labelColor: AppColors.magentaDeep,
                     onTap: () => _signOut(context, ref),
                   ),
+                  // Which build this is, for a supervisor checking the force
+                  // update took (F-11 / MOB-01 AC5). Hidden where unknown.
+                  if (appBuild.code > 0) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      t.profileAppVersion(appBuild.name, appBuild.code),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12, color: _muted),
+                    ),
+                  ],
                 ],
               ),
             ),

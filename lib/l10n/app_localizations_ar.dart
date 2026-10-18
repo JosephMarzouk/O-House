@@ -420,6 +420,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get refusalOther => 'تعذّر على الخادم قبول هذا التغيير.';
 
   @override
+  String get updateTitle => 'حدّث التطبيق';
+
+  @override
+  String get updateBody =>
+      'هذا الإصدار من التطبيق لم يعد مدعوماً. ثبّت الإصدار الجديد لمتابعة العمل. ما لم يُرسل بعد يبقى على هذا الهاتف ويُرسل بعد التحديث.';
+
+  @override
+  String get updateDownload => 'تنزيل التحديث';
+
+  @override
+  String get updateAskSupervisor => 'اطلب الإصدار الجديد من مشرفك.';
+
+  @override
+  String profileAppVersion(String name, int code) {
+    return 'إصدار التطبيق $name ($code)';
+  }
+
+  @override
   String get cameraAccessTitle => 'مطلوب إذن الكاميرا';
 
   @override

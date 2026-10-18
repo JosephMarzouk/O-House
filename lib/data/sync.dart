@@ -73,7 +73,7 @@ const maxAttempts = 24;
 @visibleForTesting
 ({String code, String message})? parkFor(ApiUnavailable e, int attemptsBefore) {
   final s = e.status;
-  if (s == null || s == 401) return null;
+  if (s == null || s == 401 || s == 426) return null;
   if (const {400, 403, 404, 409}.contains(s)) {
     final body = _jsonObject(e.detail);
     return (
@@ -88,7 +88,8 @@ const maxAttempts = 24;
 }
 
 /// Whether a failure is one of the answered ones [parkFor] counts.
-bool _counts(ApiUnavailable e) => e.status != null && e.status != 401;
+/// An outdated app (426) waits for the update; it isn't the change failing.
+bool _counts(ApiUnavailable e) => e.status != null && e.status != 401 && e.status != 426;
 
 Map<String, dynamic>? _jsonObject(Object? detail) {
   if (detail is! String) return null;
