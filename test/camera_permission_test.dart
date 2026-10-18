@@ -61,6 +61,15 @@ void main() {
     expect(find.textContaining("camera couldn't open"), findsOneWidget);
   });
 
+  test('B10: a capture lost to Android is recovered only on its own round', () {
+    final json = pendingCaptureJson('round-1', 'item-7', 'mp4');
+    expect(pendingCaptureFor(json, 'round-1'), (item: 'item-7', ext: 'mp4'));
+    expect(pendingCaptureFor(json, 'round-2'), isNull, reason: "left for its own round");
+    expect(pendingCaptureFor(null, 'round-1'), isNull);
+    expect(pendingCaptureFor('junk', 'round-1'), isNull);
+    expect(pendingCaptureFor(pendingCaptureJson('r', 'i', 'jpg'), 'r'), (item: 'i', ext: 'jpg'));
+  });
+
   testWidgets('a cancelled camera is not an error', (tester) async {
     await _tapCamera(tester, () async => null);
     expect(find.byType(AlertDialog), findsNothing);

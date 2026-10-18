@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -152,6 +153,31 @@ Future<XFile?> openCamera(BuildContext context, Future<XFile?> Function() open) 
   }
 }
 
+/// B10 / F-41: which capture was in flight when the camera opened. Android can
+/// kill this app while its camera runs (low memory); image_picker then keeps
+/// the photo for retrieveLostData(), but not which item it was for. This
+/// record, kept in the settings table across the restart, says.
+const pendingCaptureKey = 'pending_capture';
+
+@visibleForTesting
+String pendingCaptureJson(String roundId, String itemId, String ext) =>
+    jsonEncode({'round': roundId, 'item': itemId, 'ext': ext});
+
+/// The pending capture for [roundId], or null (none, another round's, junk).
+@visibleForTesting
+({String item, String ext})? pendingCaptureFor(String? json, String roundId) {
+  if (json == null) return null;
+  try {
+    final j = jsonDecode(json);
+    if (j is Map && j['round'] == roundId && j['item'] is String) {
+      return (item: j['item'] as String, ext: j['ext'] == 'mp4' ? 'mp4' : 'jpg');
+    }
+  } on FormatException {
+    // Junk: no capture to recover.
+  }
+  return null;
+}
+
 /// §6, screen 6 — artboard 1d. Read-only once effective_status is submitted/
 /// approved/expired (Assignment.isReadOnly); an expired task shows the locked
 /// message from §13 instead of the submit bar.
@@ -202,14 +228,48 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         for (final e in d.photos.entries)
           e.key: [for (final id in e.value) await repo.photoPath(id)],
       };
-      if (!mounted || d.isEmpty) return;
-      setState(() {
-        _answers.addAll(d.answers);
-        _newPhotos.addAll(photos);
-      });
+      if (mounted && !d.isEmpty) {
+        setState(() {
+          _answers.addAll(d.answers);
+          _newPhotos.addAll(photos);
+        });
+      }
     } catch (e) {
       debugPrint('[draft] restore failed: $e');
     }
+    await _recoverLostCapture(repo);
+  }
+
+  /// B10: a photo or clip taken just before Android killed the app comes
+  /// back here, onto the item it was for. Only for this round's capture:
+  /// retrieveLostData() hands the file over once, so another round's capture
+  /// is left for that round.
+  Future<void> _recoverLostCapture(AssignmentsRepo repo) async {
+    try {
+      final pending = pendingCaptureFor(await repo.db.getSetting(pendingCaptureKey), widget.assignmentId);
+      if (pending == null) return;
+      final lost = await ImagePicker().retrieveLostData();
+      await repo.db.deleteSetting(pendingCaptureKey);
+      final file = lost.file;
+      if (lost.isEmpty || file == null) return;
+      final path = await repo.photoPath(await repo.keepPhoto(file.path, ext: pending.ext));
+      if (!mounted) return;
+      setState(() => _newPhotos.putIfAbsent(pending.item, () => []).add(path));
+      _persist();
+    } catch (e) {
+      // No picker on this platform (tests, web), or nothing to recover.
+      debugPrint('[capture] nothing recovered: $e');
+    }
+  }
+
+  /// Opens the camera for [item], remembering the capture first (B10), and
+  /// forgetting it once the picker answered normally.
+  Future<XFile?> _capture(AssignmentItem item, String ext, Future<XFile?> Function() open) async {
+    final repo = ref.read(assignmentsRepoProvider);
+    await repo?.db.setSetting(pendingCaptureKey, pendingCaptureJson(widget.assignmentId, item.id, ext));
+    final picked = await _openCamera(open);
+    await repo?.db.deleteSetting(pendingCaptureKey);
+    return picked;
   }
 
   RoundDraft get _draft => RoundDraft(
@@ -269,7 +329,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     // Camera only, never the gallery — a photo from the gallery is not
     // evidence of anything (§9). The picker itself compresses (SY-8): a
     // 1600 px long edge at JPEG quality 75, about 300 KB instead of 4 MB.
-    final picked = await _openCamera(
+    final picked = await _capture(
+      item,
+      'jpg',
       () => ImagePicker().pickImage(
         source: ImageSource.camera,
         maxWidth: 1600,
@@ -294,7 +356,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   /// image_picker cannot compress video, so the length is what keeps it
   /// under the upload limit (50 MB, API and bucket).
   Future<void> _recordVideo(AssignmentItem item) async {
-    final picked = await _openCamera(
+    final picked = await _capture(
+      item,
+      'mp4',
       () => ImagePicker().pickVideo(
         source: ImageSource.camera,
         maxDuration: const Duration(seconds: 30),
