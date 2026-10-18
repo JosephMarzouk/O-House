@@ -734,6 +734,24 @@ abstract class AppLocalizations {
   /// **'The server could not accept this change.'**
   String get refusalOther;
 
+  /// No description provided for @cameraAccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access needed'**
+  String get cameraAccessTitle;
+
+  /// No description provided for @cameraAccessReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence photos and videos are taken with the camera. Allow camera access, then tap the camera button again. If Android doesn\'t ask any more, turn it on in Settings.'**
+  String get cameraAccessReason;
+
+  /// No description provided for @cameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera couldn\'t open on this phone. Try again, or tell your supervisor.'**
+  String get cameraUnavailable;
+
   /// No description provided for @refusalStillFailing.
   ///
   /// In en, this message translates to:

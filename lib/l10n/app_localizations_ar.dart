@@ -420,6 +420,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get refusalOther => 'تعذّر على الخادم قبول هذا التغيير.';
 
   @override
+  String get cameraAccessTitle => 'مطلوب إذن الكاميرا';
+
+  @override
+  String get cameraAccessReason =>
+      'صور وفيديوهات الإثبات تُلتقط بالكاميرا. اسمح بالوصول إلى الكاميرا ثم اضغط زر الكاميرا مرة أخرى. إذا لم يعد أندرويد يطلب الإذن، فعّله من الإعدادات.';
+
+  @override
+  String get cameraUnavailable =>
+      'تعذّر فتح الكاميرا على هذا الهاتف. حاول مرة أخرى أو أبلغ مشرفك.';
+
+  @override
   String get refusalStillFailing =>
       'تعذّر على الخادم قبول هذا التغيير بعد محاولات كثيرة. اضغط إعادة المحاولة لاحقاً أو أبلغ مشرفك.';
 

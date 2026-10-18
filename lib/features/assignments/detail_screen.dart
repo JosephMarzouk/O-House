@@ -115,6 +115,43 @@ bool canSubmitStaged(
   return anyAnswered && missingPhotoCount(a, answers, newPhotos) == 0;
 }
 
+/// F-13 / FIELD-Q1: every capture tap asks for the camera again while it
+/// isn't allowed. CAMERA is declared in the manifest, so image_picker
+/// requests it itself before opening the camera, and answers
+/// `camera_access_denied` when staff say no. Then the reason and Open
+/// settings, for when Android won't ask any more. Any other picker error
+/// (no camera app, the camera blocked) says so too, never silence.
+Future<XFile?> openCamera(BuildContext context, Future<XFile?> Function() open) async {
+  try {
+    return await open();
+  } on PlatformException catch (e) {
+    if (!context.mounted) return null;
+    final t = AppLocalizations.of(context)!;
+    if (e.code != 'camera_access_denied') {
+      showErrorSnack(context, t.cameraUnavailable);
+      return null;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(t.cameraAccessTitle),
+        content: Text(t.cameraAccessReason),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(t.commonCancel)),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(c);
+              Geolocator.openAppSettings();
+            },
+            child: Text(t.zoneOpenSettings),
+          ),
+        ],
+      ),
+    );
+    return null;
+  }
+}
+
 /// §6, screen 6 — artboard 1d. Read-only once effective_status is submitted/
 /// approved/expired (Assignment.isReadOnly); an expired task shows the locked
 /// message from §13 instead of the submit bar.
@@ -226,15 +263,19 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     _persist();
   }
 
+  Future<XFile?> _openCamera(Future<XFile?> Function() open) => openCamera(context, open);
+
   Future<void> _takePhoto(AssignmentItem item) async {
     // Camera only, never the gallery — a photo from the gallery is not
     // evidence of anything (§9). The picker itself compresses (SY-8): a
     // 1600 px long edge at JPEG quality 75, about 300 KB instead of 4 MB.
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 75,
+    final picked = await _openCamera(
+      () => ImagePicker().pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 75,
+      ),
     );
     final repo = ref.read(assignmentsRepoProvider);
     if (picked == null || repo == null) return;
@@ -253,9 +294,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   /// image_picker cannot compress video, so the length is what keeps it
   /// under the upload limit (50 MB, API and bucket).
   Future<void> _recordVideo(AssignmentItem item) async {
-    final picked = await ImagePicker().pickVideo(
-      source: ImageSource.camera,
-      maxDuration: const Duration(seconds: 30),
+    final picked = await _openCamera(
+      () => ImagePicker().pickVideo(
+        source: ImageSource.camera,
+        maxDuration: const Duration(seconds: 30),
+      ),
     );
     final repo = ref.read(assignmentsRepoProvider);
     if (picked == null || repo == null) return;

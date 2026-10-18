@@ -415,6 +415,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refusalOther => 'The server could not accept this change.';
 
   @override
+  String get cameraAccessTitle => 'Camera access needed';
+
+  @override
+  String get cameraAccessReason =>
+      'Evidence photos and videos are taken with the camera. Allow camera access, then tap the camera button again. If Android doesn\'t ask any more, turn it on in Settings.';
+
+  @override
+  String get cameraUnavailable =>
+      'The camera couldn\'t open on this phone. Try again, or tell your supervisor.';
+
+  @override
   String get refusalStillFailing =>
       'The server kept failing to accept this change. Tap Retry later, or tell your supervisor.';
 
