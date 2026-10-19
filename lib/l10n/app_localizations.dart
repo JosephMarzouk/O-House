@@ -806,12 +806,6 @@ abstract class AppLocalizations {
   /// **'Preparing the video…'**
   String get videoPreparing;
 
-  /// No description provided for @videoTooLong.
-  ///
-  /// In en, this message translates to:
-  /// **'This video is too long. Record a clip of {seconds} seconds or less.'**
-  String videoTooLong(int seconds);
-
   /// No description provided for @videoPrepareFailed.
   ///
   /// In en, this message translates to:

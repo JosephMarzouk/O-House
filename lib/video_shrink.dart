@@ -10,8 +10,9 @@ import 'package:path/path.dart' as p;
 /// assignments.module.ts), so the two must move together.
 const maxVideoBytes = 1024 * 1024;
 
-/// The camera's limit. image_picker asks the camera app for it; most obey,
-/// and a clip from one that doesn't simply fails the size check below.
+/// The camera's limit. image_picker asks the camera app for it; most obey.
+/// A longer clip (a camera that doesn't) keeps only its first 20 s: cleaners
+/// keep their evidence rather than being asked to record it again.
 const maxVideoSeconds = 20;
 
 /// Video bitrates to try, in order. 20 s × (330 kbps picture + 48 kbps
@@ -23,8 +24,8 @@ const videoBitrates = [330000, 230000];
 typedef Compress = Future<int> Function(String input, String output, int videoBitrate);
 
 /// The shrunk clip's path, or null when no attempt fits in [maxVideoBytes]
-/// (a clip longer than the camera was asked for). Attempts that didn't fit
-/// are deleted; an error (no encoder, unreadable clip) is the caller's.
+/// (an encoder that overshoots even the lower bitrate). Attempts that didn't
+/// fit are deleted; an error (no encoder, unreadable clip) is the caller's.
 Future<String?> shrinkVideo(String input, String tempDir, {Compress compress = compressVideo}) async {
   final stamp = DateTime.now().microsecondsSinceEpoch;
   for (final (i, rate) in videoBitrates.indexed) {
@@ -39,7 +40,8 @@ Future<String?> shrinkVideo(String input, String tempDir, {Compress compress = c
   return null;
 }
 
-/// MainActivity.kt's compressVideo: Media3 Transformer, 480 p, H.264 + AAC.
+/// MainActivity.kt's compressVideo: Media3 Transformer, 480 p, H.264 + AAC,
+/// the first [maxVideoSeconds] only.
 const _channel = MethodChannel('o_house/app');
 
 Future<int> compressVideo(String input, String output, int videoBitrate) async {
@@ -47,6 +49,7 @@ Future<int> compressVideo(String input, String output, int videoBitrate) async {
     'input': input,
     'output': output,
     'videoBitrate': videoBitrate,
+    'maxMs': maxVideoSeconds * 1000,
   });
   return size!;
 }

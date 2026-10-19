@@ -377,9 +377,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     _persist();
   }
 
-  /// Shrinks a clip to at most 1 MB (video_shrink.dart) and keeps it, with
-  /// a wait dialog meanwhile (5–15 s on a mid-range phone). Null, with the
-  /// reason shown, when it can't be shrunk: nothing too big is ever queued.
+  /// Shrinks a clip to at most 1 MB (video_shrink.dart; past 20 s only the
+  /// start is kept) and keeps it, with a wait dialog meanwhile (5–15 s on a
+  /// mid-range phone). Null, with a message, when it can't be shrunk:
+  /// nothing too big is ever queued.
   Future<String?> _keepVideo(AssignmentsRepo repo, String captured) async {
     final t = AppLocalizations.of(context)!;
     final nav = Navigator.of(context, rootNavigator: true); // the dialog closes even if this screen went
@@ -400,10 +401,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     String? shrunk;
     try {
       shrunk = await shrinkVideo(captured, (await getTemporaryDirectory()).path);
-      if (shrunk == null) {
-        if (mounted) showErrorSnack(context, t.videoTooLong(maxVideoSeconds));
-        return null;
-      }
+      if (shrunk == null) throw StateError('no bitrate fits in $maxVideoBytes bytes');
       return await repo.photoPath(await repo.keepPhoto(shrunk, ext: 'mp4'));
     } catch (e) {
       debugPrint('[video] not kept: $e');

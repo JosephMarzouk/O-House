@@ -10,9 +10,17 @@ import android.os.Build
 import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.annotation.OptIn
+import androidx.media3.common.C
+import androidx.media3.common.Format
+import androidx.media3.common.Metadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.container.Mp4OrientationData
 import androidx.media3.effect.Presentation
+import androidx.media3.muxer.BufferInfo
+import androidx.media3.muxer.Mp4Muxer
+import androidx.media3.muxer.Muxer
+import androidx.media3.muxer.SeekableMuxerOutput
 import androidx.media3.transformer.AudioEncoderSettings
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.DefaultEncoderFactory
@@ -24,8 +32,11 @@ import androidx.media3.transformer.Transformer
 import androidx.media3.transformer.VideoEncoderSettings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import com.google.common.collect.ImmutableList
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 
 class MainActivity : FlutterActivity() {
@@ -70,6 +81,7 @@ class MainActivity : FlutterActivity() {
                     call.argument<String>("input")!!,
                     call.argument<String>("output")!!,
                     call.argument<Int>("videoBitrate")!!,
+                    call.argument<Int>("maxMs")!!.toLong(),
                     result,
                 )
                 else -> result.notImplemented()
@@ -81,18 +93,24 @@ class MainActivity : FlutterActivity() {
      * Video evidence at most 1 MB (lib/video_shrink.dart picks the bitrate
      * and checks the size). Media3 Transformer, Android's own encoder: 480 p
      * on the short side, H.264 (HEVC from some cameras won't play in every
-     * browser the portal runs in), AAC sound at 48 kbps. Answers the output's
-     * size in bytes. The listener fires on this (main) thread.
+     * browser the portal runs in), AAC sound at 48 kbps. Only the first
+     * [maxMs] are kept: a cleaner whose camera ran past 20 s keeps the clip
+     * rather than being told to record it again. Answers the output's size
+     * in bytes. The listener fires on this (main) thread.
      */
     @OptIn(UnstableApi::class) // Transformer's encoder settings are marked unstable
-    private fun compressVideo(input: String, output: String, videoBitrate: Int, result: MethodChannel.Result) {
+    private fun compressVideo(input: String, output: String, videoBitrate: Int, maxMs: Long, result: MethodChannel.Result) {
         val height = try {
             shrunkHeight(input)
         } catch (e: Exception) {
             result.error("VIDEO_UNREADABLE", e.message, null)
             return
         }
-        val item = EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(File(input))))
+        val clip = MediaItem.Builder()
+            .setUri(Uri.fromFile(File(input)))
+            .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(maxMs).build())
+            .build()
+        val item = EditedMediaItem.Builder(clip)
             .setEffects(Effects(listOf(), listOf(Presentation.createForHeight(height))))
             .build()
         val encoders = DefaultEncoderFactory.Builder(this)
@@ -103,6 +121,7 @@ class MainActivity : FlutterActivity() {
             .setVideoMimeType(MimeTypes.VIDEO_H264)
             .setAudioMimeType(MimeTypes.AUDIO_AAC)
             .setEncoderFactory(encoders)
+            .setMuxerFactory(CompactMp4Muxer.Factory())
             .addListener(object : Transformer.Listener {
                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
                     result.success(File(output).length())
@@ -133,6 +152,43 @@ class MainActivity : FlutterActivity() {
             return (shownHeight * scale / 2).roundToInt() * 2
         } finally {
             r.release()
+        }
+    }
+}
+
+/**
+ * Transformer's own MP4 writer (InAppMp4Muxer) reserves 400,000 bytes at the
+ * start of every file so it can stream. A 1 MB clip can't spare that: on the
+ * OPPO test (19 Oct) 57% of a 0.65 MB clip was that empty box. This writes
+ * the index at the end instead, and keeps what InAppMp4Muxer adds that we
+ * need: the rotation, or a portrait clip plays sideways. The camera's other
+ * metadata (capture fps, vendor tags) isn't evidence and is dropped.
+ */
+@OptIn(UnstableApi::class)
+private class CompactMp4Muxer(path: String) : Muxer {
+    private val muxer = Mp4Muxer.Builder(SeekableMuxerOutput.of(FileOutputStream(path)))
+        .setAttemptStreamableOutputEnabled(false)
+        .build()
+
+    override fun addTrack(format: Format): Int {
+        val id = muxer.addTrack(format)
+        if (MimeTypes.isVideo(format.sampleMimeType)) muxer.addMetadataEntry(Mp4OrientationData(format.rotationDegrees))
+        return id
+    }
+
+    override fun writeSampleData(trackId: Int, data: ByteBuffer, info: BufferInfo) = muxer.writeSampleData(trackId, data, info)
+
+    override fun addMetadataEntry(entry: Metadata.Entry) {}
+
+    override fun close() = muxer.close()
+
+    class Factory : Muxer.Factory {
+        override fun create(path: String): Muxer = CompactMp4Muxer(path)
+
+        override fun getSupportedSampleMimeTypes(trackType: Int): ImmutableList<String> = when (trackType) {
+            C.TRACK_TYPE_VIDEO -> Mp4Muxer.SUPPORTED_VIDEO_SAMPLE_MIME_TYPES
+            C.TRACK_TYPE_AUDIO -> Mp4Muxer.SUPPORTED_AUDIO_SAMPLE_MIME_TYPES
+            else -> ImmutableList.of()
         }
     }
 }

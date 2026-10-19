@@ -462,11 +462,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get videoPreparing => 'جارٍ تجهيز الفيديو…';
 
   @override
-  String videoTooLong(int seconds) {
-    return 'هذا الفيديو طويل جداً. سجّل مقطعاً مدته $seconds ثانية أو أقل.';
-  }
-
-  @override
   String get videoPrepareFailed =>
       'تعذّر تجهيز هذا الفيديو. سجّله مرة أخرى أو أبلغ مشرفك.';
 

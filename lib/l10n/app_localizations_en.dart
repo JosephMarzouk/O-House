@@ -457,11 +457,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get videoPreparing => 'Preparing the video…';
 
   @override
-  String videoTooLong(int seconds) {
-    return 'This video is too long. Record a clip of $seconds seconds or less.';
-  }
-
-  @override
   String get videoPrepareFailed =>
       'This video couldn\'t be prepared. Record it again, or tell your supervisor.';
 
