@@ -800,6 +800,24 @@ abstract class AppLocalizations {
   /// **'The camera couldn\'t open on this phone. Try again, or tell your supervisor.'**
   String get cameraUnavailable;
 
+  /// No description provided for @videoPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the video…'**
+  String get videoPreparing;
+
+  /// No description provided for @videoTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is too long. Record a clip of {seconds} seconds or less.'**
+  String videoTooLong(int seconds);
+
+  /// No description provided for @videoPrepareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This video couldn\'t be prepared. Record it again, or tell your supervisor.'**
+  String get videoPrepareFailed;
+
   /// No description provided for @refusalStillFailing.
   ///
   /// In en, this message translates to:

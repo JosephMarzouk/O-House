@@ -88,6 +88,14 @@ android {
     }
 }
 
+dependencies {
+    // Video evidence is shrunk to at most 1 MB on the phone (MainActivity's
+    // compressVideo, lib/video_shrink.dart). The same Media3 version as
+    // video_player's ExoPlayer: two versions of media3-common would clash.
+    implementation("androidx.media3:media3-transformer:1.9.2")
+    implementation("androidx.media3:media3-effect:1.9.2")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17

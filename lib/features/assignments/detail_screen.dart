@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../data/assignments_repo.dart';
 import '../../data/providers.dart';
@@ -17,6 +19,7 @@ import '../../models/assignment.dart';
 import '../../models/assignment_item.dart';
 import '../../models/club_zone.dart';
 import '../../theme.dart';
+import '../../video_shrink.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/error_snack.dart';
 import '../../widgets/round_gone.dart';
@@ -252,9 +255,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       final lost = await ImagePicker().retrieveLostData();
       await repo.db.deleteSetting(pendingCaptureKey);
       final file = lost.file;
-      if (lost.isEmpty || file == null) return;
-      final path = await repo.photoPath(await repo.keepPhoto(file.path, ext: pending.ext));
-      if (!mounted) return;
+      if (lost.isEmpty || file == null || !mounted) return;
+      final path = pending.ext == 'mp4'
+          ? await _keepVideo(repo, file.path) // shrunk like any clip
+          : await repo.photoPath(await repo.keepPhoto(file.path));
+      if (path == null || !mounted) return;
       setState(() => _newPhotos.putIfAbsent(pending.item, () => []).add(path));
       _persist();
     } catch (e) {
@@ -354,25 +359,59 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   }
 
   /// A short clip as evidence. Camera only, like photos — never the gallery.
-  /// image_picker cannot compress video, so the length is what keeps it
-  /// under the upload limit (50 MB, API and bucket).
+  /// image_picker cannot compress video; _keepVideo shrinks it to 1 MB.
   Future<void> _recordVideo(AssignmentItem item) async {
     final picked = await _capture(
       item,
       'mp4',
       () => ImagePicker().pickVideo(
         source: ImageSource.camera,
-        maxDuration: const Duration(seconds: 30),
+        maxDuration: const Duration(seconds: maxVideoSeconds),
       ),
     );
     final repo = ref.read(assignmentsRepoProvider);
     if (picked == null || repo == null) return;
+    final path = await _keepVideo(repo, picked.path);
+    if (path == null || !mounted) return;
+    setState(() => _newPhotos.putIfAbsent(item.id, () => []).add(path));
+    _persist();
+  }
+
+  /// Shrinks a clip to at most 1 MB (video_shrink.dart) and keeps it, with
+  /// a wait dialog meanwhile (5–15 s on a mid-range phone). Null, with the
+  /// reason shown, when it can't be shrunk: nothing too big is ever queued.
+  Future<String?> _keepVideo(AssignmentsRepo repo, String captured) async {
+    final t = AppLocalizations.of(context)!;
+    final nav = Navigator.of(context, rootNavigator: true); // the dialog closes even if this screen went
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Expanded(child: Text(t.videoPreparing)),
+          ]),
+        ),
+      ),
+    ));
+    String? shrunk;
     try {
-      final path = await repo.photoPath(await repo.keepPhoto(picked.path, ext: 'mp4'));
-      setState(() => _newPhotos.putIfAbsent(item.id, () => []).add(path));
-      _persist();
+      shrunk = await shrinkVideo(captured, (await getTemporaryDirectory()).path);
+      if (shrunk == null) {
+        if (mounted) showErrorSnack(context, t.videoTooLong(maxVideoSeconds));
+        return null;
+      }
+      return await repo.photoPath(await repo.keepPhoto(shrunk, ext: 'mp4'));
     } catch (e) {
-      if (mounted) showErrorSnack(context, 'Could not keep this video: $e');
+      debugPrint('[video] not kept: $e');
+      if (mounted) showErrorSnack(context, t.videoPrepareFailed);
+      return null;
+    } finally {
+      nav.pop();
+      if (shrunk != null) unawaited(File(shrunk).delete().then((_) {}, onError: (_) {}));
     }
   }
 

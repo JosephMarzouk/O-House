@@ -454,6 +454,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'The camera couldn\'t open on this phone. Try again, or tell your supervisor.';
 
   @override
+  String get videoPreparing => 'Preparing the video…';
+
+  @override
+  String videoTooLong(int seconds) {
+    return 'This video is too long. Record a clip of $seconds seconds or less.';
+  }
+
+  @override
+  String get videoPrepareFailed =>
+      'This video couldn\'t be prepared. Record it again, or tell your supervisor.';
+
+  @override
   String get refusalStillFailing =>
       'The server kept failing to accept this change. Tap Retry later, or tell your supervisor.';
 
