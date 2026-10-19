@@ -83,6 +83,8 @@ Refactored away in `8f4202a`, do not resurrect:
 | — | Club zone (29–30 Sep) | **Done, checked on a real phone** — a checklist that can still be filled opens and submits only inside the club's zone (`club_location`, a point and a radius set once on the portal; it rides on `GET /me` as `location`). The check is in the app only (`geolocator`). Home asks for location as soon as the club has a zone; a refusal, location off, approximate-only, a mocked position or "N m from the club" replace the checklist with a message and Retry / Open settings. **Fails closed:** until `/me` has succeeded once on this phone (`club_location_synced`), checklists stay shut ("Connect to the internet once…"). No zone set = no gate |
 | — | Sync you can see (30 Sep) | Resume and reconnect refetch `/assignments` and `/me` (30 s throttle; at once after a failure); pull to refresh fetches `/me` too. A failed fetch shows "Can't reach the server — showing saved tasks · Last updated HH:mm" whatever the outbox holds. An overnight window (22:00 → 01:00) stays in Today until its deadline |
 | — | Role names (29 Sep) | The header shows the role's own name from `/me`'s `access.role` (custom roles included), in the reader's language, cached with the profile. The app still gates nothing by role |
+| — | Pre-deploy fixes (18 Oct, `qa/05-review-findings.md`) | **F-08:** a release build defaults to `ENVIRONMENT=prod` = the Railway API (`prodApiUrl`) and refuses plain http. **F-11 force update** (`lib/app_release.dart`): every call sends `X-App-Version` (the versionCode, from `MainActivity`'s `o_house/app` channel); a 426 `UPGRADE_REQUIRED` (below the club's `app_release.min_build`) routes to `/update` (`features/update_screen.dart`, opens `update_url`), and queued work waits. **F-12:** the outbox parks 400/403/404/409 at once with the server's code and anything else after 24 failed tries (`STILL_FAILING`); no response, 401 and 426 don't count. **F-13:** `CAMERA` declared; a refused camera shows why with Open settings, any other camera error says so. **B10:** a capture lost when Android kills the app comes back on its own round. **B20:** the signature pad fits short phones. **FIELD-08:** a round that isn't on the phone says so (`widgets/round_gone.dart`), never an endless spinner |
+| — | Video at most 1 MB (19 Oct) | Business rule. `lib/video_shrink.dart` + `MainActivity.compressVideo` (Media3 Transformer 1.9.2, the version `video_player` already pulls in): 480 p on the short side, H.264 at 330 kbps, AAC 48 kbps, **only the first 20 s kept** (a camera that ignores the 20 s limit doesn't cost the cleaner the clip); a second try at 230 kbps if the encoder overshoots, else "couldn't be prepared" and nothing is queued. `CompactMp4Muxer` writes the index at the end: Media3's own writer reserves 400 KB per file, which made 18–19 s clips fail. Checked on the OPPO against Railway: 18 s → 0.85 MB, 30 s → 20.0 s / 0.92 MB, both play in the portal. Build 2 (`1.0.0+2`). The API refuses a bigger clip (`FILE_TOO_LARGE`) |
 
 ### Known issues
 
@@ -155,7 +157,8 @@ main.dart → authService.load() → ProviderScope → OHouseApp (app.dart)
   it. After that the others' refresh drops it, and an offline write from them
   is parked with "Already taken by …" (`ASSIGNMENT_TAKEN`). A round can also
   run over several days (`endDate`): it stays in Today until its end date.
-- **Evidence is photos or camera video** (30 s max, MP4), never the gallery.
+- **Evidence is photos or camera video**, never the gallery. A clip is shrunk
+  on the phone to at most 1 MB and 20 s before it is kept (`lib/video_shrink.dart`).
 - **The one seam**: `AssignmentsRepo`. No screen touches the API directly
   (Profile's locale is the exception).
 - **No password screen.** Staff never change their password in the app
@@ -228,6 +231,9 @@ does not cut — it *shrinks* into the next screen's header.
 | `lib/router.dart` | All routes + auth redirect (`refreshListenable: authService`) |
 | `lib/theme.dart` | `AppColors`, radii, shadows, `buildTheme()` |
 | `lib/main_dev_preview.dart` | Throwaway screen-preview entrypoint |
+| `lib/app_release.dart` | Force update (F-11): this build from `MainActivity`, the `X-App-Version` header, `upgradeRequired` (the router's `/update` redirect), `openUpdateLink` |
+| `lib/video_shrink.dart` | Video evidence ≤ 1 MB, first 20 s: `shrinkVideo` (bitrates to try, size check) over `MainActivity.compressVideo` |
+| `android/app/src/main/kotlin/.../MainActivity.kt` | The `rounds` push channel, and the `o_house/app` channel: `build`, `openUrl`, `compressVideo` (Media3 Transformer + `CompactMp4Muxer`) |
 
 ### Data
 
@@ -271,7 +277,8 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 | `features/assignments/signature_screen.dart` | Signature pad, forced LTR. Drains, then re-reads the round *before* Success |
 | `features/assignments/success_screen.dart` | Confirmation, names the submitted round. A second face for `follow_up` ("Sent — needs follow-up") |
 | `features/assignments/history_detail_screen.dart` | Read-only view of a submitted round, with each item's answer |
-| `features/profile/profile_screen.dart` | Phone, language toggle (`set_locale` RPC), About and Policies (the admin's `club_pages` text, else the built-in line), logout |
+| `features/profile/profile_screen.dart` | Phone, language toggle (`set_locale` RPC), About and Policies (the admin's `club_pages` text, else the built-in line), app version, logout |
+| `features/update_screen.dart` | `/update`: this build is below the club's minimum (426); the download link, else "ask your supervisor" |
 
 ### Shared widgets (`lib/widgets/`)
 
@@ -288,7 +295,8 @@ text field — and the follow-up note; the tile body no longer toggles) ·
 link `GET /assignments/:id` returns; a clip shows as a play tile) ·
 `evidence_video.dart` (`isVideoPath`, `VideoTile`, full-screen player with
 `video_player`) · `sync_banner.dart` (offline / sending / needs attention, and
-the Retry / Dismiss sheet).
+the Retry / Dismiss sheet) · `round_gone.dart` (a round no longer on this
+phone: a message and Back to tasks).
 
 ### Localization (`lib/l10n/`)
 
@@ -389,7 +397,7 @@ phone logins with their password hashes, so nobody had to reset a password.
 
 One bucket, `checklist-media` (going private at plan Step 4). Since Step 3 the
 app never touches Storage: it sends the file to the API, which stores it at
-`photos/{assignment_id}/{item_id}-{photoId}.jpg` (`.mp4` for a video, ≤ 50 MB)
+`photos/{assignment_id}/{item_id}-{photoId}.jpg` (`.mp4` for a video, ≤ 1 MB)
 or `signatures/{assignment_id}-{signatureId}.png`, from ids fixed at capture,
 so a replay writes the same object.
 
@@ -426,7 +434,7 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 
 ---
 
-## 7. Tests (`test/`, 135 tests, all passing)
+## 7. Tests (`test/`, 167 tests, all passing on 19 Oct)
 
 | File | Covers |
 |---|---|
@@ -443,6 +451,10 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 | `tasks_screens_test.dart` | Both dense screens pumped at real phone width in EN *and* AR — a widget test fails on RenderFlex overflow, which is the cheap way to keep Arabic honest. Also a `follow_up` round built in-test (the fixtures stay untouched): the flag note, Yes/No and number inputs (Arabic digits), the resubmit gate, LTR number field under RTL, and the success screen's follow-up face |
 | `login_screen_test.dart` | Empty-field guard, password reveal, LTR phone row under RTL |
 | `theme_test.dart` | Theme invariants |
+| `camera_permission_test.dart` | F-13: `CAMERA` in the manifest, a refused camera explains why (EN/AR) with Open settings, other errors say so, a cancel is silent; B10's pending-capture record |
+| `force_update_test.dart` | F-11: every call carries `X-App-Version` (none while the build is unknown), a 426 records the link and stops the drain without counting, the Update page with and without a link (EN/AR) |
+| `round_gone_test.dart` | FIELD-08: a round missing from the loaded list says so with Back; a spinner only while loading |
+| `video_shrink_test.dart` | Video ≤ 1 MB against a fake encoder: kept on the first try, one retry at the lower bitrate, refused when nothing fits (no files left), exactly 1 MB allowed, encoder errors reach the caller, the 20 s budget |
 
 Layout, camera and live network paths are verified manually by design.
 
