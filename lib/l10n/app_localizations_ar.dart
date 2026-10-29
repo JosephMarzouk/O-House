@@ -569,4 +569,50 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pushOpen => 'فتح';
+
+  @override
+  String get parkedOpScan => 'مسح رمز QR';
+
+  @override
+  String get qrScanButton => 'مسح رمز QR';
+
+  @override
+  String qrScanToStart(String place) {
+    return 'امسح رمز QR في $place للبدء';
+  }
+
+  @override
+  String get qrScanTitle => 'امسح رمز QR للمكان';
+
+  @override
+  String get qrScanHint => 'وجّه الكاميرا نحو ملصق رمز QR في المكان.';
+
+  @override
+  String get qrWrongClub => 'رمز QR هذا تابع لنادٍ آخر.';
+
+  @override
+  String get qrNotInTask => 'رمز QR هذا ليس من أماكن هذه المهمة.';
+
+  @override
+  String get qrCameraReason =>
+      'مسح رمز QR للمكان يحتاج إلى الكاميرا. اسمح بالوصول إلى الكاميرا ثم حاول مرة أخرى. إذا لم يعد أندرويد يطلب الإذن، فعّله من الإعدادات.';
+
+  @override
+  String get qrLocked => 'مقفل';
+
+  @override
+  String get groupPlacesLabel => 'الأماكن';
+
+  @override
+  String groupPlacesDone(int done, int total) {
+    return 'الأماكن المنجزة: $done من $total';
+  }
+
+  @override
+  String groupLockedCount(int count) {
+    return 'المقفلة: $count';
+  }
+
+  @override
+  String get signatureUseSaved => 'استخدم توقيعي';
 }

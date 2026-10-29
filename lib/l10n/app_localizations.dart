@@ -973,6 +973,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open'**
   String get pushOpen;
+
+  /// No description provided for @parkedOpScan.
+  ///
+  /// In en, this message translates to:
+  /// **'QR scan'**
+  String get parkedOpScan;
+
+  /// No description provided for @qrScanButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR'**
+  String get qrScanButton;
+
+  /// No description provided for @qrScanToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the {place} QR to start'**
+  String qrScanToStart(String place);
+
+  /// No description provided for @qrScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the place\'s QR'**
+  String get qrScanTitle;
+
+  /// No description provided for @qrScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at the QR sticker at the place.'**
+  String get qrScanHint;
+
+  /// No description provided for @qrWrongClub.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR belongs to another club.'**
+  String get qrWrongClub;
+
+  /// No description provided for @qrNotInTask.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR isn\'t part of this task.'**
+  String get qrNotInTask;
+
+  /// No description provided for @qrCameraReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning a place\'s QR uses the camera. Allow camera access, then try again. If Android no longer asks, turn it on in Settings.'**
+  String get qrCameraReason;
+
+  /// No description provided for @qrLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked'**
+  String get qrLocked;
+
+  /// No description provided for @groupPlacesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Places'**
+  String get groupPlacesLabel;
+
+  /// No description provided for @groupPlacesDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} places done'**
+  String groupPlacesDone(int done, int total);
+
+  /// No description provided for @groupLockedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} locked'**
+  String groupLockedCount(int count);
+
+  /// No description provided for @signatureUseSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my signature'**
+  String get signatureUseSaved;
 }
 
 class _AppLocalizationsDelegate

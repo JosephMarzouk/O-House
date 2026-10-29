@@ -43,6 +43,19 @@ String assignmentSubtitle(BuildContext context, Assignment a) {
   ].where((s) => s.isNotEmpty).join(' · ');
 }
 
+/// A multi-place task's name: the round's or the one-off task's title (the
+/// view's group_title_*), else the round title, else the place's own, so a
+/// task card is never blank.
+String groupTitle(BuildContext context, Assignment a) {
+  for (final s in [
+    pickLocalized(context, a.groupTitleAr, a.groupTitleEn),
+    pickLocalized(context, a.roundTitleAr, a.roundTitleEn),
+  ]) {
+    if (s.isNotEmpty) return s;
+  }
+  return pickLocalized(context, a.titleAr, a.titleEn);
+}
+
 /// An answer the way a person should read it. yes/no and pass/fail are stored
 /// as those English keywords whatever the app's language, so they are
 /// translated here; a number or free text is shown exactly as given.

@@ -42,10 +42,40 @@ class Assignment {
 
   /// The zone round this place was scheduled from (0013), via the view's
   /// LEFT JOIN — null for a one-off task or a legacy row. Display only: the
-  /// card's kicker and the head of the subtitle. round_id itself is not
-  /// carried; nothing in the app groups by round.
+  /// card's kicker and the head of the subtitle. Grouping goes by [groupId],
+  /// which covers a round and a one-off multi-place task alike.
   final String? roundTitleEn;
   final String? roundTitleAr;
+
+  /// QR-locked places (20261028123023_qr_places). The place's "Requires QR
+  /// scan" switch, copied onto the checklist when it was created, so a
+  /// checklist already handed out never starts locking mid-day.
+  final bool qrRequired;
+
+  /// The multi-place task this checklist is one place of: the zone round or
+  /// the one-off task group (the view's `coalesce(round_id, task_group_id)`).
+  /// Null for a single checklist, and for every row from an API that predates
+  /// QR places, which is what keeps those looking exactly as before.
+  final String? groupId;
+  final String? groupTitleEn;
+  final String? groupTitleAr;
+
+  /// How many checklists share [groupId] on the server; 1 outside a group.
+  final int groupSize;
+
+  /// This place's number in the task's walk order (1, 2, 3 …), as the admin
+  /// set it: the New task form's order, or the zone round's. Null outside a
+  /// task and from an older API. Walk order is only shown (QF).
+  final int? groupPosition;
+
+  /// sha256 of the place's QR code, lowercase hex; null unless [qrRequired].
+  /// The phone matches a scan against it offline and never holds the code
+  /// itself, so a cached round can't be used to print a working sticker.
+  final String? qrHash;
+
+  /// The server has an accepted scan or a supervisor's unlock for it.
+  /// applyLocal also sets it while a scan is still queued on this phone.
+  final bool unlocked;
 
   const Assignment({
     required this.id,
@@ -74,6 +104,14 @@ class Assignment {
     this.deadline,
     this.taskNote,
     this.submitNote,
+    this.qrRequired = false,
+    this.groupId,
+    this.groupTitleEn,
+    this.groupTitleAr,
+    this.groupSize = 1,
+    this.groupPosition,
+    this.qrHash,
+    this.unlocked = false,
   });
 
   int get doneCount => items.where((i) => i.status == 'done').length;
@@ -96,6 +134,21 @@ class Assignment {
   };
 
   bool get isTerminal => terminalStatuses.contains(effectiveStatus);
+
+  /// Waiting for its place's QR: the items stay read-only until it is
+  /// scanned (or a supervisor unlocks it on the portal). A checklist that can
+  /// no longer be filled is only read, so it never shows as locked.
+  bool get isLocked => qrRequired && !unlocked && !isReadOnly;
+
+  /// One place of a task over several places: the Tasks list shows the task
+  /// as one card and the places on /groups/:id. A group of one is just a
+  /// checklist, and renders as one.
+  bool get isGrouped => groupId != null && groupSize > 1;
+
+  /// A place of a task counts as done once it is sent (QB: each place is
+  /// submitted as it is finished). follow_up and rejected are sent back, so
+  /// still to do.
+  bool get isSent => effectiveStatus == 'submitted' || effectiveStatus == 'approved';
 
   bool get isToday => isTodayAt(DateTime.now());
 
@@ -171,6 +224,15 @@ class Assignment {
         : DateTime.parse(json['deadline'] as String),
     taskNote: json['task_note'] as String?,
     submitNote: json['submit_note'] as String?,
+    // Absent from an API (or a cached row) older than QR places: all off.
+    qrRequired: json['qr_required'] as bool? ?? false,
+    groupId: json['group_id'] as String?,
+    groupTitleEn: json['group_title_en'] as String?,
+    groupTitleAr: json['group_title_ar'] as String?,
+    groupSize: (json['group_size'] as num?)?.toInt() ?? 1,
+    groupPosition: (json['group_position'] as num?)?.toInt(),
+    qrHash: json['qr_hash'] as String?,
+    unlocked: json['unlocked'] as bool? ?? false,
   );
 
   Map<String, dynamic> toCacheJson() => {
@@ -200,6 +262,14 @@ class Assignment {
     'deadline': deadline?.toIso8601String(),
     'task_note': taskNote,
     'submit_note': submitNote,
+    'qr_required': qrRequired,
+    'group_id': groupId,
+    'group_title_en': groupTitleEn,
+    'group_title_ar': groupTitleAr,
+    'group_size': groupSize,
+    'group_position': groupPosition,
+    'qr_hash': qrHash,
+    'unlocked': unlocked,
   };
 
   Assignment copyWithItems(List<AssignmentItem> items) => Assignment(
@@ -229,5 +299,13 @@ class Assignment {
     deadline: deadline,
     taskNote: taskNote,
     submitNote: submitNote,
+    qrRequired: qrRequired,
+    groupId: groupId,
+    groupTitleEn: groupTitleEn,
+    groupTitleAr: groupTitleAr,
+    groupSize: groupSize,
+    groupPosition: groupPosition,
+    qrHash: qrHash,
+    unlocked: unlocked,
   );
 }

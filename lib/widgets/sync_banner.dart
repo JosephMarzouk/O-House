@@ -143,6 +143,7 @@ class _ParkedRow extends ConsumerWidget {
     final what = switch (op.op) {
       'photo' => t.parkedOpPhoto,
       'submit' => t.parkedOpSubmit,
+      'scan' => t.parkedOpScan,
       _ => t.parkedOpAnswer,
     };
     final round = a == null ? '' : pickLocalized(context, a.titleAr, a.titleEn);

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'app_release.dart';
 import 'data/auth_service.dart';
 import 'features/assignments/detail_screen.dart';
+import 'features/assignments/group_screen.dart';
+import 'features/assignments/qr_scan.dart';
 import 'features/assignments/history_detail_screen.dart';
 import 'features/assignments/list_screen.dart';
 import 'features/assignments/signature_screen.dart';
@@ -99,6 +101,16 @@ final router = GoRouter(
     GoRoute(
       path: '/tasks/:id/success',
       builder: (c, s) => SuccessScreen(assignmentId: s.pathParameters['id']!),
+    ),
+    // A task over several places, and the QR scanner its places open with.
+    // Top-level for the same reason as /tasks/:id.
+    GoRoute(
+      path: '/groups/:id',
+      builder: (c, s) => GroupScreen(groupId: s.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/scan',
+      builder: (c, s) => ScanScreen(groupId: s.uri.queryParameters['group']),
     ),
     GoRoute(
       path: '/history/:id',

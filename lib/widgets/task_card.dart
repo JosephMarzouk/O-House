@@ -13,14 +13,25 @@ import 'task_progress_bar.dart';
 /// every status — so the card has to carry the tag and the progress bar itself
 /// rather than leaving each tab to assemble them.
 class TaskCard extends StatelessWidget {
-  const TaskCard({super.key, required this.assignment, required this.onTap});
+  const TaskCard({
+    super.key,
+    required this.assignment,
+    required this.onTap,
+    this.showRound = true,
+  });
   final Assignment assignment;
   final VoidCallback onTap;
+
+  /// Off on a task's own places screen, whose header already names the
+  /// round: the same kicker on every card there is only noise.
+  final bool showRound;
 
   @override
   Widget build(BuildContext context) {
     final a = assignment;
-    final round = pickLocalized(context, a.roundTitleAr, a.roundTitleEn);
+    final round = showRound
+        ? pickLocalized(context, a.roundTitleAr, a.roundTitleEn)
+        : '';
     final title = pickLocalized(context, a.titleAr, a.titleEn);
     final site = pickLocalized(context, a.siteNameAr, a.siteNameEn);
     final window = formatWindow(a.windowStart, a.windowEnd);
@@ -136,6 +147,12 @@ class TaskCard extends StatelessWidget {
                     ],
                   ),
                 ],
+                // Waiting for its place's QR (never on a checklist without
+                // the switch, so single places look exactly as before).
+                if (a.isLocked) ...[
+                  const SizedBox(height: 8),
+                  const _LockBadge(),
+                ],
                 if (a.reviewNote != null && a.reviewNote!.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Text(
@@ -161,4 +178,126 @@ class TaskCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One card for a task over several places (QA, QK): the task's name, how
+/// many places are done and how many still wait for their QR. The places
+/// themselves are on /groups/:id. [places] are the task's checklists on this
+/// phone in this tab; the counts are of those.
+class GroupCard extends StatelessWidget {
+  const GroupCard({super.key, required this.places, required this.onTap});
+  final List<Assignment> places;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final done = places.where((a) => a.isSent).length;
+    final locked = places.where((a) => a.isLocked).length;
+    const meta = TextStyle(
+      fontSize: 13.5,
+      height: 1.2,
+      color: Color(0x99201E1D), // text @ 60%
+    );
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: kRadiusFloating,
+        boxShadow: [kShadowMd],
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: kRadiusFloating,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  groupTitle(context, places.first),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    height: 1.25,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // A Wrap, not a Row: in Arabic both phrases are longer, and
+                // the second may need its own line on a narrow phone.
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 6,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.layers_outlined,
+                          size: 17,
+                          color: Color(0x99201E1D),
+                        ),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            t.groupPlacesDone(done, places.length),
+                            style: meta,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (locked > 0)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.lock_outline,
+                            size: 17,
+                            color: AppColors.cyanDark,
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              t.groupLockedCount(locked),
+                              style: meta.copyWith(color: AppColors.cyanDark),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TaskProgressBar(done: done, total: places.length),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Locked": the checklist waits for its place's QR. cyanDark, not magenta:
+/// a lock is the normal start of a place, not an alarm.
+class _LockBadge extends StatelessWidget {
+  const _LockBadge();
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(Icons.lock_outline, size: 17, color: AppColors.cyanDark),
+      const SizedBox(width: 5),
+      Text(
+        AppLocalizations.of(context)!.qrLocked,
+        style: TextStyle(
+          fontSize: 13.5,
+          height: 1.2,
+          fontWeight: FontWeight.w600,
+          color: AppColors.cyanDark,
+        ),
+      ),
+    ],
+  );
 }

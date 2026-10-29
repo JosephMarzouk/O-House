@@ -26,7 +26,7 @@ class OutboxOp {
   final String userId;
   final String assignmentId;
 
-  /// answer | photo | submit
+  /// scan | answer | photo | submit
   final String op;
   final Map<String, dynamic> payload;
   final int attempts;

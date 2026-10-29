@@ -55,6 +55,44 @@ bool matchesQuery(Assignment a, String query) {
       hit(a.siteNameAr);
 }
 
+/// One row of the Tasks list: a single checklist, or a task over several
+/// places shown as one card (QA). [places] holds the one checklist, or the
+/// task's checklists in this tab.
+typedef TaskEntry = ({String? groupId, List<Assignment> places});
+
+/// The rows of one tab: [inTab] (that tab's checklists, in list order) with a
+/// task's places collapsed into one entry where its first place stands.
+///
+/// A task is in when any of its places, or its own name, matches [query]; it
+/// then keeps all its places in this tab, so its counts stay whole. Only a
+/// real group collapses (Assignment.isGrouped): with an API older than QR
+/// places nothing has a group, and every card is exactly as before.
+///
+/// Pure, unit-tested.
+List<TaskEntry> taskEntries(List<Assignment> inTab, String query) {
+  final groups = <String, List<Assignment>>{};
+  for (final a in inTab) {
+    if (a.isGrouped) groups.putIfAbsent(a.groupId!, () => []).add(a);
+  }
+  bool groupHit(List<Assignment> places) {
+    final q = query.trim().toLowerCase();
+    bool hit(String? s) => s != null && s.toLowerCase().contains(q);
+    final a = places.first;
+    return places.any((p) => matchesQuery(p, query)) ||
+        hit(a.groupTitleEn) ||
+        hit(a.groupTitleAr);
+  }
+
+  final seen = <String>{};
+  return [
+    for (final a in inTab)
+      if (!a.isGrouped) ...[
+        if (matchesQuery(a, query)) (groupId: null, places: [a]),
+      ] else if (seen.add(a.groupId!) && groupHit(groups[a.groupId!]!))
+        (groupId: a.groupId, places: groups[a.groupId!]!),
+  ];
+}
+
 class TasksListScreen extends ConsumerStatefulWidget {
   const TasksListScreen({super.key});
   @override
@@ -71,9 +109,10 @@ class _TasksListScreenState extends ConsumerState<TasksListScreen> {
     final assignments = ref.watch(myAssignmentsProvider).valueOrNull ?? [];
     final now = DateTime.now();
 
-    final visible = assignments
-        .where((a) => tabFor(a, now) == _tab && matchesQuery(a, _query))
-        .toList();
+    final visible = taskEntries(
+      assignments.where((a) => tabFor(a, now) == _tab).toList(),
+      _query,
+    );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -118,10 +157,21 @@ class _TasksListScreenState extends ConsumerState<TasksListScreen> {
                         ),
                         itemCount: visible.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 14),
-                        itemBuilder: (context, i) => TaskCard(
-                          assignment: visible[i],
-                          onTap: () => context.push('/tasks/${visible[i].id}'),
-                        ),
+                        itemBuilder: (context, i) {
+                          final e = visible[i];
+                          return e.groupId == null
+                              ? TaskCard(
+                                  assignment: e.places.single,
+                                  onTap: () => context.push(
+                                    '/tasks/${e.places.single.id}',
+                                  ),
+                                )
+                              : GroupCard(
+                                  places: e.places,
+                                  onTap: () =>
+                                      context.push('/groups/${e.groupId}'),
+                                );
+                        },
                       ),
               ),
             ),

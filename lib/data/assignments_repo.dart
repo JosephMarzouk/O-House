@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -59,6 +60,11 @@ Assignment applyLocal(
   final json = a.copyWithItems(items).toCacheJson();
   json['effective_status'] = status;
   for (final o in mine) {
+    // A place scanned on this phone is open at once, offline included (Q5):
+    // the scan was checked against the place's hash before it was queued.
+    // If the server later answers bad_code (the sticker was replaced in the
+    // meantime), the refresh after the drain brings the lock back.
+    if (o.op == 'scan') json['unlocked'] = true;
     if (o.op == 'answer' && status == 'pending') status = 'in_progress';
     if (o.op == 'submit') {
       // Sent from this phone's point of view. The server may still answer
@@ -223,6 +229,56 @@ class AssignmentsRepo {
       }
     }
     await db.deleteDraft(userId, assignmentId);
+  }
+
+  /// A place's QR, scanned and matched on this phone: queued at once, so it
+  /// goes before that checklist's answers (they only enter the outbox at
+  /// Submit) and the drain's per-round order carries it through. The server
+  /// checks the code again, logs the scan and claims the whole task for this
+  /// person. [code] is the sticker's code, sent as read; the ids are fixed
+  /// here so a replay is the same scan.
+  Future<void> queueScan(String assignmentId, String code) => db.enqueue(
+    id: _uuid.v4(),
+    userId: userId,
+    assignmentId: assignmentId,
+    op: 'scan',
+    payload: {
+      'code': code,
+      // With its offset, like completedAt: the scan log shows phone time.
+      'scannedAt': isoWithOffset(DateTime.now()),
+      'scanId': _uuid.v4(),
+    },
+  );
+
+  // ---- the signature, reused across one task's places (QB) -----------------
+
+  /// One row per person: the signatures they drew today, by task. A new day
+  /// starts the map again, so it never grows past a day's tasks and an old
+  /// signature is never offered the next morning.
+  String get _signaturesKey => 'group_signatures:$userId';
+
+  static String _day(DateTime t) => '${t.year}-${t.month}-${t.day}';
+
+  /// Keeps [png] for [groupId]'s later places today.
+  Future<void> rememberSignature(String groupId, Uint8List png) async {
+    final today = _day(DateTime.now());
+    final raw = await db.getSetting(_signaturesKey);
+    final kept = raw == null ? null : jsonDecode(raw) as Map<String, dynamic>;
+    final sigs = kept?['day'] == today
+        ? Map<String, dynamic>.of(kept!['sigs'] as Map<String, dynamic>)
+        : <String, dynamic>{};
+    sigs[groupId] = base64Encode(png);
+    await db.setSetting(_signaturesKey, jsonEncode({'day': today, 'sigs': sigs}));
+  }
+
+  /// The signature drawn today for another place of [groupId], or null.
+  Future<Uint8List?> rememberedSignature(String groupId) async {
+    final raw = await db.getSetting(_signaturesKey);
+    if (raw == null) return null;
+    final kept = jsonDecode(raw) as Map<String, dynamic>;
+    if (kept['day'] != _day(DateTime.now())) return null;
+    final b64 = (kept['sigs'] as Map<String, dynamic>)[groupId] as String?;
+    return b64 == null ? null : base64Decode(b64);
   }
 
   /// The refusal code if this round has parked work, else null.

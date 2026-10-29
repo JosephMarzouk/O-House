@@ -98,10 +98,12 @@ class _FakeApi extends ApiClient {
   /// Throws to fail the request; returns to succeed.
   final FutureOr<void> Function(String path) answer;
   final calls = <String>[];
+  final bodies = <String, Object?>{};
 
   @override
   Future<Object?> post(String path, {Object? json, String? key}) async {
     calls.add(path);
+    bodies[path] = json;
     await answer(path);
     return null;
   }
@@ -250,6 +252,44 @@ void main() {
       await s2.retry('1');
       expect(ok.calls, ['/assignments/A/items/i1/answer', '/assignments/A/items/i2/answer']);
       expect(db.rows, isEmpty);
+    });
+
+    test("a place's QR scan goes first, as the scan route, before the answers behind it", () async {
+      // Queued at scan time, the answers only at Submit: queue order is the
+      // order the server sees, so the place is claimed before it is filled.
+      final db = _MemDb()
+        ..add('1', 'A', 'scan', payload: {
+          'code': 'c0de',
+          'scannedAt': '2026-10-28T08:01:00+03:00',
+          'scanId': 'scan-1',
+        })
+        ..add('2', 'A', 'answer', payload: {'itemId': 'i1', 'answer': 'yes'});
+      final api = _FakeApi((_) {});
+      await sync(db, api).drain();
+      expect(api.calls, ['/assignments/A/scan', '/assignments/A/items/i1/answer']);
+      expect(api.bodies['/assignments/A/scan'], {
+        'code': 'c0de',
+        'scannedAt': '2026-10-28T08:01:00+03:00',
+        'scanId': 'scan-1',
+      });
+      expect(db.rows, isEmpty);
+    });
+
+    test('a refused scan parks like any op, and its place waits behind it', () async {
+      // Someone else's scan claimed the task first (ASSIGNMENT_TAKEN).
+      final db = _MemDb()
+        ..add('1', 'A', 'scan', payload: {'code': 'c0de', 'scannedAt': 'x', 'scanId': 's'})
+        ..add('2', 'A', 'answer', payload: {'itemId': 'i1'})
+        ..add('3', 'B', 'answer', payload: {'itemId': 'i9'});
+      final api = _FakeApi((path) {
+        if (path.endsWith('/scan')) throw ApiRefused('ASSIGNMENT_TAKEN', 'x');
+      });
+      final s = sync(db, api);
+      await s.drain();
+      expect(db.rows.map((o) => (o.id, o.parkedCode)), [('1', 'ASSIGNMENT_TAKEN'), ('2', null)]);
+      // Another place's work is not held up.
+      expect(api.calls, ['/assignments/A/scan', '/assignments/B/items/i9/answer']);
+      expect(s.status.value.parked, 1);
     });
 
     test('F-12 / SYNC-04: a 400/403/404/409 parks at once with the server\'s code', () async {

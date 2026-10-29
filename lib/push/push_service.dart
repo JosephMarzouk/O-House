@@ -19,7 +19,8 @@ import '../router.dart';
 ///     and takes it back at sign-out (PN-1);
 ///   * asks for permission once Home is up, with a one-line reason (PN-2);
 ///   * in the foreground, shows a banner and refreshes the rounds (PN-7);
-///   * on a tap, opens what `data.open` names: the round, Tasks, or Home.
+///   * on a tap, opens what `data.open` names: the round, a multi-place
+///     task's places, Tasks, or Home.
 ///
 /// Each club is its own Firebase project, read from its flavor's
 /// `android/app/src/<flavor>/google-services.json`. A club without one (no
@@ -50,21 +51,26 @@ Future<void> initPush() async {
 /// Where a push's `data` sends a tap. Null: stay where the app opens.
 String? routeFor(Map<String, dynamic> data) {
   final id = data['assignmentId'];
+  final group = data['groupId'];
   return switch (data['open']) {
     'task' when id is String && id.isNotEmpty => '/tasks/$id',
+    // One push per multi-place task (QG): it opens the task's places.
+    'group' when group is String && group.isNotEmpty => '/groups/$group',
     'tasks' => '/tasks',
     'home' => '/home',
     _ => null,
   };
 }
 
-/// Opens [route] over Home: a round is pushed (back returns to Home), a tab
-/// is gone to. Home is where Splash and Login just went, so its hand-off
-/// animation still plays first.
+/// Opens [route] over Home: a round or a task's places is pushed (back
+/// returns to Home), a tab is gone to. Home is where Splash and Login just
+/// went, so its hand-off animation still plays first.
 void openPushRoute(String? route) {
   if (route == null || route == '/home') return;
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    route.startsWith('/tasks/') ? router.push(route) : router.go(route);
+    route.startsWith('/tasks/') || route.startsWith('/groups/')
+        ? router.push(route)
+        : router.go(route);
   });
 }
 

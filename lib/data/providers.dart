@@ -127,13 +127,17 @@ final parkedOpsProvider = FutureProvider<List<OutboxOp>>((ref) async {
 
 /// Rounds with work on this phone that the server has not accepted yet and
 /// has not refused: "saved on this phone, will send".
+///
+/// A queued QR scan is not such work: it only opens the place. Counting it
+/// would enable the checklist's Submit right after a scan with nothing
+/// answered (the detail screen reads this as "work already queued").
 final pendingRoundsProvider = FutureProvider<Set<String>>((ref) async {
   ref.watch(syncStatusProvider);
   final repo = ref.watch(assignmentsRepoProvider);
   if (repo == null) return {};
   return {
     for (final o in await repo.db.ops(repo.userId))
-      if (!o.parked) o.assignmentId,
+      if (!o.parked && o.op != 'scan') o.assignmentId,
   };
 });
 

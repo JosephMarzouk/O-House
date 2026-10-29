@@ -26,6 +26,7 @@ import '../../widgets/round_gone.dart';
 import '../../widgets/subtask_tile.dart';
 import '../../widgets/task_progress_bar.dart';
 import 'club_zone.dart';
+import 'qr_scan.dart';
 
 /// The wire form of a typed answer — what mark_item_done() receives as
 /// p_answer. Pure, unit-tested.
@@ -540,6 +541,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final readOnly = assignment.isReadOnly;
     // A round that can no longer be filled is only read: no zone check.
     final gate = readOnly ? null : _zoneGate(ref.watch(clubZoneProvider));
+    // Waiting for its place's QR (a queued scan on this phone counts as
+    // scanned): readable, so staff can see what is waiting there, but not
+    // answerable until scanned. After the zone gate, which still comes first.
+    final qrLocked = assignment.isLocked;
     final done = assignment.items
         .where((i) => isItemChecked(i, _answers))
         .length;
@@ -589,7 +594,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                   // A done answer is already on the server and cannot be
                   // taken back; only this session's are reversible. A
                   // follow_up item stays open — re-answering it is the point.
-                  final locked = readOnly || item.status == 'done';
+                  final locked =
+                      readOnly || qrLocked || item.status == 'done';
                   final typed = item.type == 'number' || item.type == 'text';
                   return SubtaskTile(
                     item: item,
@@ -605,14 +611,30 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                 },
               ),
             ),
-            _BottomBar(
-              assignment: assignment,
-              answers: _answers,
-              newPhotos: _newPhotos,
-              queued: queued,
-              submitting: _submitting,
-              onSubmit: _submit,
-            ),
+            if (qrLocked)
+              _ScanBar(
+                place: pickLocalized(
+                  context,
+                  assignment.titleAr,
+                  assignment.titleEn,
+                ),
+                // From a task's place, any of the task's stickers opens its
+                // own place; from a single checklist, any of today's.
+                onScan: () => scanPlace(
+                  context,
+                  groupId: assignment.groupId,
+                  fromId: assignment.id,
+                ),
+              )
+            else
+              _BottomBar(
+                assignment: assignment,
+                answers: _answers,
+                newPhotos: _newPhotos,
+                queued: queued,
+                submitting: _submitting,
+                onSubmit: _submit,
+              ),
           ],
         ),
       ),
@@ -831,6 +853,50 @@ class _BottomBar extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// In place of Submit while the place waits for its QR: what to do, and the
+/// scanner. Prominent on purpose: it is the only thing to do here until then.
+class _ScanBar extends StatelessWidget {
+  const _ScanBar({required this.place, required this.onScan});
+  final String place;
+  final VoidCallback onScan;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    return _Bar(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_outline, size: 18, color: AppColors.cyanDark),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  t.qrScanToStart(place),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    height: 1.3,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: onScan,
+            icon: const Icon(Icons.qr_code_scanner, size: 22),
+            label: Text(t.qrScanButton),
+          ),
         ],
       ),
     );

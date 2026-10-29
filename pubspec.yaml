@@ -53,6 +53,8 @@ dependencies:
   video_player: ^2.14.0
   flutter_secure_storage: ^11.2.0
   geolocator: ^14.1.1
+  mobile_scanner: ^7.4.2
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:

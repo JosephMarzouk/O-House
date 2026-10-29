@@ -179,5 +179,19 @@
   "pushPermissionTitle": "الإشعارات",
   "pushPermissionReason": "تصلك إشعارات عندما تُسند إليك جولة، أو يقترب موعد إغلاقها، أو تُعاد إليك للتعديل.",
   "pushPermissionContinue": "متابعة",
-  "pushOpen": "فتح"
+  "pushOpen": "فتح",
+
+  "parkedOpScan": "مسح رمز QR",
+  "qrScanButton": "مسح رمز QR",
+  "qrScanToStart": "امسح رمز QR في {place} للبدء",
+  "qrScanTitle": "امسح رمز QR للمكان",
+  "qrScanHint": "وجّه الكاميرا نحو ملصق رمز QR في المكان.",
+  "qrWrongClub": "رمز QR هذا تابع لنادٍ آخر.",
+  "qrNotInTask": "رمز QR هذا ليس من أماكن هذه المهمة.",
+  "qrCameraReason": "مسح رمز QR للمكان يحتاج إلى الكاميرا. اسمح بالوصول إلى الكاميرا ثم حاول مرة أخرى. إذا لم يعد أندرويد يطلب الإذن، فعّله من الإعدادات.",
+  "qrLocked": "مقفل",
+  "groupPlacesLabel": "الأماكن",
+  "groupPlacesDone": "الأماكن المنجزة: {done} من {total}",
+  "groupLockedCount": "المقفلة: {count}",
+  "signatureUseSaved": "استخدم توقيعي"
 }

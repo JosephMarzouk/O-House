@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -14,6 +15,7 @@ import 'package:o_house/data/providers.dart';
 import 'package:o_house/data/sync.dart';
 import 'package:o_house/features/assignments/signature_screen.dart';
 import 'package:o_house/l10n/app_localizations.dart';
+import 'package:o_house/models/assignment.dart';
 import 'package:o_house/models/profile.dart';
 import 'package:o_house/theme.dart';
 import 'package:signature/signature.dart';
@@ -74,6 +76,10 @@ class _RecordingRepo extends AssignmentsRepo {
   final String? parked;
   int submits = 0;
   String? note;
+  Uint8List? sent;
+
+  /// The signatures kept per task today (rememberSignature's store).
+  final kept = <String, Uint8List>{};
 
   @override
   Future<void> submit(
@@ -83,7 +89,15 @@ class _RecordingRepo extends AssignmentsRepo {
   }) async {
     submits++;
     this.note = note;
+    sent = signaturePng;
   }
+
+  @override
+  Future<void> rememberSignature(String groupId, Uint8List png) async =>
+      kept[groupId] = png;
+
+  @override
+  Future<Uint8List?> rememberedSignature(String groupId) async => kept[groupId];
 
   @override
   Future<String?> parkedCode(String assignmentId) async => parked;
@@ -102,6 +116,8 @@ const _profile = Profile(
 Future<(_SpySync, _RecordingRepo)> _pumpSignature(
   WidgetTester tester, {
   String? parked,
+  String? groupId,
+  Uint8List? kept,
 }) async {
   tester.view
     ..devicePixelRatio = 1.0
@@ -109,6 +125,18 @@ Future<(_SpySync, _RecordingRepo)> _pumpSignature(
   addTearDown(tester.view.reset);
 
   final repo = _RecordingRepo(parked: parked);
+  if (groupId != null && kept != null) repo.kept[groupId] = kept;
+  // demo-1 as one place of a task, when the test asks for one.
+  List<Assignment> assignments() => [
+    for (final a in demoAssignments())
+      a.id == 'demo-1' && groupId != null
+          ? Assignment.fromJson({
+              ...a.toCacheJson(),
+              'group_id': groupId,
+              'group_size': 2,
+            })
+          : a,
+  ];
   final sync = _SpySync(repo);
 
   // _submit ends in context.go(...), so the screen needs a real router.
@@ -143,7 +171,7 @@ Future<(_SpySync, _RecordingRepo)> _pumpSignature(
           sync.fetches++;
           return DateTime.now();
         }),
-        myAssignmentsProvider.overrideWith((ref) => demoAssignments()),
+        myAssignmentsProvider.overrideWith((ref) => assignments()),
         currentProfileProvider.overrideWith((ref) => _profile),
       ],
       child: MaterialApp.router(
@@ -271,5 +299,44 @@ void main() {
 
     expect(sync.drains, 0);
     expect(repo.submits, 0);
+  });
+
+  group('one signature per task per day (QB)', () {
+    // A real 1x1 PNG, so Image.memory has something it can decode.
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    );
+
+    testWidgets('a place of a task keeps what was drawn for the next ones', (
+      tester,
+    ) async {
+      final (sync, repo) = await _pumpSignature(tester, groupId: 'g1');
+      expect(find.text('Use my signature'), findsNothing);
+      await _sign(tester);
+      await _tapSubmit(tester, sync);
+      expect(repo.kept['g1'], same(repo.sent));
+    });
+
+    testWidgets("the task's next place offers it, and sends it as is", (
+      tester,
+    ) async {
+      final (sync, repo) = await _pumpSignature(tester, groupId: 'g1', kept: png);
+      await tester.runAsync(() async {
+        await tester.tap(find.text('Use my signature'));
+        for (var i = 0; i < 20 && sync.drains == 0; i++) {
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
+        await tester.pump();
+      });
+      expect(repo.submits, 1);
+      expect(repo.sent, png);
+      expect(sync.drains, 1);
+    });
+
+    testWidgets('a single checklist never offers one', (tester) async {
+      await _pumpSignature(tester);
+      expect(find.text('Use my signature'), findsNothing);
+    });
   });
 }

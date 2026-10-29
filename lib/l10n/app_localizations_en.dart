@@ -566,4 +566,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pushOpen => 'Open';
+
+  @override
+  String get parkedOpScan => 'QR scan';
+
+  @override
+  String get qrScanButton => 'Scan QR';
+
+  @override
+  String qrScanToStart(String place) {
+    return 'Scan the $place QR to start';
+  }
+
+  @override
+  String get qrScanTitle => 'Scan the place\'s QR';
+
+  @override
+  String get qrScanHint => 'Point the camera at the QR sticker at the place.';
+
+  @override
+  String get qrWrongClub => 'This QR belongs to another club.';
+
+  @override
+  String get qrNotInTask => 'This QR isn\'t part of this task.';
+
+  @override
+  String get qrCameraReason =>
+      'Scanning a place\'s QR uses the camera. Allow camera access, then try again. If Android no longer asks, turn it on in Settings.';
+
+  @override
+  String get qrLocked => 'Locked';
+
+  @override
+  String get groupPlacesLabel => 'Places';
+
+  @override
+  String groupPlacesDone(int done, int total) {
+    return '$done of $total places done';
+  }
+
+  @override
+  String groupLockedCount(int count) {
+    return '$count locked';
+  }
+
+  @override
+  String get signatureUseSaved => 'Use my signature';
 }

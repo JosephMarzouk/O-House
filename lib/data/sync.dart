@@ -263,6 +263,19 @@ class SyncService {
     final a = op.assignmentId;
     final pl = op.payload;
     switch (op.op) {
+      // A place's QR. A 200 whatever the verdict ('scan' or 'bad_code'):
+      // enforcement is the app's, the server only logs (Q10), so a bad code
+      // never parks the answers queued behind it.
+      case 'scan':
+        await api.post(
+          '/assignments/$a/scan',
+          json: {
+            'code': pl['code'],
+            'scannedAt': pl['scannedAt'],
+            'scanId': pl['scanId'],
+          },
+          key: op.id,
+        );
       case 'answer':
         await api.post(
           '/assignments/$a/items/${pl['itemId']}/answer',

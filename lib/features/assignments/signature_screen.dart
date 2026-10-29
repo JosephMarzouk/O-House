@@ -34,6 +34,31 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
   final _note = TextEditingController();
   bool _submitting = false;
 
+  /// The task this place belongs to, if any, and the signature drawn today
+  /// for one of its other places (QB): offered as "Use my signature", so a
+  /// cleaner signs a five-place task once, not five times.
+  String? get _groupId =>
+      ref.read(assignmentByIdProvider(widget.assignmentId))?.groupId;
+  Uint8List? _saved;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSaved();
+  }
+
+  Future<void> _loadSaved() async {
+    final groupId = _groupId;
+    final repo = ref.read(assignmentsRepoProvider);
+    if (groupId == null || repo == null) return;
+    try {
+      final png = await repo.rememberedSignature(groupId);
+      if (png != null && mounted) setState(() => _saved = png);
+    } catch (e) {
+      debugPrint('[signature] none kept: $e');
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -41,11 +66,12 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (_controller.isEmpty) return;
+  /// [png] is the kept signature ("Use my signature"); otherwise the pad's.
+  Future<void> _submit([Uint8List? png]) async {
+    if (png == null && _controller.isEmpty) return;
     setState(() => _submitting = true);
     try {
-      await _doSubmit();
+      await _doSubmit(png);
     } catch (e, s) {
       // Same trap as the detail screen's: writing the PNG and enqueueing both
       // touch the filesystem, and an unguarded throw here left the button
@@ -89,13 +115,27 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
     if (saved != null && mounted) setState(() => _note.text = saved);
   }
 
-  Future<void> _doSubmit() async {
+  Future<void> _doSubmit(Uint8List? kept) async {
     final repo = ref.read(assignmentsRepoProvider)!;
-    final png = await _controller.toPngBytes();
+    final png = kept ?? (await _controller.toPngBytes())!;
     // Written into the evidence folder under a signature id fixed now, and
     // queued. At most one pending submit per round (SY-4): signing again
-    // after backing out does not queue a second.
-    await repo.submit(widget.assignmentId, png!, note: _note.text);
+    // after backing out does not queue a second. A kept signature goes the
+    // same way, as a new file under a new id: each place's submit owns its
+    // own copy, and the outbox deletes it once sent.
+    await repo.submit(widget.assignmentId, png, note: _note.text);
+
+    // Kept apart from the evidence folder's copy (which goes once sent) for
+    // this task's other places today. Best effort: losing it only means
+    // drawing again.
+    final groupId = _groupId;
+    if (groupId != null) {
+      try {
+        await repo.rememberSignature(groupId, png);
+      } catch (e) {
+        debugPrint('[signature] not kept: $e');
+      }
+    }
 
     // Try to send it now, but never make anyone wait on a bad connection:
     // after a few seconds the round is honestly "saved on this phone" and the
@@ -179,6 +219,17 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
                   children: [
                     Text(t.signatureTitle, style: kSectionLabel),
                     const SizedBox(height: 10),
+                    // Signed another place of this task today: one tap
+                    // sends that signature. The pad below stays for anyone
+                    // who would rather sign again.
+                    if (_saved != null) ...[
+                      OutlinedButton.icon(
+                        onPressed: _submitting ? null : () => _submit(_saved),
+                        icon: Image.memory(_saved!, height: 32, width: 64),
+                        label: Text(t.signatureUseSaved),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     // Capped rather than free-growing: the pad used to take
                     // every leftover pixel, which on a tall phone made a
                     // signature box deeper than the screen it sits on. And
@@ -221,7 +272,7 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: FilledButton(
-                            onPressed: _submitting ? null : _submit,
+                            onPressed: _submitting ? null : () => _submit(),
                             child: _submitting
                                 ? const SizedBox(
                                     width: 20,
