@@ -11,6 +11,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/localized_text.dart';
 import '../../models/assignment.dart';
 import '../../tenant.dart';
 import '../../theme.dart';
@@ -39,6 +40,11 @@ enum QrVerdict {
 
   /// [QrMatch.place] is the checklist the sticker opens.
   match,
+
+  /// The sticker is right, but none of its checklists is open yet
+  /// (Assignment.isNotOpenAt): [QrMatch.place] is the one that opens first.
+  /// Nothing is queued, so the server never records or claims it early.
+  notOpenYet,
 }
 
 typedef QrMatch = ({QrVerdict verdict, Assignment? place, String? code});
@@ -48,16 +54,19 @@ typedef QrMatch = ({QrVerdict verdict, Assignment? place, String? code});
 ///
 /// Only checklists that can still be filled and carry a hash take part. When
 /// one place appears twice (a morning and an evening checklist of the same
-/// pool, one sticker), a locked one wins over one already open, then the
-/// earlier in walk order: the scan is for the work still waiting. A sticker
-/// that matches only open checklists still "matches", so scanning twice just
-/// opens the place rather than calling the right sticker wrong.
+/// pool, one sticker), only those whose time has come at [now] count; among
+/// them a locked one wins over one already open, then the earlier in walk
+/// order: the scan is for the work still waiting. A sticker that matches only
+/// open checklists still "matches", so scanning twice just opens the place
+/// rather than calling the right sticker wrong. A sticker whose checklists
+/// are all still to come is [QrVerdict.notOpenYet], with the earliest.
 ///
 /// Pure, unit-tested.
 QrMatch matchQr(
   String raw, {
   required String clubSlug,
   required List<Assignment> candidates,
+  required DateTime now,
 }) {
   const none = (verdict: QrVerdict.notInTask, place: null, code: null);
   final parts = raw.trim().split(':');
@@ -74,7 +83,14 @@ QrMatch matchQr(
       if (!a.isReadOnly && a.qrRequired && a.qrHash == hash) a,
   ]);
   if (hits.isEmpty) return none;
-  final place = hits.firstWhere((a) => a.isLocked, orElse: () => hits.first);
+  final open = [for (final a in hits) if (!a.isNotOpenAt(now)) a];
+  if (open.isEmpty) {
+    final first = hits.reduce(
+      (x, y) => (y.openTime ?? now).isBefore(x.openTime ?? now) ? y : x,
+    );
+    return (verdict: QrVerdict.notOpenYet, place: first, code: null);
+  }
+  final place = open.firstWhere((a) => a.isLocked, orElse: () => open.first);
   return (verdict: QrVerdict.match, place: place, code: code);
 }
 
@@ -167,16 +183,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     if (raw == null) return;
     final t = AppLocalizations.of(context)!;
     final all = ref.read(myAssignmentsProvider).valueOrNull ?? const [];
+    final now = ref.read(serverClockProvider)();
     final r = matchQr(
       raw,
       clubSlug: tenant.clubSlug,
       candidates: scanCandidates(all, widget.groupId),
+      now: now,
     );
     switch (r.verdict) {
       case QrVerdict.wrongClub:
         setState(() => _message = t.qrWrongClub);
       case QrVerdict.notInTask:
         setState(() => _message = t.qrNotInTask);
+      case QrVerdict.notOpenYet:
+        setState(() => _message = opensAtText(context, r.place!, now));
       case QrVerdict.match:
         _busy = true;
         await _unlock(r.place!, r.code!);

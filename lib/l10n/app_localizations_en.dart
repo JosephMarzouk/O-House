@@ -598,6 +598,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get qrLocked => 'Locked';
 
   @override
+  String opensAt(String time) {
+    return 'Opens at $time';
+  }
+
+  @override
+  String opensOn(String date, String time) {
+    return 'Opens $date at $time';
+  }
+
+  @override
+  String get notOpenYetHint =>
+      'This task can\'t be started before its time, even with the place\'s QR.';
+
+  @override
   String get groupPlacesLabel => 'Places';
 
   @override

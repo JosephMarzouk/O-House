@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show DateUtils;
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
@@ -41,6 +42,21 @@ String assignmentSubtitle(BuildContext context, Assignment a) {
                 ' – ${DateFormat('EEE d MMM', locale).format(a.endDate!)}',
     ?formatWindow(a.windowStart, a.windowEnd),
   ].where((s) => s.isNotEmpty).join(' · ');
+}
+
+/// "Opens at 09:55", or "Opens Thu 13 Nov at 09:55" for a later day: why a
+/// checklist is still shut (Assignment.isNotOpenAt), on its card, its screen
+/// and the scanner.
+String opensAtText(BuildContext context, Assignment a, DateTime now) {
+  final t = AppLocalizations.of(context)!;
+  final time = a.openClock ?? '';
+  final d = a.scheduledDate;
+  if (d == null || DateUtils.isSameDay(d, now)) return t.opensAt(time);
+  final date = DateFormat(
+    'EEE d MMM',
+    Localizations.localeOf(context).toString(),
+  ).format(d);
+  return t.opensOn(date, time);
 }
 
 /// A multi-place task's name: the round's or the one-off task's title (the

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../data/providers.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/localized_text.dart';
 import '../models/assignment.dart';
@@ -12,7 +14,7 @@ import 'task_progress_bar.dart';
 /// list_screen.dart because all three tabs render it, and the Today tab shows
 /// every status — so the card has to carry the tag and the progress bar itself
 /// rather than leaving each tab to assemble them.
-class TaskCard extends StatelessWidget {
+class TaskCard extends ConsumerWidget {
   const TaskCard({
     super.key,
     required this.assignment,
@@ -27,8 +29,10 @@ class TaskCard extends StatelessWidget {
   final bool showRound;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final a = assignment;
+    final now = ref.watch(serverClockProvider)();
+    final notOpen = a.isNotOpenAt(now);
     final round = showRound
         ? pickLocalized(context, a.roundTitleAr, a.roundTitleEn)
         : '';
@@ -149,9 +153,20 @@ class TaskCard extends StatelessWidget {
                 ],
                 // Waiting for its place's QR (never on a checklist without
                 // the switch, so single places look exactly as before).
-                if (a.isLocked) ...[
+                // Before its time "Opens at 09:55" says more than "Locked":
+                // not even a scan opens it yet.
+                if (notOpen) ...[
                   const SizedBox(height: 8),
-                  const _LockBadge(),
+                  _Badge(
+                    icon: Icons.schedule,
+                    label: opensAtText(context, a, now),
+                  ),
+                ] else if (a.isLocked) ...[
+                  const SizedBox(height: 8),
+                  _Badge(
+                    icon: Icons.lock_outline,
+                    label: AppLocalizations.of(context)!.qrLocked,
+                  ),
                 ],
                 if (a.reviewNote != null && a.reviewNote!.isNotEmpty) ...[
                   const SizedBox(height: 10),
@@ -279,18 +294,22 @@ class GroupCard extends StatelessWidget {
   }
 }
 
-/// "Locked": the checklist waits for its place's QR. cyanDark, not magenta:
-/// a lock is the normal start of a place, not an alarm.
-class _LockBadge extends StatelessWidget {
-  const _LockBadge();
+/// "Locked" (the checklist waits for its place's QR) or "Opens at 09:55" (its
+/// time hasn't come). cyanDark, not magenta: both are the normal start of a
+/// place, not an alarm.
+class _Badge extends StatelessWidget {
+  const _Badge({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Icon(Icons.lock_outline, size: 17, color: AppColors.cyanDark),
+      Icon(icon, size: 17, color: AppColors.cyanDark),
       const SizedBox(width: 5),
       Text(
-        AppLocalizations.of(context)!.qrLocked,
+        label,
         style: TextStyle(
           fontSize: 13.5,
           height: 1.2,

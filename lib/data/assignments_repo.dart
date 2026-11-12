@@ -128,8 +128,7 @@ class AssignmentsRepo {
     final rows = await db.rounds(userId);
     final ops = await db.ops(userId);
     final dir = (await evidence()).path;
-    final offset = int.tryParse(await db.getSetting(_offsetKey) ?? '') ?? 0;
-    final now = DateTime.now().add(Duration(milliseconds: offset));
+    final now = DateTime.now().add(await serverOffset());
     return [
       for (final r in rows)
         applyLocal(Assignment.fromJson(r), ops, evidencePath: dir, serverNow: now),
@@ -139,6 +138,14 @@ class AssignmentsRepo {
       ),
     );
   }
+
+  /// How far the server's clock is ahead of this phone's, as of the last
+  /// [refresh] (zero before the first). Added to the phone's time wherever a
+  /// rule depends on the hour, so a phone set ahead can't open or keep a
+  /// checklist it shouldn't.
+  Future<Duration> serverOffset() async => Duration(
+    milliseconds: int.tryParse(await db.getSetting(_offsetKey) ?? '') ?? 0,
+  );
 
   /// `GET /assignments` into the cache: the whole offline window, so tomorrow's
   /// round is on the phone the night before. Throws when offline; the cache

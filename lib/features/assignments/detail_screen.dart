@@ -216,6 +216,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   ZoneCheck? _zoneCheck;
   bool _zoneChecking = false;
 
+  /// Fires when a checklist that isn't open yet opens, so the screen turns
+  /// from "Opens at 09:55" into the checklist without being reopened.
+  Timer? _openTimer;
+
+  void _openWhenDue(Duration wait) {
+    if (_openTimer?.isActive ?? false) return;
+    _openTimer = Timer(wait + const Duration(seconds: 1), () {
+      if (mounted) setState(() {});
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -299,6 +310,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
   @override
   void dispose() {
+    _openTimer?.cancel();
     for (final c in _controllers.values) {
       c.dispose();
     }
@@ -473,6 +485,12 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   }
 
   Future<void> _submit() async {
+    // The gate hides Submit before the checklist opens; refuse regardless.
+    final current = ref.read(assignmentByIdProvider(widget.assignmentId));
+    if (current != null && current.isNotOpenAt(ref.read(serverClockProvider)())) {
+      setState(() {});
+      return;
+    }
     setState(() => _submitting = true);
 
     // Again at Submit: the round was opened inside, but the phone may have
@@ -537,6 +555,28 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final assignment = ref.watch(assignmentByIdProvider(widget.assignmentId));
 
     if (assignment == null) return const RoundGone();
+
+    // Before its time (5 minutes before the window, on the server's clock)
+    // nothing of the checklist shows, not even after a QR scan: only when it
+    // opens. Ahead of the zone gate, so no location is asked for meanwhile.
+    final now = ref.watch(serverClockProvider)();
+    if (assignment.isNotOpenAt(now)) {
+      _openWhenDue(assignment.openTime!.difference(now));
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
+          backgroundColor: AppColors.paper,
+          body: Column(
+            children: [
+              _Header(assignment: assignment, done: 0),
+              Expanded(
+                child: _NotOpenGate(message: opensAtText(context, assignment, now)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     final readOnly = assignment.isReadOnly;
     // A round that can no longer be filled is only read: no zone check.
@@ -635,6 +675,46 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                 submitting: _submitting,
                 onSubmit: _submit,
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Stands in for the checklist before its time: when it opens, and that a
+/// scan won't open it sooner. No button: the screen opens by itself.
+class _NotOpenGate extends StatelessWidget {
+  const _NotOpenGate({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.schedule, size: 40, color: AppColors.cyanDark),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 17,
+                height: 1.3,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              t.notOpenYetHint,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
           ],
         ),
       ),

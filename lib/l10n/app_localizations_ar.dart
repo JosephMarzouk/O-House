@@ -601,6 +601,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get qrLocked => 'مقفل';
 
   @override
+  String opensAt(String time) {
+    return 'يفتح الساعة $time';
+  }
+
+  @override
+  String opensOn(String date, String time) {
+    return 'يفتح $date الساعة $time';
+  }
+
+  @override
+  String get notOpenYetHint =>
+      'لا يمكن بدء هذه المهمة قبل موعدها، حتى مع رمز QR الخاص بالمكان.';
+
+  @override
   String get groupPlacesLabel => 'الأماكن';
 
   @override

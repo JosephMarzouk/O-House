@@ -38,7 +38,9 @@ Assignment _place(
   String? start,
   int? position,
   DateTime? date,
+  DateTime? opensAt,
 }) => Assignment.fromJson({
+  'opens_at': opensAt?.toUtc().toIso8601String(),
   'id': id,
   'inspector_id': 'u1',
   'title_en': title,
@@ -94,6 +96,7 @@ Future<void> _pump(
   Widget home, {
   required List<Assignment> assignments,
   String locale = 'en',
+  DateTime? now,
 }) async {
   tester.view
     ..devicePixelRatio = 1.0
@@ -105,6 +108,7 @@ Future<void> _pump(
         userIdProvider.overrideWithValue(null),
         myAssignmentsProvider.overrideWith((ref) => assignments),
         outboxCountProvider.overrideWith((ref) => 0),
+        if (now != null) serverClockProvider.overrideWithValue(() => now),
       ],
       child: MaterialApp(
         theme: buildTheme(),
@@ -136,8 +140,13 @@ void main() {
       _place('pool', qr: true, hash: qrHashOf(_pool)),
       _place('gym', qr: true, hash: qrHashOf('9999')),
     ];
-    QrMatch match(String raw, [List<Assignment>? candidates]) =>
-        matchQr(raw, clubSlug: 'ohouse', candidates: candidates ?? places);
+    QrMatch match(String raw, [List<Assignment>? candidates, DateTime? now]) =>
+        matchQr(
+          raw,
+          clubSlug: 'ohouse',
+          candidates: candidates ?? places,
+          now: now ?? DateTime.now(),
+        );
 
     test("this club's sticker opens its place, and carries the code", () {
       final r = match('clubops:ohouse:$_pool');
@@ -191,6 +200,43 @@ void main() {
       ]);
       expect(again.verdict, QrVerdict.match);
       expect(again.place!.id, 'morning');
+    });
+
+    // The same place twice in one round, each in its own period (12 Nov).
+    final h = qrHashOf(_pool);
+    final today = DateTime(2026, 11, 13);
+    DateTime at(int hour, [int minute = 0]) =>
+        DateTime(2026, 11, 13, hour, minute);
+
+    test('two periods of one place: the scan opens the one whose time has come', () {
+      final slots = [
+        _place('noon', qr: true, hash: h, start: '12:00:00', position: 1, date: today, opensAt: at(12)),
+        _place('morning', qr: true, hash: h, start: '08:00:00', position: 2, date: today, opensAt: at(8)),
+      ];
+      // The admin listed noon first; at 08:30 it is the morning one.
+      final r = match('clubops:ohouse:$_pool', slots, at(8, 30));
+      expect(r.verdict, QrVerdict.match);
+      expect(r.place!.id, 'morning');
+      expect(match('clubops:ohouse:$_pool', slots, at(12, 30)).place!.id, 'noon');
+    });
+
+    test('before its time a right sticker opens nothing, and says when', () {
+      final slots = [
+        _place('noon', qr: true, hash: h, start: '12:00:00', date: today, opensAt: at(12)),
+        _place('ten', qr: true, hash: h, start: '10:00:00', date: today, opensAt: at(10)),
+      ];
+      final r = match('clubops:ohouse:$_pool', slots, at(9));
+      expect(r.verdict, QrVerdict.notOpenYet);
+      expect(r.place!.id, 'ten'); // the earliest
+      expect(r.code, isNull); // nothing to queue
+    });
+
+    test('it opens 5 minutes early, not 6', () {
+      final ten = [
+        _place('ten', qr: true, hash: h, start: '10:00:00', date: today, opensAt: at(10)),
+      ];
+      expect(match('clubops:ohouse:$_pool', ten, at(9, 54)).verdict, QrVerdict.notOpenYet);
+      expect(match('clubops:ohouse:$_pool', ten, at(9, 55)).verdict, QrVerdict.match);
     });
 
     test("scanning from a task reaches only its places; else today's", () {
@@ -431,6 +477,78 @@ void main() {
       );
       expect(find.text('Scan QR'), findsNothing);
       expect(tester.widget<SubtaskTile>(find.byType(SubtaskTile)).locked, isFalse);
+      expect(find.text('Submit & Sign'), findsOneWidget);
+    });
+  });
+
+  group('before its time', () {
+    final day = DateTime(2026, 11, 13);
+    Assignment ten({bool qr = true, bool unlocked = false, String status = 'pending'}) => _place(
+      'ten',
+      qr: qr,
+      hash: qrHashOf(_pool),
+      unlocked: unlocked,
+      status: status,
+      start: '10:00:00',
+      date: day,
+      opensAt: DateTime(2026, 11, 13, 10),
+    );
+
+    test('opens 5 minutes before the window, on the club clock', () {
+      final a = ten();
+      expect(a.openClock, '09:55');
+      expect(a.isNotOpenAt(DateTime(2026, 11, 13, 9, 54)), isTrue);
+      expect(a.isNotOpenAt(DateTime(2026, 11, 13, 9, 55)), isFalse);
+      // A window just after midnight opens the evening before.
+      expect(_place('x', start: '00:02:00').openClock, '23:57');
+    });
+
+    test('only work still to start waits', () {
+      final early = DateTime(2026, 11, 13, 8);
+      expect(ten(status: 'follow_up').isNotOpenAt(early), isFalse);
+      expect(ten(status: 'submitted').isNotOpenAt(early), isFalse);
+      expect(ten(status: 'in_progress').isNotOpenAt(early), isTrue);
+      // No opens_at (an older API, or no window): no gate.
+      expect(_place('old', start: '10:00:00', date: day).isNotOpenAt(early), isFalse);
+    });
+
+    for (final locale in ['en', 'ar']) {
+      testWidgets('the checklist shows only when it opens ($locale)', (tester) async {
+        await _pump(
+          tester,
+          const TaskDetailScreen(assignmentId: 'ten'),
+          // Even a place already scanned stays shut before its time.
+          assignments: [ten(unlocked: true)],
+          locale: locale,
+          now: DateTime(2026, 11, 13, 9),
+        );
+        final en = locale == 'en';
+        expect(find.text(en ? 'Opens at 09:55' : 'يفتح الساعة 09:55'), findsOneWidget);
+        expect(find.byType(SubtaskTile), findsNothing);
+        expect(find.text(en ? 'Submit & Sign' : 'إرسال وتوقيع'), findsNothing);
+        expect(find.text(en ? 'Scan QR' : 'مسح رمز QR'), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('a later day names the day', (tester) async {
+      await _pump(
+        tester,
+        const TaskDetailScreen(assignmentId: 'ten'),
+        assignments: [ten()],
+        now: DateTime(2026, 11, 12, 18),
+      );
+      expect(find.text('Opens Fri 13 Nov at 09:55'), findsOneWidget);
+    });
+
+    testWidgets('at its time it is the checklist again', (tester) async {
+      await _pump(
+        tester,
+        const TaskDetailScreen(assignmentId: 'ten'),
+        assignments: [ten(qr: false)],
+        now: DateTime(2026, 11, 13, 9, 56),
+      );
+      expect(find.byType(SubtaskTile), findsOneWidget);
       expect(find.text('Submit & Sign'), findsOneWidget);
     });
   });

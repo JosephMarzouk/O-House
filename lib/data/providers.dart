@@ -257,6 +257,22 @@ final myAssignmentsProvider = FutureProvider<List<Assignment>>((ref) async {
   return repo.cached();
 });
 
+/// The server's clock ahead of the phone's (AssignmentsRepo.serverOffset).
+/// Re-read whenever the rounds are, since a refresh is what updates it.
+final serverOffsetProvider = FutureProvider<Duration>((ref) async {
+  ref.watch(myAssignmentsProvider);
+  final repo = ref.watch(assignmentsRepoProvider);
+  return repo == null ? Duration.zero : repo.serverOffset();
+});
+
+/// "Now" on the server's clock, for rules that depend on the hour (a
+/// checklist opens 5 minutes before its window). A function, not a value, so
+/// each read is the current time. Tests override it with a fixed clock.
+final serverClockProvider = Provider<DateTime Function()>((ref) {
+  final offset = ref.watch(serverOffsetProvider).valueOrNull ?? Duration.zero;
+  return () => DateTime.now().add(offset);
+});
+
 /// When the cache was last refreshed, for "Last updated 09:12" offline.
 final refreshedAtProvider = FutureProvider<DateTime?>((ref) async {
   ref.watch(roundsRefreshProvider);

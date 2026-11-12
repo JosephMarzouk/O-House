@@ -40,7 +40,10 @@ class GroupScreen extends ConsumerWidget {
 
     final first = places.first;
     final done = places.where((a) => a.isSent).length;
-    final anyLocked = places.any((a) => a.isLocked);
+    // A place still to come shows "Opens at …" on its card instead: only a
+    // locked place whose time has come is worth the Scan button.
+    final now = ref.watch(serverClockProvider)();
+    final anyLocked = places.any((a) => a.isLocked && !a.isNotOpenAt(now));
     final locale = Localizations.localeOf(context).toString();
 
     return AnnotatedRegion<SystemUiOverlayStyle>(

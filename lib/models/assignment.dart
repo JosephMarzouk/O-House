@@ -1,5 +1,9 @@
 import 'assignment_item.dart';
 
+/// How long before its window a checklist opens on the phone (decided
+/// 12 Nov: a 10:00 checklist opens at 09:55).
+const kOpenEarly = Duration(minutes: 5);
+
 /// Mirrors public.assignments_v (the view over `submissions`, per §2 of the
 /// plan — table name kept as-is so the existing dashboard queries keep
 /// working; `effective_status` is the derived, clock-based status and is
@@ -77,6 +81,11 @@ class Assignment {
   /// applyLocal also sets it while a scan is still queued on this phone.
   final bool unlocked;
 
+  /// When the window starts: the view's `opens_at` (scheduled_date +
+  /// window_start, Cairo time; the first day of a multi-day task). Null for a
+  /// checklist with no window, and from an API older than 12 Nov: no gate.
+  final DateTime? opensAt;
+
   const Assignment({
     required this.id,
     required this.assigneeId,
@@ -112,6 +121,7 @@ class Assignment {
     this.groupPosition,
     this.qrHash,
     this.unlocked = false,
+    this.opensAt,
   });
 
   int get doneCount => items.where((i) => i.status == 'done').length;
@@ -139,6 +149,34 @@ class Assignment {
   /// scanned (or a supervisor unlocks it on the portal). A checklist that can
   /// no longer be filled is only read, so it never shows as locked.
   bool get isLocked => qrRequired && !unlocked && !isReadOnly;
+
+  /// When the phone opens it: [kOpenEarly] before the window starts.
+  DateTime? get openTime => opensAt?.subtract(kOpenEarly);
+
+  /// Not open yet at [now] — the server-corrected clock, so a phone set
+  /// ahead can't open it early. Nothing can be done before [openTime], not
+  /// even a QR scan. Only work still to start waits: a sent-back or finished
+  /// checklist is never held back.
+  bool isNotOpenAt(DateTime now) {
+    final open = openTime;
+    return open != null &&
+        const {'pending', 'in_progress'}.contains(effectiveStatus) &&
+        now.isBefore(open);
+  }
+
+  /// "09:55": [openTime] on the club's clock, the way the card shows the
+  /// window (from window_start, so it never depends on the phone's time zone).
+  String? get openClock {
+    final s = windowStart;
+    if (s == null || s.length < 5) return null;
+    final m =
+        (int.parse(s.substring(0, 2)) * 60 +
+            int.parse(s.substring(3, 5)) -
+            kOpenEarly.inMinutes) %
+        1440;
+    return '${(m ~/ 60).toString().padLeft(2, '0')}:'
+        '${(m % 60).toString().padLeft(2, '0')}';
+  }
 
   /// One place of a task over several places: the Tasks list shows the task
   /// as one card and the places on /groups/:id. A group of one is just a
@@ -233,6 +271,9 @@ class Assignment {
     groupPosition: (json['group_position'] as num?)?.toInt(),
     qrHash: json['qr_hash'] as String?,
     unlocked: json['unlocked'] as bool? ?? false,
+    opensAt: json['opens_at'] == null
+        ? null
+        : DateTime.parse(json['opens_at'] as String),
   );
 
   Map<String, dynamic> toCacheJson() => {
@@ -270,6 +311,7 @@ class Assignment {
     'group_position': groupPosition,
     'qr_hash': qrHash,
     'unlocked': unlocked,
+    'opens_at': opensAt?.toIso8601String(),
   };
 
   Assignment copyWithItems(List<AssignmentItem> items) => Assignment(
@@ -307,5 +349,6 @@ class Assignment {
     groupPosition: groupPosition,
     qrHash: qrHash,
     unlocked: unlocked,
+    opensAt: opensAt,
   );
 }

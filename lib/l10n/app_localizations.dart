@@ -1028,6 +1028,24 @@ abstract class AppLocalizations {
   /// **'Locked'**
   String get qrLocked;
 
+  /// No description provided for @opensAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens at {time}'**
+  String opensAt(String time);
+
+  /// No description provided for @opensOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens {date} at {time}'**
+  String opensOn(String date, String time);
+
+  /// No description provided for @notOpenYetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This task can\'t be started before its time, even with the place\'s QR.'**
+  String get notOpenYetHint;
+
   /// No description provided for @groupPlacesLabel.
   ///
   /// In en, this message translates to:
