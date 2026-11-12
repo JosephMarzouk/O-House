@@ -34,6 +34,12 @@ That is O House in dev (the default flavor and `ENVIRONMENT`); in full,
 flutter build appbundle --flavor owest --dart-define=TENANT_NAME=OWEST --dart-define=ENVIRONMENT=prod
 ```
 
+**Build from a normal shell** (the desktop app's Terminal panel, or your own): from Claude's
+command tool Gradle fails with `Unable to establish loopback connection` (its daemon socket is
+blocked there, sandbox or not), and so does `adb` once its server needs starting. The pilot APKs
+of 12 Nov were built that way (`flutter build apk --release --flavor <club> --dart-define=TENANT_NAME=<CLUB> --dart-define=ENVIRONMENT=prod`,
+copied to `../pilot-apk/<club>-pilot-1.0.0-build<N>.apk`).
+
 `pubspec.yaml` sets `default-flavor: owest`, so the IDE's Run button and a
 bare `flutter run` build O House (without it, Flutter installed a stale
 pre-flavor `build/…/app-debug.apk`, club-code screen and all). Other clubs
@@ -64,9 +70,10 @@ fake data: `?screen=home|tasks|profile`, `?lang=ar`.
 **`main` is the current build** (8 Nov: `main` fast-forwarded to the QR scanner, `b6b4578`, matching
 the 28 Oct QR drop in the API and portal; the 27 Sep `rounds-follow-up-tracker` fast-forward carried
 every screen, the answers / follow-up / zone-round work, Step 3, the tenant method, About /
-Policies and the default flavor). Version is `1.0.0+3` (build 3, 8 Nov, built and handed out from
-this machine — note the new debug key, root `CLAUDE.md` → "Running locally"). Work on `main` or
-branch from it.
+Policies and the default flavor). **12 Nov:** `qa/pre-deploy` is one commit ahead of `main`
+(`020b85f`, the "opens at" time gate, version `1.0.0+4`, build 4 built here and installed on the
+OPPO); fast-forward `main` to it when the pilot is happy. Build 3 (8 Nov) was the first built on
+this machine — note the new debug key, root `CLAUDE.md` → "Running locally".
 
 Refactored away in `8f4202a`, do not resurrect:
 `lib/features/assignments/item_sheet.dart` → folded into `subtask_tile.dart`;
@@ -86,6 +93,7 @@ Refactored away in `8f4202a`, do not resurrect:
 | — | Sync you can see (30 Sep) | Resume and reconnect refetch `/assignments` and `/me` (30 s throttle; at once after a failure); pull to refresh fetches `/me` too. A failed fetch shows "Can't reach the server — showing saved tasks · Last updated HH:mm" whatever the outbox holds. An overnight window (22:00 → 01:00) stays in Today until its deadline |
 | — | Role names (29 Sep) | The header shows the role's own name from `/me`'s `access.role` (custom roles included), in the reader's language, cached with the profile. The app still gates nothing by role |
 | — | QR-locked places (28 Oct) | **Done (code), deployed, build 3 has it** — a place's checklist opens only after a valid scan of that place's printed sticker (`lib/features/assignments/qr_scan.dart`, `mobile_scanner`). The sticker payload is `clubops:<clubSlug>:<code>`; the phone holds no codes — a locked checklist carries `assignments_v`'s `qr_hash` (sha256), so `matchQr` decides **offline** and says `wrongClub` / `notInTask` / a match. A match on a locked place queues a **scan** op (`assignRepo.queueScan` → `POST /assignments/:id/scan` → `record_place_scan`, idempotent via `scanId`, a 200 whatever the verdict) and re-reads the round before leaving, so the checklist opens unlocked. Scanning from a task matches only that task's places (`?group=`), otherwise today's; a locked candidate beats an open one, then walk order (`groupPosition`, window, arrival — display only, QF). **Enforcement is app-only (Q10):** the server logs `scan` / `bad_code` / `unlock` into `place_scans` and never refuses an answer or a submit. Lost sticker: a supervisor with `assignments.unlock_place` opens the place from the portal. The task's places live on one card (`features/assignments/group_screen.dart`, walk order), the scan screen is open over it or from a place's own checklist. Build 3 (1.0.0+3) is the first pilot build with it; only lean a place's `qr_required` on after the phones have it |
+| — | Not open before its time (12 Nov) | **Done (code), build 4 (1.0.0+4) has it, installed on the OPPO; not yet tried there.** A checklist opens **5 minutes before its window** (`kOpenEarly` in `models/assignment.dart`), judged on the **server-corrected clock** (`serverClockProvider` = phone time + `AssignmentsRepo.serverOffset()`, the offset each `GET /assignments` stores), so a phone set ahead can't open it early. The time is `assignments_v.opens_at` (`scheduled_date + window_start`, Cairo; the first day of a multi-day task); no `opens_at` (an older API, no window) = no gate. `isNotOpenAt(now)` holds only for `pending` / `in_progress`: sent-back and finished checklists are never held back. Before then the detail screen shows only "Opens at 09:55" (`_NotOpenGate`, ahead of the zone gate, so no location is asked for) and a one-shot timer turns it into the checklist when due; `_submit` re-checks. The task card shows the same badge (`opensAtText` in `l10n/localized_text.dart`; "Opens Fri 13 Nov at 09:55" on a later day); the group screen's Scan button shows only for a locked place whose time has come. **A QR scan opens nothing early:** `matchQr` takes `now` and answers `QrVerdict.notOpenYet` (with the place that opens first) when none of the sticker's checklists is open, and the scanner then queues no `scan` op, so the server never records or claims it early. **The same place in several periods** (allowed since 12 Nov) shares one `qr_hash`: the scan opens the period whose time has come. App-only, like QR (Q10) |
 | — | Pre-deploy fixes (18 Oct, `qa/05-review-findings.md`) | **F-08:** a release build defaults to `ENVIRONMENT=prod` = the Railway API (`prodApiUrl`) and refuses plain http. **F-11 force update** (`lib/app_release.dart`): every call sends `X-App-Version` (the versionCode, from `MainActivity`'s `o_house/app` channel); a 426 `UPGRADE_REQUIRED` (below the club's `app_release.min_build`) routes to `/update` (`features/update_screen.dart`, opens `update_url`), and queued work waits. **F-12:** the outbox parks 400/403/404/409 at once with the server's code and anything else after 24 failed tries (`STILL_FAILING`); no response, 401 and 426 don't count. **F-13:** `CAMERA` declared; a refused camera shows why with Open settings, any other camera error says so. **B10:** a capture lost when Android kills the app comes back on its own round. **B20:** the signature pad fits short phones. **FIELD-08:** a round that isn't on the phone says so (`widgets/round_gone.dart`), never an endless spinner |
 | — | Video at most 1 MB (19 Oct) | Business rule. `lib/video_shrink.dart` + `MainActivity.compressVideo` (Media3 Transformer 1.9.2, the version `video_player` already pulls in): 480 p on the short side, H.264 at 330 kbps, AAC 48 kbps, **only the first 20 s kept** (a camera that ignores the 20 s limit doesn't cost the cleaner the clip); a second try at 230 kbps if the encoder overshoots, else "couldn't be prepared" and nothing is queued. `CompactMp4Muxer` writes the index at the end: Media3's own writer reserves 400 KB per file, which made 18–19 s clips fail. Checked on the OPPO against Railway: 18 s → 0.85 MB, 30 s → 20.0 s / 0.92 MB, both play in the portal. Build 2 (`1.0.0+2`). The API refuses a bigger clip (`FILE_TOO_LARGE`) |
 
@@ -278,7 +286,7 @@ Providers: `localDbProvider`, `assignmentsRepoProvider`, `syncServiceProvider`,
 | `features/home/home_header.dart` | Animated logo/text overlay + shared `HeaderText` |
 | `features/assignments/list_screen.dart` | Three tabs (`tabFor` — `follow_up` is always Today), search (`matchesQuery`) |
 | `features/assignments/detail_screen.dart` | The checklist. `normalizeAnswer`, `isItemChecked`, `itemPhotos`, `missingPhotoCount`, `canSubmitStaged` (staged answers, not ticks; the follow-up resubmit gate). Gated by QR: a locked place shows why it is shut (QR-locked places, "28 Oct" phase row) |
-| `features/assignments/qr_scan.dart` | The scanner (`/scan`): `matchQr` (pure), `walkOrder`, `scanCandidates`, `scanPlace` (pushes `/scan`, then the match), `ScanScreen` (mobile_scanner, no-duplicates) |
+| `features/assignments/qr_scan.dart` | The scanner (`/scan`): `matchQr` (pure; takes `now`, answers `notOpenYet` before a checklist's time), `walkOrder`, `scanCandidates`, `scanPlace` (pushes `/scan`, then the match), `ScanScreen` (mobile_scanner, no-duplicates) |
 | `features/assignments/group_screen.dart` | `/groups/:id`: a multi-place task's places (`submissions.task_group_id`) on one card, in walk order |
 | `features/assignments/club_zone.dart` | The zone check: pure `insideClub`, `checkClubZone` (permission, service, one fresh fix; never throws; no last-known fallback), `ensureLocationPermission` (Home's up-front prompt). The gate itself is `_zoneGate` in `detail_screen.dart`, re-checked in `_submit` |
 | `features/assignments/signature_screen.dart` | Signature pad, forced LTR. Drains, then re-reads the round *before* Success |
@@ -330,6 +338,7 @@ the expected answer: "Yes", "1–3", "≥ 1"; words in Arabic).
 | `0006_partial_submit.sql` | yes | `submit_assignment()` accepts a partial round |
 | `0007`–`0012` | — | Portal-side hardening (fail-closed RPC guards, the inspector portal, phone privacy). **These files live in the admin repo**, `o-house-admin/supabase/migrations/`, not here |
 | `0013_rounds_follow_up.sql` | yes (live) | **Also in the admin repo**: `o-house-admin/supabase/migrations/0013_rounds_follow_up.sql` (+ `0013_verify.sql`). Zone rounds, answer capture, correct answers and `follow_up` — see below |
+| `20261112135440_place_periods_opens_at.sql` | yes (live) | **In the API repo.** A place may repeat in a round or multi-place task, each in its own period (overlaps refused: `PLACE_WINDOW_OVERLAP`); `schedule_rounds` makes one checklist per entry; `assignments_v.opens_at` for the "not open before its time" gate |
 | `20261028123023_qr_places.sql` `…140223_task_walk_order.sql` | yes (live) | **In the API repo**, `o-house-api/supabase/migrations/`: QR-locked places (`templates.qr_required`/`qr_code`, `task_groups`, `place_scans`, `record_place_scan` / `unlock_place` / `replace_place_qr` / `create_task_group`) and `submissions.group_position`. See the QR phase row and the migration headers' Q-decisions |
 
 Migrations live in two repos now: this one up to 0006, `o-house-admin` from
@@ -442,7 +451,7 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 
 ---
 
-## 7. Tests (`test/`, 167 tests passing on 19 Oct; `qr_places_test.dart` newer — counts stale)
+## 7. Tests (`test/`, 206 tests passing on 12 Nov)
 
 | File | Covers |
 |---|---|
@@ -453,7 +462,7 @@ Source: `.design-preview-tmp/_ds/broadsheet-*/styles.css` and
 | `push_test.dart` | `routeFor`: where a tapped push opens (a round, Tasks, Home, nothing for malformed data); the device token goes up with PUT and comes back with an encoded DELETE |
 | `club_zone_test.dart` | `insideClub` (inside, outside, mocked, no zone), the `/me` shape, and `clubZoneState`: never synced blocks, synced with no zone has no gate, a cached zone is the zone |
 | `role_label_test.dart` | The header's role name: en/ar pick, fallback to the role key when `/me` has no `access` |
-| `qr_places_test.dart` | `qrHashOf` against a known digest; `matchQr`: a payload from another club, not-a-sticker, none of the candidates, and a match; `walkOrder` (position, then window, stable); `scanCandidates` (task-scoped vs today) |
+| `qr_places_test.dart` | `qrHashOf` against a known digest; `matchQr`: a payload from another club, not-a-sticker, none of the candidates, and a match; `walkOrder` (position, then window, stable); `scanCandidates` (task-scoped vs today). Since 12 Nov: two periods of one place (the scan opens the one whose time has come), `notOpenYet` before its time (nothing to queue), the 5-minute grace, `isNotOpenAt` (follow_up / submitted never wait, no `opens_at` = no gate), `openClock`, and the detail screen shut until its time in EN/AR (a later day names the day) |
 | `tenant_test.dart` | `resolveTenant` fails fast (missing, unknown, mismatched `TENANT_NAME`), every tenant config is complete and its logo file exists, every tenant's brand contrasts (cyanDark on paper ≥ 4.5, paper on ink ≥ 4.5, onAccent on accent ≥ 3), the API client sends the tenant's club, OWEST's palette colours |
 | `app_header_test.dart` | Header height/logo consistency across every screen in both locales; submission flow; signature button and pad sizing |
 | `home_screen_test.dart` | Stat counts, today-filter, Next up ordering, ink hand-off cases, pull-to-refresh |
